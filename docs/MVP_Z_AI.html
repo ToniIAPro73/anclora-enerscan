@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnerScan — Prediagnóstico Energético Inmobiliario</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { heading: ['Space Grotesk','sans-serif'], body: ['DM Sans','sans-serif'] },
+          colors: {
+            bg: '#0A0A0A', elevated: '#131313', card: '#1A1A1A',
+            border: '#262626', fg: '#F0EDE8', muted: '#7A7A7A',
+            accent: '#00DC82', warm: '#FFB020', danger: '#EF4444',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --bg:#0A0A0A;--elevated:#131313;--card:#1A1A1A;--border:#262626;
+      --fg:#F0EDE8;--muted:#7A7A7A;--accent:#00DC82;--warm:#FFB020;--danger:#EF4444;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden}
+    .font-heading{font-family:'Space Grotesk',sans-serif}
+
+    /* Ruido sutil */
+    body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+      opacity:.5}
+
+    /* Glass */
+    .glass{background:rgba(10,10,10,.75);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+
+    /* Glow */
+    .glow-green{box-shadow:0 0 60px rgba(0,220,130,.12),0 0 120px rgba(0,220,130,.04)}
+    .glow-warm{box-shadow:0 0 50px rgba(255,176,32,.1)}
+
+    /* Scroll reveal */
+    .reveal{opacity:0;transform:translateY(36px);transition:opacity .7s ease,transform .7s ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+    .reveal-delay-1{transition-delay:.1s}
+    .reveal-delay-2{transition-delay:.2s}
+    .reveal-delay-3{transition-delay:.3s}
+
+    /* Canvas */
+    #hero-canvas{position:absolute;inset:0;pointer-events:none}
+
+    /* Medidor semicircular */
+    .gauge-outer{width:320px;height:160px;border-radius:160px 160px 0 0;position:relative;overflow:hidden;
+      background:conic-gradient(from 180deg at 50% 100%,#D32F2F 0deg,#E53935 25.7deg,#FF9800 51.4deg,#FDD835 77.1deg,#8BC34A 102.8deg,#4CAF50 128.5deg,#1B8C2F 154.2deg,transparent 154.2deg,transparent 360deg)}
+    .gauge-inner{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:200px;height:100px;border-radius:100px 100px 0 0;background:var(--bg)}
+    .needle{position:absolute;bottom:0;left:50%;width:3px;height:110px;background:var(--fg);transform-origin:bottom center;border-radius:2px;z-index:3;
+      transform:rotate(-90deg);transition:transform 2.2s cubic-bezier(.22,1.2,.36,1)}
+    .needle.go{transform:rotate(-38deg)}
+    .needle-dot{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:var(--fg);z-index:4}
+    .gauge-label{position:absolute;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.85rem;z-index:2}
+
+    /* Barra energética horizontal */
+    .energy-bar{display:flex;border-radius:10px;overflow:hidden}
+    .energy-bar>div{flex:1;padding:14px 4px;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;transition:all .25s ease;position:relative;min-width:0}
+    .energy-bar>div:hover{transform:scaleY(1.18);z-index:2}
+    .energy-bar>div.active{transform:scaleY(1.25);z-index:3;box-shadow:0 4px 24px rgba(0,0,0,.6)}
+
+    /* Rating colors */
+    .rA{background:#1B8C2F}.rB{background:#4CAF50}.rC{background:#8BC34A}.rD{background:#FDD835;color:#333}.rE{background:#FF9800}.rF{background:#E53935}.rG{background:#D32F2F}
+
+    /* Timeline */
+    .tl-node{width:18px;height:18px;border-radius:50%;border:3px solid;position:relative;z-index:2;flex-shrink:0}
+    .tl-green{border-color:#22C55E;background:rgba(34,197,94,.15)}
+    .tl-amber{border-color:#FFB020;background:rgba(255,176,32,.15)}
+    .tl-red{border-color:#EF4444;background:rgba(239,68,68,.15)}
+
+    /* Scenario cards */
+    .scenario-card{transition:transform .3s ease,box-shadow .3s ease}
+    .scenario-card:hover{transform:translateY(-8px)}
+
+    /* FAQ */
+    .faq-answer{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s ease}
+    .faq-answer.open{max-height:400px}
+
+    /* Mobile menu */
+    .mob-menu{max-height:0;overflow:hidden;transition:max-height .35s ease}
+    .mob-menu.open{max-height:360px}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease}
+    .modal-overlay.show{opacity:1;pointer-events:auto}
+    .modal-box{transform:translateY(30px) scale(.96);transition:transform .35s ease}
+    .modal-overlay.show .modal-box{transform:translateY(0) scale(1)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;right:24px;padding:16px 24px;border-radius:12px;background:var(--card);border:1px solid var(--accent);color:var(--fg);font-size:.9rem;z-index:10000;transform:translateY(100px);opacity:0;transition:all .4s ease;max-width:360px}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    /* Floating CTA */
+    .float-cta{position:fixed;bottom:24px;left:24px;z-index:8000;opacity:0;transform:translateY(20px);transition:all .4s ease;pointer-events:none}
+    .float-cta.show{opacity:1;transform:translateY(0);pointer-events:auto}
+
+    /* Animaciones */
+    @keyframes pulse-glow{0%,100%{box-shadow:0 0 20px rgba(0,220,130,.2)}50%{box-shadow:0 0 40px rgba(0,220,130,.35)}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    .pulse-glow{animation:pulse-glow 3s ease-in-out infinite}
+    .float-anim{animation:float 6s ease-in-out infinite}
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-track{background:var(--bg)}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+    /* Reduced motion */
+    @media(prefers-reduced-motion:reduce){
+      .reveal{transition:none;opacity:1;transform:none}
+      .float-anim,.pulse-glow{animation:none}
+      #hero-canvas{display:none}
+      .needle{transition:none}
+    }
+
+    /* Responsive gauge */
+    @media(max-width:768px){
+      .gauge-outer{width:240px;height:120px;border-radius:120px 120px 0 0}
+      .gauge-inner{width:150px;height:75px;border-radius:75px 75px 0 0}
+      .needle{height:82px}
+      .gauge-label{font-size:.7rem!important}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Toast -->
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+  <!-- ========== NAV ========== -->
+  <header class="fixed top-0 left-0 right-0 z-[8500] glass border-b border-border/50">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Navegación principal">
+      <a href="#" class="flex items-center gap-2 font-heading font-bold text-xl text-fg">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-accent/15 text-accent"><i class="fa-solid fa-bolt text-sm"></i></span>
+        EnerScan
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-sm text-muted">
+        <a href="#como-funciona" class="hover:text-fg transition">C&oacute;mo funciona</a>
+        <a href="#normativa" class="hover:text-fg transition">Normativa</a>
+        <a href="#mejoras" class="hover:text-fg transition">Mejoras</a>
+        <a href="#precios" class="hover:text-fg transition">Precios</a>
+        <a href="#faq" class="hover:text-fg transition">FAQ</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="openModal()" class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent text-bg font-heading font-semibold text-sm hover:brightness-110 transition focus:outline-none focus:ring-2 focus:ring-accent/50">
+          Iniciar an&aacute;lisis
+        </button>
+        <button id="mob-btn" onclick="toggleMob()" class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition" aria-label="Menú" aria-expanded="false">
+          <i class="fa-solid fa-bars text-fg"></i>
+        </button>
+      </div>
+    </nav>
+    <div id="mob-menu" class="mob-menu md:hidden border-t border-border/50 bg-elevated">
+      <div class="px-6 py-4 flex flex-col gap-4 text-sm">
+        <a href="#como-funciona" onclick="closeMob()" class="text-muted hover:text-fg transition">C&oacute;mo funciona</a>
+        <a href="#normativa" onclick="closeMob()" class="text-muted hover:text-fg transition">Normativa</a>
+        <a href="#mejoras" onclick="closeMob()" class="text-muted hover:text-fg transition">Mejoras</a>
+        <a href="#precios" onclick="closeMob()" class="text-muted hover:text-fg transition">Precios</a>
+        <a href="#faq" onclick="closeMob()" class="text-muted hover:text-fg transition">FAQ</a>
+        <button onclick="openModal();closeMob()" class="mt-2 px-5 py-2.5 rounded-full bg-accent text-bg font-heading font-semibold text-sm">Iniciar an&aacute;lisis</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== MODAL ========== -->
+  <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Iniciar análisis">
+    <div class="modal-box w-full max-w-lg mx-4 bg-card border border-border rounded-2xl p-6 sm:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <p class="text-xs text-accent font-heading font-semibold tracking-wider uppercase mb-1">Paso 1 de 4</p>
+          <h3 class="font-heading font-bold text-xl text-fg">&iquest;Cu&aacute;l es tu objetivo?</h3>
+        </div>
+        <button onclick="closeModal()" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-muted hover:text-fg transition" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="flex flex-col gap-3" id="objective-cards">
+        <button onclick="selectObj(this)" class="obj-card text-left p-4 rounded-xl border border-border hover:border-accent/50 bg-elevated transition group">
+          <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 group-hover:bg-accent/20 transition"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
+            <div><p class="font-heading font-semibold text-fg text-sm">Conocer la situaci&oacute;n actual</p><p class="text-xs text-muted mt-1">Descubre la clasificaci&oacute;n energ&eacute;tica orientativa de tu vivienda y los factores que m&aacute;s la penalizan.</p></div>
+          </div>
+        </button>
+        <button onclick="selectObj(this)" class="obj-card text-left p-4 rounded-xl border border-border hover:border-accent/50 bg-elevated transition group">
+          <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-lg bg-warm/10 text-warm flex items-center justify-center flex-shrink-0 group-hover:bg-warm/20 transition"><i class="fa-solid fa-bullseye"></i></span>
+            <div><p class="font-heading font-semibold text-fg text-sm">Alcanzar una letra concreta</p><p class="text-xs text-muted mt-1">Define tu objetivo (por ejemplo, letra C) y obt&eacute;n un plan de actuaciones personalizado.</p></div>
+          </div>
+        </button>
+        <button onclick="selectObj(this)" class="obj-card text-left p-4 rounded-xl border border-border hover:border-accent/50 bg-elevated transition group">
+          <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0 group-hover:bg-danger/20 transition"><i class="fa-solid fa-building-circle-exclamation"></i></span>
+            <div><p class="font-heading font-semibold text-fg text-sm">Preparar venta o alquiler</p><p class="text-xs text-muted mt-1">Identifica las mejoras con mayor impacto para incrementar el valor de tu inmueble antes de su comercializaci&oacute;n.</p></div>
+          </div>
+        </button>
+      </div>
+      <button id="modal-next" onclick="handleNext()" disabled class="mt-6 w-full py-3 rounded-full bg-accent/20 text-accent/50 font-heading font-semibold text-sm cursor-not-allowed transition">
+        Siguiente
+      </button>
+      <p class="text-[11px] text-muted text-center mt-4 leading-relaxed">Estimaci&oacute;n orientativa basada en datos declarados. No sustituye al CEE oficial.</p>
+    </div>
+  </div>
+
+  <main>
+    <!-- ========== HERO ========== -->
+    <section class="relative min-h-screen flex items-center overflow-hidden pt-16">
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <!-- Blobs decorativos -->
+      <div class="absolute top-1/4 -left-40 w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px] pointer-events-none" aria-hidden="true"></div>
+      <div class="absolute bottom-1/4 -right-40 w-[400px] h-[400px] rounded-full bg-warm/5 blur-[100px] pointer-events-none" aria-hidden="true"></div>
+
+      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
+        <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <!-- Texto -->
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/5 mb-6">
+              <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+              <span class="text-xs text-accent font-heading font-medium">Directiva EPBD 2024/1275</span>
+            </div>
+            <h1 class="font-heading font-bold text-4xl sm:text-5xl lg:text-[3.5rem] leading-[1.1] text-fg mb-6">
+              Descubre la situaci&oacute;n<br>
+              <span class="text-accent">energ&eacute;tica</span> de tu vivienda
+            </h1>
+            <p class="text-muted text-lg sm:text-xl leading-relaxed mb-8 max-w-xl">
+              Prediagn&oacute;stico orientativo, contexto normativo actualizado y rutas de mejora con conectividad directa con proveedores. Sin sustituir el certificado oficial.
+            </p>
+            <div class="flex flex-wrap gap-4 mb-6">
+              <button onclick="openModal()" class="px-7 py-3.5 rounded-full bg-accent text-bg font-heading font-bold text-sm hover:brightness-110 transition pulse-glow focus:outline-none focus:ring-2 focus:ring-accent/50">
+                Iniciar an&aacute;lisis gratuito
+              </button>
+              <a href="#como-funciona" class="px-7 py-3.5 rounded-full border border-border text-fg font-heading font-medium text-sm hover:border-muted transition">
+                Ver c&oacute;mo funciona
+              </a>
+            </div>
+            <p class="text-[11px] text-muted/70 leading-relaxed max-w-md">Este resultado es una estimaci&oacute;n orientativa basada en la informaci&oacute;n declarada. No sustituye al Certificado de Eficiencia Energ&eacute;tica oficial exigido por el R.D. 390/2021.</p>
+          </div>
+
+          <!-- Medidor energético -->
+          <div class="flex justify-center lg:justify-end">
+            <div class="float-anim">
+              <div class="relative">
+                <div class="gauge-outer glow-green mx-auto">
+                  <div class="gauge-inner"></div>
+                  <div class="needle" id="needle"><div class="needle-dot"></div></div>
+                  <!-- Etiquetas A-G -->
+                  <span class="gauge-label text-fg" style="bottom:8px;left:6%">G</span>
+                  <span class="gauge-label text-fg" style="bottom:22%;left:1%">F</span>
+                  <span class="gauge-label text-fg" style="bottom:42%;left:4%">E</span>
+                  <span class="gauge-label" style="bottom:55%;left:50%;transform:translateX(-50%);color:#333">D</span>
+                  <span class="gauge-label text-fg" style="bottom:42%;right:4%">C</span>
+                  <span class="gauge-label text-fg" style="bottom:22%;right:1%">B</span>
+                  <span class="gauge-label text-fg" style="bottom:8px;right:6%">A</span>
+                </div>
+                <!-- Letra central -->
+                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-center">
+                  <p id="gauge-letter" class="font-heading font-bold text-5xl text-fg opacity-0 transition-opacity duration-500">E</p>
+                  <p id="gauge-conf" class="text-xs text-muted mt-1 opacity-0 transition-opacity duration-500">Confianza media</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 lg:mt-20 reveal">
+          <div class="p-4 rounded-xl bg-card/60 border border-border/50 text-center">
+            <p class="font-heading font-bold text-2xl sm:text-3xl text-fg counter" data-target="80">0</p>
+            <p class="text-xs text-muted mt-1">% del parque inmobiliario espa&ntilde;ol es deficiente</p>
+          </div>
+          <div class="p-4 rounded-xl bg-card/60 border border-border/50 text-center">
+            <p class="font-heading font-bold text-2xl sm:text-3xl text-warm">2030</p>
+            <p class="text-xs text-muted mt-1">Primera fecha clave EPBD</p>
+          </div>
+          <div class="p-4 rounded-xl bg-card/60 border border-border/50 text-center">
+            <p class="font-heading font-bold text-2xl sm:text-3xl text-danger">2033</p>
+            <p class="text-xs text-muted mt-1">Objetivo clase E residencial</p>
+          </div>
+          <div class="p-4 rounded-xl bg-card/60 border border-border/50 text-center">
+            <p class="font-heading font-bold text-2xl sm:text-3xl text-accent counter" data-target="7">0</p>
+            <p class="text-xs text-muted mt-1">Pasos del an&aacute;lisis</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CÓMO FUNCIONA ========== -->
+    <section id="como-funciona" class="py-24 sm:py-32 relative">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+          <p class="text-xs text-accent font-heading font-semibold tracking-wider uppercase mb-3">Proceso</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Cuatro pasos hacia tu prediagn&oacute;stico</h2>
+          <p class="text-muted max-w-2xl mx-auto">Un flujo guiado que te lleva desde la descripci&oacute;n de tu vivienda hasta un informe personalizado con propuestas de mejora.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="reveal reveal-delay-0 group p-6 rounded-2xl bg-card border border-border hover:border-accent/30 transition">
+            <div class="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-5 group-hover:bg-accent/20 transition"><i class="fa-solid fa-house-chimney text-lg"></i></div>
+            <div class="flex items-center gap-2 mb-2"><span class="font-heading font-bold text-xs text-accent">01</span><div class="h-px flex-1 bg-border"></div></div>
+            <h3 class="font-heading font-bold text-lg text-fg mb-2">Describe tu vivienda</h3>
+            <p class="text-sm text-muted leading-relaxed">Tipo, a&ntilde;o, superficie, orientaci&oacute;n, cerramientos, instalaciones. Adjunta fotos y tu CEE si lo tienes.</p>
+          </div>
+          <div class="reveal reveal-delay-1 group p-6 rounded-2xl bg-card border border-border hover:border-warm/30 transition">
+            <div class="w-12 h-12 rounded-xl bg-warm/10 text-warm flex items-center justify-center mb-5 group-hover:bg-warm/20 transition"><i class="fa-solid fa-gauge-high text-lg"></i></div>
+            <div class="flex items-center gap-2 mb-2"><span class="font-heading font-bold text-xs text-warm">02</span><div class="h-px flex-1 bg-border"></div></div>
+            <h3 class="font-heading font-bold text-lg text-fg mb-2">Obt&eacute;n tu calificaci&oacute;n</h3>
+            <p class="text-sm text-muted leading-relaxed">Motor basado en reglas que estima tu letra orientativa con un nivel de confianza expl&iacute;cito y factores clave.</p>
+          </div>
+          <div class="reveal reveal-delay-2 group p-6 rounded-2xl bg-card border border-border hover:border-accent/30 transition">
+            <div class="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-5 group-hover:bg-accent/20 transition"><i class="fa-solid fa-arrow-trend-up text-lg"></i></div>
+            <div class="flex items-center gap-2 mb-2"><span class="font-heading font-bold text-xs text-accent">03</span><div class="h-px flex-1 bg-border"></div></div>
+            <h3 class="font-heading font-bold text-lg text-fg mb-2">Explora mejoras</h3>
+            <p class="text-sm text-muted leading-relaxed">Tres escenarios por presupuesto: b&aacute;sico, intermedio y profundo. Costes orientativos y ahorro estimado.</p>
+          </div>
+          <div class="reveal reveal-delay-3 group p-6 rounded-2xl bg-card border border-border hover:border-warm/30 transition">
+            <div class="w-12 h-12 rounded-xl bg-warm/10 text-warm flex items-center justify-center mb-5 group-hover:bg-warm/20 transition"><i class="fa-solid fa-file-pdf text-lg"></i></div>
+            <div class="flex items-center gap-2 mb-2"><span class="font-heading font-bold text-xs text-warm">04</span><div class="h-px flex-1 bg-border"></div></div>
+            <h3 class="font-heading font-bold text-lg text-fg mb-2">Descarga tu informe</h3>
+            <p class="text-sm text-muted leading-relaxed">PDF premium con contexto normativo, escenarios detallados, costes, ahorro y conexi&oacute;n directa con proveedores.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SCORING INTERACTIVO ========== -->
+    <section id="scoring" class="py-24 sm:py-32 relative bg-elevated/50">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 reveal">
+          <p class="text-xs text-warm font-heading font-semibold tracking-wider uppercase mb-3">Motor de scoring</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Tu clasificaci&oacute;n energ&eacute;tica orientativa</h2>
+          <p class="text-muted max-w-2xl mx-auto">Haz clic en cualquier letra para ver qu&eacute; representa y c&oacute;mo se determina. El resultado real depender&aacute; de los datos espec&iacute;ficos de tu inmueble.</p>
+        </div>
+        <!-- Barra interactiva -->
+        <div class="reveal">
+          <div class="energy-bar mb-6" id="energy-bar" role="group" aria-label="Escala de calificación energética">
+            <div class="rA" data-letter="A" onclick="selectRating('A')" tabindex="0" role="button" aria-label="Letra A">A</div>
+            <div class="rB" data-letter="B" onclick="selectRating('B')" tabindex="0" role="button" aria-label="Letra B">B</div>
+            <div class="rC" data-letter="C" onclick="selectRating('C')" tabindex="0" role="button" aria-label="Letra C">C</div>
+            <div class="rD" data-letter="D" onclick="selectRating('D')" tabindex="0" role="button" aria-label="Letra D">D</div>
+            <div class="rE active" data-letter="E" onclick="selectRating('E')" tabindex="0" role="button" aria-label="Letra E">E</div>
+            <div class="rF" data-letter="F" onclick="selectRating('F')" tabindex="0" role="button" aria-label="Letra F">F</div>
+            <div class="rG" data-letter="G" onclick="selectRating('G')" tabindex="0" role="button" aria-label="Letra G">G</div>
+          </div>
+          <!-- Panel de detalle -->
+          <div id="rating-detail" class="p-6 rounded-2xl bg-card border border-border transition-all duration-300">
+            <!-- Se rellena por JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== NORMATIVA ========== -->
+    <section id="normativa" class="py-24 sm:py-32 relative">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+          <p class="text-xs text-danger font-heading font-semibold tracking-wider uppercase mb-3">Contexto regulatorio</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">La hoja de ruta que marca la UE</h2>
+          <p class="text-muted max-w-2xl mx-auto">Informaci&oacute;n basada en normativa espa&ntilde;ola vigente y objetivos europeos sujetos a desarrollo y transposici&oacute;n.</p>
+        </div>
+
+        <!-- Timeline -->
+        <div class="relative reveal">
+          <!-- Línea vertical -->
+          <div class="absolute left-6 sm:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent via-warm to-danger sm:-translate-x-px" aria-hidden="true"></div>
+
+          <div class="space-y-12">
+            <!-- Hoy -->
+            <div class="relative flex flex-col sm:flex-row items-start gap-6 sm:gap-0">
+              <div class="sm:w-1/2 sm:pr-12 sm:text-right pl-16 sm:pl-0">
+                <h3 class="font-heading font-bold text-xl text-fg mb-2">Hoy</h3>
+                <p class="text-sm text-muted leading-relaxed">El CEE es obligatorio para vender o alquilar en Espa&ntilde;a (R.D. 390/2021). La mayor&iacute;a del parque residencial se sit&uacute;a entre F y G.</p>
+              </div>
+              <div class="absolute left-6 sm:left-1/2 sm:-translate-x-1/2 top-1"><div class="tl-node tl-green"></div></div>
+              <div class="sm:w-1/2 sm:pl-12 pl-16">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-heading font-semibold"><span class="w-2 h-2 rounded-full bg-accent"></span>Vigente en Espa&ntilde;a</span>
+              </div>
+            </div>
+            <!-- 2030 -->
+            <div class="relative flex flex-col sm:flex-row items-start gap-6 sm:gap-0">
+              <div class="sm:w-1/2 sm:pr-12 sm:text-right pl-16 sm:pl-0 order-2 sm:order-1">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warm/10 text-warm text-xs font-heading font-semibold"><span class="w-2 h-2 rounded-full bg-warm"></span>Objetivo UE — En desarrollo</span>
+              </div>
+              <div class="absolute left-6 sm:left-1/2 sm:-translate-x-1/2 top-1"><div class="tl-node tl-amber"></div></div>
+              <div class="sm:w-1/2 sm:pl-12 pl-16 order-1 sm:order-2">
+                <h3 class="font-heading font-bold text-xl text-fg mb-2">2030</h3>
+                <p class="text-sm text-muted leading-relaxed">Reducci&oacute;n del 16% del uso medio de energ&iacute;a primaria en edificios residenciales. La senda se interpreta como avance hacia E, pero la transposici&oacute;n espa&ntilde;ola no est&aacute; cerrada.</p>
+              </div>
+            </div>
+            <!-- 2033 -->
+            <div class="relative flex flex-col sm:flex-row items-start gap-6 sm:gap-0">
+              <div class="sm:w-1/2 sm:pr-12 sm:text-right pl-16 sm:pl-0">
+                <h3 class="font-heading font-bold text-xl text-fg mb-2">2033</h3>
+                <p class="text-sm text-muted leading-relaxed">Objetivo clase E para edificios residenciales existentes. Fuertes implicaciones para viviendas con calificaci&oacute;n F o G actualmente.</p>
+              </div>
+              <div class="absolute left-6 sm:left-1/2 sm:-translate-x-1/2 top-1"><div class="tl-node tl-amber"></div></div>
+              <div class="sm:w-1/2 sm:pl-12 pl-16">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warm/10 text-warm text-xs font-heading font-semibold"><span class="w-2 h-2 rounded-full bg-warm"></span>Transposici&oacute;n pendiente</span>
+              </div>
+            </div>
+            <!-- 2050 -->
+            <div class="relative flex flex-col sm:flex-row items-start gap-6 sm:gap-0">
+              <div class="sm:w-1/2 sm:pr-12 sm:text-right pl-16 sm:pl-0 order-2 sm:order-1">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-danger/10 text-danger text-xs font-heading font-semibold"><span class="w-2 h-2 rounded-full bg-danger"></span>Horizonte a largo plazo</span>
+              </div>
+              <div class="absolute left-6 sm:left-1/2 sm:-translate-x-1/2 top-1"><div class="tl-node tl-red"></div></div>
+              <div class="sm:w-1/2 sm:pl-12 pl-16 order-1 sm:order-2">
+                <h3 class="font-heading font-bold text-xl text-fg mb-2">2050</h3>
+                <p class="text-sm text-muted leading-relaxed">Parque edificatorio descarbonizado. Todos los edificios nuevos deben ser de consumo nulo. Requerir&aacute; rehabilitaciones profundas generalizadas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aviso legal -->
+        <div class="mt-12 p-4 rounded-xl bg-danger/5 border border-danger/20 reveal">
+          <p class="text-xs text-danger/80 leading-relaxed text-center">La informaci&oacute;n regulatoria mostrada combina normativa espa&ntilde;ola vigente y objetivos europeos sujetos a desarrollo y transposici&oacute;n. No debe interpretarse como asesoramiento legal. Consulta siempre fuentes oficiales para decisiones vinculantes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== ESCENARIOS DE MEJORA ========== -->
+    <section id="mejoras" class="py-24 sm:py-32 relative bg-elevated/50">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+          <p class="text-xs text-accent font-heading font-semibold tracking-wider uppercase mb-3">Simulador</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Tres rutas de mejora</h2>
+          <p class="text-muted max-w-2xl mx-auto">Cada escenario incluye medidas, rangos de coste y ahorro estimado. Ninguna medida garantiza una letra final exacta sin visita t&eacute;cnica profesional.</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          <!-- Básico -->
+          <div class="scenario-card reveal reveal-delay-0 p-6 rounded-2xl bg-card border border-border hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
+            <div class="flex items-center gap-3 mb-5">
+              <span class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center"><i class="fa-solid fa-leaf"></i></span>
+              <div>
+                <h3 class="font-heading font-bold text-lg text-fg">B&aacute;sico</h3>
+                <p class="text-xs text-muted">Confort y bajo consumo</p>
+              </div>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Termostato programable o inteligente</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Sustituci&oacute;n a iluminaci&oacute;n LED completa</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Sellado de juntas y grietas en ventanas</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Ajuste de sistemas existentes</li>
+            </ul>
+            <div class="pt-5 border-t border-border space-y-2">
+              <div class="flex justify-between text-sm"><span class="text-muted">Coste estimado</span><span class="font-heading font-semibold text-fg">500 &ndash; 2.000 &euro;</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Ahorro anual</span><span class="font-heading font-semibold text-accent">5 &ndash; 15 %</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Salto de letra</span><span class="font-heading font-semibold text-warm">Hasta 1 nivel</span></div>
+            </div>
+          </div>
+          <!-- Intermedio -->
+          <div class="scenario-card reveal reveal-delay-1 p-6 rounded-2xl bg-card border border-warm/30 hover:border-warm/50 hover:shadow-lg hover:shadow-warm/5 relative">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-warm text-bg text-[10px] font-heading font-bold tracking-wider uppercase">M&aacute;s elegido</div>
+            <div class="flex items-center gap-3 mb-5">
+              <span class="w-10 h-10 rounded-lg bg-warm/10 text-warm flex items-center justify-center"><i class="fa-solid fa-wrench"></i></span>
+              <div>
+                <h3 class="font-heading font-bold text-lg text-fg">Intermedio</h3>
+                <p class="text-xs text-muted">Subir un nivel con presupuesto medio</p>
+              </div>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-warm text-xs mt-1"></i>Sustituci&oacute;n de ventanas (doble acristalamiento)</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-warm text-xs mt-1"></i>Mejora del sistema de ACS</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-warm text-xs mt-1"></i>Climatizaci&oacute;n parcial o bomba de calor</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-warm text-xs mt-1"></i>Protecciones solares y persianas</li>
+            </ul>
+            <div class="pt-5 border-t border-border space-y-2">
+              <div class="flex justify-between text-sm"><span class="text-muted">Coste estimado</span><span class="font-heading font-semibold text-fg">5.000 &ndash; 18.000 &euro;</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Ahorro anual</span><span class="font-heading font-semibold text-accent">20 &ndash; 40 %</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Salto de letra</span><span class="font-heading font-semibold text-warm">1 &ndash; 2 niveles</span></div>
+            </div>
+          </div>
+          <!-- Profundo -->
+          <div class="scenario-card reveal reveal-delay-2 p-6 rounded-2xl bg-card border border-border hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
+            <div class="flex items-center gap-3 mb-5">
+              <span class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center"><i class="fa-solid fa-building"></i></span>
+              <div>
+                <h3 class="font-heading font-bold text-lg text-fg">Profundo</h3>
+                <p class="text-xs text-muted">Letra objetivo concreta</p>
+              </div>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Aislamiento de fachada (SATE o similar)</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Aislamiento de cubierta</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Sustituci&oacute;n completa de carpinter&iacute;a</li>
+              <li class="flex items-start gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs mt-1"></i>Aerotermia + FV o solar t&eacute;rmica</li>
+            </ul>
+            <div class="pt-5 border-t border-border space-y-2">
+              <div class="flex justify-between text-sm"><span class="text-muted">Coste estimado</span><span class="font-heading font-semibold text-fg">25.000 &ndash; 70.000+ &euro;</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Ahorro anual</span><span class="font-heading font-semibold text-accent">50 &ndash; 75 %</span></div>
+              <div class="flex justify-between text-sm"><span class="text-muted">Salto de letra</span><span class="font-heading font-semibold text-warm">2 &ndash; 4 niveles</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="text-[11px] text-muted/60 text-center mt-8 reveal">Los costes de mejora son aproximados y deber&aacute;n confirmarse con presupuesto profesional. La calificaci&oacute;n oficial depende de metodolog&iacute;a reconocida, visita t&eacute;cnica y datos reales del inmueble.</p>
+      </div>
+    </section>
+
+    <!-- ========== MARKETPLACE ========== -->
+    <section id="mercado" class="py-24 sm:py-32 relative">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div class="reveal">
+            <p class="text-xs text-accent font-heading font-semibold tracking-wider uppercase mb-3">Marketplace</p>
+            <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">De la diagnose a la actuaci&oacute;n</h2>
+            <p class="text-muted leading-relaxed mb-6">Conecta directamente con proveedores verificados por tipo de intervenci&oacute;n y zona geogr&aacute;fica. Solicita presupuestos sin intermediarios adicionales.</p>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-layer-group text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">Aislamiento</p></div>
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-window-maximize text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">Ventanas</p></div>
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-temperature-half text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">Climatizaci&oacute;n</p></div>
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-solar-panel text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">Fotovoltaica</p></div>
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-shower text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">ACS</p></div>
+              <div class="p-3 rounded-lg bg-card border border-border"><i class="fa-solid fa-certificate text-accent text-sm mb-2 block"></i><p class="text-sm font-heading font-semibold text-fg">Certificadores</p></div>
+            </div>
+            <p class="text-xs text-muted">Filtrado por provincia, categor&iacute;a y certificaciones. Env&iacute;o de leads estructurados con tu consentimiento expreso.</p>
+          </div>
+          <div class="reveal reveal-delay-1">
+            <!-- Mockup de card de proveedor -->
+            <div class="p-6 rounded-2xl bg-card border border-border glow-green">
+              <div class="flex items-center gap-4 mb-5">
+                <div class="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center"><i class="fa-solid fa-building text-accent text-xl"></i></div>
+                <div>
+                  <h4 class="font-heading font-bold text-fg">RehabEco Soluciones</h4>
+                  <p class="text-xs text-muted">Aislamiento &middot; Ventanas &middot; Climatizaci&oacute;n</p>
+                </div>
+                <span class="ml-auto px-2 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-heading font-semibold">Verificado</span>
+              </div>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 rounded-md bg-elevated text-xs text-muted">Madrid</span>
+                <span class="px-2 py-1 rounded-md bg-elevated text-xs text-muted">Toledo</span>
+                <span class="px-2 py-1 rounded-md bg-elevated text-xs text-muted">Guadalajara</span>
+              </div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-1"><i class="fa-solid fa-star text-warm text-xs"></i><i class="fa-solid fa-star text-warm text-xs"></i><i class="fa-solid fa-star text-warm text-xs"></i><i class="fa-solid fa-star text-warm text-xs"></i><i class="fa-solid fa-star-half-stroke text-warm text-xs"></i><span class="text-xs text-muted ml-1">4.5</span></div>
+                <span class="text-xs text-muted">Respuesta en 24h</span>
+              </div>
+              <button onclick="showToast('Funcionalidad disponible al solicitar tu informe premium.')" class="w-full py-2.5 rounded-lg border border-accent/30 text-accent font-heading font-semibold text-sm hover:bg-accent/10 transition">Solicitar presupuesto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== INFORME PREMIUM ========== -->
+    <section class="py-24 sm:py-32 relative bg-elevated/50">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <!-- Mockup PDF -->
+          <div class="reveal order-2 lg:order-1">
+            <div class="relative mx-auto max-w-xs">
+              <div class="bg-card rounded-2xl border border-border p-6 shadow-2xl shadow-black/30">
+                <div class="flex items-center gap-2 mb-4">
+                  <div class="w-3 h-3 rounded-full bg-danger/60"></div>
+                  <div class="w-3 h-3 rounded-full bg-warm/60"></div>
+                  <div class="w-3 h-3 rounded-full bg-accent/60"></div>
+                  <div class="flex-1 h-6 rounded bg-elevated ml-2"></div>
+                </div>
+                <div class="space-y-3">
+                  <div class="h-3 w-3/4 rounded bg-border"></div>
+                  <div class="h-2 w-full rounded bg-border/60"></div>
+                  <div class="h-2 w-5/6 rounded bg-border/60"></div>
+                  <div class="h-px bg-border my-4"></div>
+                  <div class="h-2 w-full rounded bg-border/60"></div>
+                  <div class="h-2 w-4/5 rounded bg-border/60"></div>
+                  <div class="h-16 rounded-lg bg-accent/5 border border-accent/20 flex items-center justify-center mt-3">
+                    <span class="font-heading font-bold text-3xl text-accent">E</span>
+                  </div>
+                  <div class="h-2 w-full rounded bg-border/60 mt-3"></div>
+                  <div class="h-2 w-3/4 rounded bg-border/60"></div>
+                  <div class="h-px bg-border my-3"></div>
+                  <div class="h-2 w-full rounded bg-border/60"></div>
+                  <div class="h-2 w-2/3 rounded bg-border/60"></div>
+                </div>
+              </div>
+              <!-- Badge flotante -->
+              <div class="absolute -top-4 -right-4 px-3 py-1.5 rounded-xl bg-warm text-bg text-xs font-heading font-bold shadow-lg float-anim">PDF</div>
+            </div>
+          </div>
+          <!-- Contenido -->
+          <div class="reveal order-1 lg:order-2">
+            <p class="text-xs text-warm font-heading font-semibold tracking-wider uppercase mb-3">Informe premium</p>
+            <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Tu plan de rehabilitaci&oacute;n energ&eacute;tica</h2>
+            <p class="text-muted leading-relaxed mb-8">Un informe estructurado, descargable y listo para compartir con tu comunidad, tu arquitecto o tus proveedores.</p>
+            <ul class="space-y-4">
+              <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid fa-check text-xs"></i></span><div><p class="font-heading font-semibold text-fg text-sm">Resumen ejecutivo</p><p class="text-xs text-muted">Clasificaci&oacute;n estimada, confianza y factores clave.</p></div></li>
+              <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid fa-check text-xs"></i></span><div><p class="font-heading font-semibold text-fg text-sm">Contexto normativo aplicable</p><p class="text-xs text-muted">Marco espa&ntilde;ol vigente y directiva EPBD con estado de transposici&oacute;n.</p></div></li>
+              <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid fa-check text-xs"></i></span><div><p class="font-heading font-semibold text-fg text-sm">Tres escenarios de mejora</p><p class="text-xs text-muted">Costes, ahorro, dependencias t&eacute;cnicas y advertencias.</p></div></li>
+              <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid fa-check text-xs"></i></span><div><p class="font-heading font-semibold text-fg text-sm">Proveedores sugeridos</p><p class="text-xs text-muted">Contacto directo filtrado por intervenci&oacute;n y zona.</p></div></li>
+              <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid fa-check text-xs"></i></span><div><p class="font-heading font-semibold text-fg text-sm">Avisos legales integrados</p><p class="text-xs text-muted">Limitaciones metodol&oacute;gicas y alcance del documento.</p></div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PRECIOS ========== -->
+    <section id="precios" class="py-24 sm:py-32 relative">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+          <p class="text-xs text-accent font-heading font-semibold tracking-wider uppercase mb-3">Precio</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Empieza gratis, profundiza cuando quieras</h2>
+          <p class="text-muted max-w-2xl mx-auto">El resultado b&aacute;sico es gratuito. Paga solo por el informe completo personalizado.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <!-- Gratis -->
+          <div class="reveal reveal-delay-0 p-6 rounded-2xl bg-card border border-border">
+            <h3 class="font-heading font-bold text-xl text-fg mb-1">Prediagn&oacute;stico</h3>
+            <p class="text-sm text-muted mb-5">Resultado inmediato tras introducir datos</p>
+            <div class="mb-6">
+              <span class="font-heading font-bold text-4xl text-fg">Gratuito</span>
+            </div>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs"></i>Letra energ&eacute;tica estimada</li>
+              <li class="flex items-center gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs"></i>Nivel de confianza</li>
+              <li class="flex items-center gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs"></i>Factores que m&aacute;s penalizan</li>
+              <li class="flex items-center gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs"></i>Brecha de datos detectada</li>
+              <li class="flex items-center gap-2 text-sm text-muted/40"><i class="fa-solid fa-xmark text-xs"></i>Escenarios de mejora</li>
+              <li class="flex items-center gap-2 text-sm text-muted/40"><i class="fa-solid fa-xmark text-xs"></i>Informe PDF descargable</li>
+              <li class="flex items-center gap-2 text-sm text-muted/40"><i class="fa-solid fa-xmark text-xs"></i>Proveedores</li>
+            </ul>
+            <button onclick="openModal()" class="w-full py-3 rounded-full border border-border text-fg font-heading font-semibold text-sm hover:border-muted transition">Iniciar gratis</button>
+          </div>
+          <!-- Premium -->
+          <div class="reveal reveal-delay-1 p-6 rounded-2xl bg-card border-2 border-accent/50 relative glow-green">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-accent text-bg text-[10px] font-heading font-bold tracking-wider uppercase">Premium</div>
+            <h3 class="font-heading font-bold text-xl text-fg mb-1">Informe completo</h3>
+            <p class="text-sm text-muted mb-5">PDF personalizado con todo el detalle</p>
+            <div class="mb-6">
+              <span class="font-heading font-bold text-4xl text-accent">29 &euro;</span>
+              <span class="text-sm text-muted ml-1">pago &uacute;nico</span>
+            </div>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-2 text-sm text-muted"><i class="fa-solid fa-check text-accent text-xs"></i>Todo lo del plan gratuito</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>3 escenarios de mejora con costes</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>Contexto normativo detallado</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>Ahorro anual estimado</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>PDF descargable profesional</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>Proveedores filtrados por zona</li>
+              <li class="flex items-center gap-2 text-sm text-fg"><i class="fa-solid fa-check text-accent text-xs"></i>Avisos legales integrados</li>
+            </ul>
+            <button onclick="showToast('El pago del informe estará disponible al completar tu análisis.')" class="w-full py-3 rounded-full bg-accent text-bg font-heading font-bold text-sm hover:brightness-110 transition">Obtener informe</button>
+          </div>
+        </div>
+        <p class="text-[11px] text-muted/60 text-center mt-8 reveal">El pago se realiza por un informe orientativo y personalizado. No se vende un certificado oficial de eficiencia energ&eacute;tica.</p>
+      </div>
+    </section>
+
+    <!-- ========== FAQ ========== -->
+    <section id="faq" class="py-24 sm:py-32 relative bg-elevated/50">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 reveal">
+          <p class="text-xs text-warm font-heading font-semibold tracking-wider uppercase mb-3">Preguntas frecuentes</p>
+          <h2 class="font-heading font-bold text-3xl sm:text-4xl text-fg mb-4">Resuelve tus dudas</h2>
+        </div>
+        <div class="space-y-3 reveal" id="faq-container">
+          <!-- FAQ items generados por JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CTA FINAL ========== -->
+    <section class="py-24 sm:py-32 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-[150px]"></div>
+      </div>
+      <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal">
+        <h2 class="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-fg mb-6">Tu vivienda merece un prediagn&oacute;stico<br><span class="text-accent">antes de la obligaci&oacute;n</span></h2>
+        <p class="text-muted text-lg mb-8 max-w-xl mx-auto">En menos de 10 minutos obtendr&aacute;s una primera estimaci&oacute;n de la situaci&oacute;n energ&eacute;tica de tu inmueble y las rutas de mejora disponibles.</p>
+        <button onclick="openModal()" class="px-10 py-4 rounded-full bg-accent text-bg font-heading font-bold text-base hover:brightness-110 transition pulse-glow focus:outline-none focus:ring-2 focus:ring-accent/50">
+          Iniciar an&aacute;lisis gratuito
+        </button>
+        <p class="text-[11px] text-muted/50 mt-6">Estimaci&oacute;n orientativa. No sustituye al CEE oficial regulado por el R.D. 390/2021.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="border-t border-border py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+        <div>
+          <div class="flex items-center gap-2 font-heading font-bold text-lg text-fg mb-4">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-accent/15 text-accent"><i class="fa-solid fa-bolt text-xs"></i></span>
+            EnerScan
+          </div>
+          <p class="text-xs text-muted leading-relaxed">Plataforma de prediagn&oacute;stico energ&eacute;tico, preparaci&oacute;n regulatoria y activaci&oacute;n de rehabilitaci&oacute;n inmobiliaria.</p>
+        </div>
+        <div>
+          <h4 class="font-heading font-semibold text-sm text-fg mb-3">Producto</h4>
+          <ul class="space-y-2 text-xs text-muted">
+            <li><a href="#como-funciona" class="hover:text-fg transition">C&oacute;mo funciona</a></li>
+            <li><a href="#scoring" class="hover:text-fg transition">Motor de scoring</a></li>
+            <li><a href="#mejoras" class="hover:text-fg transition">Simulador</a></li>
+            <li><a href="#precios" class="hover:text-fg transition">Precios</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-heading font-semibold text-sm text-fg mb-3">Legal</h4>
+          <ul class="space-y-2 text-xs text-muted">
+            <li><a href="#" class="hover:text-fg transition">T&eacute;rminos de uso</a></li>
+            <li><a href="#" class="hover:text-fg transition">Pol&iacute;tica de privacidad</a></li>
+            <li><a href="#" class="hover:text-fg transition">Aviso legal</a></li>
+            <li><a href="#" class="hover:text-fg transition">Cookies</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-heading font-semibold text-sm text-fg mb-3">Contacto</h4>
+          <ul class="space-y-2 text-xs text-muted">
+            <li><i class="fa-solid fa-envelope text-accent/60 mr-2"></i>hola@enerscan.app</li>
+            <li><i class="fa-solid fa-phone text-accent/60 mr-2"></i>Pr&oacute;ximamente</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-[11px] text-muted/60">EnerScan no es un certificador energ&eacute;tico. Las estimaciones son orientativas y no sustituyen el Certificado de Eficiencia Energ&eacute;tica oficial regulado por el R.D. 390/2021.</p>
+        <p class="text-[11px] text-muted/40">&copy; 2025 EnerScan. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========== FLOATING CTA ========== -->
+  <button id="float-cta" onclick="openModal()" class="float-cta px-5 py-3 rounded-full bg-accent text-bg font-heading font-bold text-sm shadow-lg shadow-accent/20 hover:brightness-110 transition focus:outline-none" aria-label="Iniciar análisis">
+    <i class="fa-solid fa-bolt mr-2"></i>Iniciar an&aacute;lisis
+  </button>
+
+  <!-- ========== SCRIPTS ========== -->
+  <script>
+    /* ===== DATOS ===== */
+    const ratingData = {
+      A: { label:'M&aacute;s eficiente', desc:'Consumo m&iacute;nimo de energ&iacute;a primaria. Inmuebles con envolvente excelente, sistemas de alta eficiencia y renovables integradas.', conf:'Alta (con datos completos)', color:'#1B8C2F', sem:'green' },
+      B: { label:'Muy eficiente', desc:'Buen comportamiento energ&eacute;tico. Habitualmente edificios recientes con buena envolvente y sistemas eficientes.', conf:'Alta', color:'#4CAF50', sem:'green' },
+      C: { label:'Eficiente', desc:'Consumo moderado-bajo. Pueden requerir mejoras puntuales en instalaci&oacute;ones o aislamiento para alcanzar A o B.', conf:'Media-alta', color:'#8BC34A', sem:'green' },
+      D: { label:'Aceptable', desc:'Consumo cercano a la media del parque. Suelen ser inmuebles de los a&ntilde;os 2000-2010 con est&aacute;ndares normativos de su &eacute;poca.', conf:'Media', color:'#FDD835', sem:'amber' },
+      E: { label:'Moderadamente ineficiente', desc:'Consumo superior a la media. Aislamiento insuficiente, instalaciones antiguas o ausencia de renovables. Objetivo regulatorio 2033.', conf:'Media', color:'#FF9800', sem:'amber' },
+      F: { label:'Ineficiente', desc:'Alto consumo energ&eacute;tico. Edificios anteriores a 1980 sin rehabilitar, ventanas simples, calderas antiguas. Riesgo regulatorio elevado.', conf:'Media-baja', color:'#E53935', sem:'red' },
+      G: { label:'Muy ineficiente', desc:'Consumo muy alto. Peor clasificaci&oacute;n posible. Envolvente sin aislamiento, sistemas obsoletos. Necesita rehabilitaci&oacute;n profunda.', conf:'Baja (sin datos adicionales)', color:'#D32F2F', sem:'red' }
+    };
+
+    const faqData = [
+      { q:'&iquest;Es EnerScan un certificado de eficiencia energ&eacute;tico?', a:'No. EnerScan es una herramienta de prediagn&oacute;stico orientativo basada en datos declarados por el usuario. No sustituye al Certificado de Eficiencia Energ&eacute;tica oficial exigido por el Real Decreto 390/2021, que requiere un t&eacute;cnico competente, visita in situ y metodolog&iacute;a reconocida.' },
+      { q:'&iquest;Qu&eacute; fiabilidad tiene la clasificaci&oacute;n estimada?', a:'La confianza depende de la cantidad y calidad de los datos aportados. Con datos completos (envolvente, instalaciones, fotos, CEE adjunto) la confianza es media-alta. Con datos parciales, el resultado es orientativo y se indica expl&iacute;citamente la brecha de informaci&oacute;n.' },
+      { q:'&iquest;Puedo usar el informe de EnerScan para vender o alquilar mi vivienda?', a:'No. Para vender o alquilar es obligatorio disponer del CEE oficial emitido por un t&eacute;cnico competente. El informe de EnerScan es una herramienta de preparaci&oacute;n y planificaci&oacute;n, no un documento con validez legal ni administrativa.' },
+      { q:'&iquest;La informaci&oacute;n sobre la Directiva EPBD 2024/1275 es definitiva?', a:'No. La informaci&oacute;n regulatoria mostrada combina normativa espa&ntilde;ola vigente y objetivos europeos sujetos a desarrollo y transposici;n. La transposici&oacute;n espa&ntilde;ola concreta no est&aacute; cerrada y puede cambiar. Consulta siempre fuentes oficiales (BOE, MITECO) para decisiones vinculantes.' },
+      { q:'&iquest;Los costes de mejora son exactos?', a:'No. Los costes son aproximados y deber&aacute;n confirmarse con presupuesto profesional. Dependen del inmueble, ubicaci&oacute;n, materiales elegidos y condiciones de ejecuci&oacute;n. No prometemos que una medida concreta garantice una letra final exacta.' },
+      { q:'&iquest;C&oacute;mo funcionan los proveedores del marketplace?', a:'Los proveedores se filtran por categor&iacute;a de intervenci&oacute;n y zona geogr&aacute;fica. Al solicitar un presupuesto, tus datos de contacto se env&iacute;an al proveedor con tu consentimiento expreso. EnerScan act&uacute;a como intermediario tecnol&oacute;gico, no como garante del servicio del proveedor.' },
+      { q:'&iquest;Qu&eacute; datos de mi vivienda necesito?', a:'Los m&iacute;nimos son: tipo de inmeuble, a&ntilde;o de construcci&oacute;n, superficie y c&oacute;digo postal. Cuantos m&aacute;s datos aportes (tipo de ventanas, aislamiento, sistemas de calefacci&oacute;n y ACS, renovables), mayor ser&aacute; la precisi&oacute;n de la estimaci&oacute;n. Puedes adjuntar fotos y el CEE si ya lo tienes.' },
+      { q:'&iquest;Puedo eliminar mis datos?', a:'S&iacute;. Puedes solicitar la eliminaci&oacute;n de tus datos personales y del expediente de tu vivienda en cualquier momento contact&aacute;ndonos, conforme al RGPD y la LOPDGDD.' }
+    ];
+
+    /* ===== CANVAS - PARTÍCULAS DE ENERGÍA ===== */
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animId;
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.offsetWidth;
+      canvas.height = canvas.parentElement.offsetHeight;
+    }
+
+    function createParticles() {
+      particles = [];
+      const count = Math.min(80, Math.floor(canvas.width * canvas.height / 15000));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -Math.random() * 0.6 - 0.1,
+          size: Math.random() * 2 + 0.5,
+          opacity: Math.random() * 0.4 + 0.1,
+          hue: Math.random() > 0.8 ? 45 : 155 // mayoría verde, algunas doradas
+        });
+      }
+    }
+
+    function drawParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.5, p.size), 0, Math.PI * 2);
+        const color = p.hue === 155 ? `rgba(0,220,130,${p.opacity})` : `rgba(255,176,32,${p.opacity})`;
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Reubicar si sale del canvas
+        if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+        if (p.x < -10) p.x = canvas.width + 10;
+        if (p.x > canvas.width + 10) p.x = -10;
+      });
+
+      // Líneas de conexión cercanas
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(0,220,130,${0.06 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(drawParticles);
+    }
+
+    resizeCanvas();
+    createParticles();
+    drawParticles();
+    window.addEventListener('resize', () => { resizeCanvas(); createParticles(); });
+
+    /* ===== AGUJA DEL MEDIDOR ===== */
+    setTimeout(() => {
+      const needle = document.getElementById('needle');
+      const letter = document.getElementById('gauge-letter');
+      const conf = document.getElementById('gauge-conf');
+      needle.classList.add('go');
+      setTimeout(() => { letter.style.opacity = '1'; conf.style.opacity = '1'; }, 1200);
+    }, 600);
+
+    /* ===== SCROLL REVEAL ===== */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    /* ===== CONTADORES ===== */
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const el = e.target;
+          const target = parseInt(el.dataset.target);
+          let current = 0;
+          const step = Math.max(1, Math.floor(target / 40));
+          const interval = setInterval(() => {
+            current += step;
+            if (current >= target) { current = target; clearInterval(interval); }
+            el.textContent = current + (target === 80 ? '%' : '');
+          }, 30);
+          counterObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
+
+    /* ===== ESCALA ENERGÉTICA INTERACTIVA ===== */
+    function selectRating(letter) {
+      // Actualizar active
+      document.querySelectorAll('#energy-bar > div').forEach(d => d.classList.remove('active'));
+      document.querySelector(`[data-letter="${letter}"]`).classList.add('active');
+
+      const data = ratingData[letter];
+      const semClass = data.sem === 'green' ? 'semaphore-green' : data.sem === 'amber' ? 'semaphore-amber' : 'semaphore-red';
+      const semLabel = data.sem === 'green' ? 'Bajo riesgo' : data.sem === 'amber' ? 'Riesgo moderado' : 'Riesgo elevado';
+
+      document.getElementById('rating-detail').innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+          <div class="w-16 h-16 rounded-xl flex items-center justify-center font-heading font-bold text-2xl text-white" style="background:${data.color}">${letter}</div>
+          <div>
+            <p class="font-heading font-bold text-lg text-fg">${data.label}</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="w-2.5 h-2.5 rounded-full ${semClass}"></span>
+              <span class="text-xs text-muted">${semLabel} regulatorio</span>
+            </div>
+          </div>
+          <div class="sm:ml-auto px-3 py-1.5 rounded-lg bg-elevated border border-border">
+            <p class="text-[10px] text-muted uppercase tracking-wider">Confianza</p>
+            <p class="text-sm font-heading font-semibold text-fg">${data.conf}</p>
+          </div>
+        </div>
+        <p class="text-sm text-muted leading-relaxed mb-4">${data.desc}</p>
+        <div class="p-3 rounded-lg bg-elevated/50 border border-border/50">
+          <p class="text-[11px] text-muted/70 leading-relaxed"><i class="fa-solid fa-info-circle text-accent/50 mr-1"></i>Estimaci&oacute;n orientativa basada en datos facilitados por el usuario. No sustituye al CEE oficial regulado por el R.D. 390/2021.</p>
+        </div>
+      `;
+    }
+    // Inicializar con E
+    selectRating('E');
+
+    /* ===== FAQ ===== */
+    const faqContainer = document.getElementById('faq-container');
+    faqData.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'rounded-xl bg-card border border-border overflow-hidden';
+      div.innerHTML = `
+        <button onclick="toggleFaq(${i})" class="w-full flex items-center justify-between p-5 text-left focus:outline-none focus:ring-1 focus:ring-accent/30 focus:ring-inset" aria-expanded="false" id="faq-btn-${i}">
+          <span class="font-heading font-semibold text-sm text-fg pr-4">${item.q}</span>
+          <i class="fa-solid fa-chevron-down text-xs text-muted transition-transform duration-300" id="faq-icon-${i}"></i>
+        </button>
+        <div class="faq-answer px-5" id="faq-answer-${i}">
+          <p class="text-sm text-muted leading-relaxed pb-5">${item.a}</p>
+        </div>
+      `;
+      faqContainer.appendChild(div);
+    });
+
+    function toggleFaq(i) {
+      const answer = document.getElementById(`faq-answer-${i}`);
+      const icon = document.getElementById(`faq-icon-${i}`);
+      const btn = document.getElementById(`faq-btn-${i}`);
+      const isOpen = answer.classList.contains('open');
+
+      // Cerrar todas
+      document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+      document.querySelectorAll('[id^="faq-icon-"]').forEach(ic => ic.style.transform = 'rotate(0deg)');
+      document.querySelectorAll('[id^="faq-btn-"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+
+      if (!isOpen) {
+        answer.classList.add('open');
+        icon.style.transform = 'rotate(180deg)';
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    /* ===== MODAL ===== */
+    function openModal() {
+      document.getElementById('modal').classList.add('show');
+      document.body.style.overflow = 'hidden';
+      // Reset estado
+      document.querySelectorAll('.obj-card').forEach(c => { c.classList.remove('border-accent', 'bg-accent/5'); c.classList.add('border-border'); });
+      const btn = document.getElementById('modal-next');
+      btn.disabled = true;
+      btn.className = 'mt-6 w-full py-3 rounded-full bg-accent/20 text-accent/50 font-heading font-semibold text-sm cursor-not-allowed transition';
+    }
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    function selectObj(el) {
+      document.querySelectorAll('.obj-card').forEach(c => { c.classList.remove('border-accent', 'bg-accent/5'); c.classList.add('border-border'); });
+      el.classList.remove('border-border');
+      el.classList.add('border-accent', 'bg-accent/5');
+      const btn = document.getElementById('modal-next');
+      btn.disabled = false;
+      btn.className = 'mt-6 w-full py-3 rounded-full bg-accent text-bg font-heading font-bold text-sm hover:brightness-110 transition cursor-pointer';
+    }
+    function handleNext() {
+      closeModal();
+      showToast('El flujo completo de an&aacute;lisis estar&aacute; disponible en la versi&oacute;n definitiva de la aplicaci&oacute;n.');
+    }
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    /* ===== TOAST ===== */
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = `<i class="fa-solid fa-circle-info text-accent mr-2"></i>${msg}`;
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    /* ===== MENÚ MÓVIL ===== */
+    function toggleMob() {
+      const menu = document.getElementById('mob-menu');
+      const btn = document.getElementById('mob-btn');
+      const isOpen = menu.classList.contains('open');
+      menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', !isOpen);
+      btn.innerHTML = isOpen ? '<i class="fa-solid fa-bars text-fg"></i>' : '<i class="fa-solid fa-xmark text-fg"></i>';
+    }
+    function closeMob() {
+      document.getElementById('mob-menu').classList.remove('open');
+      document.getElementById('mob-btn').setAttribute('aria-expanded', 'false');
+      document.getElementById('mob-btn').innerHTML = '<i class="fa-solid fa-bars text-fg"></i>';
+    }
+
+    /* ===== FLOATING CTA ===== */
+    const floatCta = document.getElementById('float-cta');
+    const heroObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => { floatCta.classList.toggle('show', !e.isIntersecting); });
+    }, { threshold: 0.3 });
+    heroObserver.observe(document.getElementById('hero-canvas').parentElement);
+
+    /* ===== TECLADO para barra energética ===== */
+    document.querySelectorAll('#energy-bar > div').forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
+    });
+  </script>
+</body>
+</html>
