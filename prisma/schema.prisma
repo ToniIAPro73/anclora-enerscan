@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Assessment {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Objective
+  objective       String   // "know", "target", "sell"
+
+  // Property Data
+  propertyType    String
+  year            Int
+  area            Float
+  zipcode         String
+
+  // Systems
+  heating         String
+  cooling         String
+  waterHeating    String
+  windows         String
+  renewables      String
+
+  // Scoring Results
+  estimatedLetter String?
+  confidence      String?
+  penalties       String?
+  
+  // Status
+  isPremium       Boolean  @default(false)
+}
+
+model Provider {
+  id              String   @id @default(cuid())
+  name            String
+  categories      String   // JSON string or comma separated
+  zones           String   // JSON string or comma separated
+  verified        Boolean  @default(true)
+  rating          Float    @default(4.5)
+  leads           Lead[]
+}
+
+model Lead {
+  id              String     @id @default(cuid())
+  assessmentId    String
+  providerId      String
+  provider        Provider   @relation(fields: [providerId], references: [id])
+  status          String     @default("PENDING")
+  createdAt       DateTime   @default(now())
+}

@@ -1,0 +1,199 @@
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { prisma } from '@/lib/prisma';
+import { calculateScore } from '@/lib/scoring';
+import { generateScenarios } from '@/lib/simulator';
+import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
+import { ShieldCheck, Info, AlertTriangle, ArrowRight, Download, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+
+export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
+  const assessment = await prisma.assessment.findUnique({
+    where: { id: params.id }
+  });
+
+  if (!assessment) return <div>No se encontró el análisis.</div>;
+
+  const scenarios = generateScenarios(assessment.estimatedLetter || 'G');
+  const penalties = JSON.parse(assessment.penalties || '[]');
+  
+  const providers = await prisma.provider.findMany({ take: 3 });
+
+  return (
+    <div className="min-h-screen bg-[#0A0A0A] text-[#F0EDE8]">
+      <Navbar />
+
+      <main className="pt-24 pb-16 px-4">
+        <div className="max-w-6xl mx-auto space-y-12">
+          
+          {/* HEADER / SCORING */}
+          <div className="grid lg:grid-cols-2 gap-8 items-center bg-[#131313] border border-[#262626] rounded-3xl p-8 lg:p-12 glow-green">
+            <div className="space-y-6">
+              <div>
+                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">Resultado preliminar</p>
+                <h1 className="font-heading font-bold text-3xl sm:text-4xl text-[#F0EDE8]">Tu clasificación orientativa</h1>
+              </div>
+              <p className="text-[#7A7A7A] leading-relaxed">
+                Basado en los datos declarados de tu vivienda ({assessment.area}m², construida en {assessment.year}), hemos estimado tu letra energética actual.
+              </p>
+              
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-[#7A7A7A] uppercase">Confianza del motor</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${assessment.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : 'bg-[#FFB020]/20 text-[#FFB020]'}`}>{assessment.confidence}</span>
+                </div>
+                <p className="text-[10px] text-[#7A7A7A]/60 leading-relaxed italic">
+                  {DISCLAIMER_TEXT}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#262626] to-[#0A0A0A] border-2 border-[#00DC82]/30 flex items-center justify-center text-6xl font-heading font-bold text-[#F0EDE8] shadow-2xl shadow-[#00DC82]/10">
+                {assessment.estimatedLetter}
+              </div>
+              <div className="flex gap-1">
+                {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(l => (
+                  <div key={l} className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${l === assessment.estimatedLetter ? 'bg-[#00DC82] text-[#0A0A0A]' : 'bg-[#262626] text-[#7A7A7A]'}`}>{l}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* PENALTIES & GAPS */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6">
+              <div className="flex items-center gap-2 text-[#EF4444] mb-4">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="font-heading font-bold text-lg">Factores penalizadores</h3>
+              </div>
+              <ul className="space-y-3">
+                {penalties.map((p: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-1.5 shrink-0" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6">
+              <div className="flex items-center gap-2 text-[#00DC82] mb-4">
+                <Info className="w-5 h-5" />
+                <h3 className="font-heading font-bold text-lg">Datos clave declarados</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div><p className="text-[#7A7A7A] mb-1">CALEFACCIÓN</p><p className="font-semibold text-[#F0EDE8]">{assessment.heating}</p></div>
+                <div><p className="text-[#7A7A7A] mb-1">VENTANAS</p><p className="font-semibold text-[#F0EDE8]">{assessment.windows}</p></div>
+                <div><p className="text-[#7A7A7A] mb-1">RENOVABLES</p><p className="font-semibold text-[#F0EDE8]">{assessment.renewables}</p></div>
+                <div><p className="text-[#7A7A7A] mb-1">UBICACIÓN</p><p className="font-semibold text-[#F0EDE8]">CP {assessment.zipcode}</p></div>
+              </div>
+            </div>
+          </div>
+
+          {/* REGULATORY TIMELINE */}
+          <section className="space-y-8">
+            <div className="text-center">
+              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Contexto regulatorio</h2>
+              <p className="text-[#7A7A7A] text-sm italic">{REGULATORY_DISCLAIMER}</p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {REGULATORY_TIMELINE.map((n, i) => (
+                <div key={i} className="bg-[#131313] border border-[#262626] rounded-2xl p-5 space-y-3 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-2xl opacity-10 ${n.severity === 'high' ? 'bg-[#EF4444]' : n.severity === 'medium' ? 'bg-[#FFB020]' : 'bg-[#00DC82]'}`} />
+                  <div className="flex items-center justify-between relative z-10">
+                    <span className="font-heading font-bold text-xl text-[#F0EDE8]">{n.year}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${n.status === 'vigente' ? 'bg-[#00DC82]/20 text-[#00DC82]' : 'bg-[#FFB020]/20 text-[#FFB020]'}`}>{n.status}</span>
+                  </div>
+                  <p className="font-bold text-sm text-[#F0EDE8] relative z-10">{n.title}</p>
+                  <p className="text-xs text-[#7A7A7A] leading-relaxed relative z-10">{n.description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* PREMIUM REPORT CTA */}
+          <section className="bg-gradient-to-r from-[#00DC82]/20 to-[#FFB020]/20 border border-white/10 rounded-3xl p-8 text-center space-y-6">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#F0EDE8]">Obtén tu Informe Premium Detallado</h2>
+            <p className="text-[#7A7A7A] max-w-2xl mx-auto">
+              Descarga un PDF completo con 3 escenarios de mejora, desglose de costes, ahorro anual estimado y acceso prioritario a proveedores.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <a 
+                href={`/api/assessment/${params.id}/pdf`}
+                className="px-8 py-4 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold flex items-center gap-2 hover:brightness-110 transition shadow-xl shadow-[#00DC82]/20"
+                download
+              >
+                <Download className="w-5 h-5" /> Descargar PDF (29€)
+              </a>
+            </div>
+            <p className="text-[10px] text-[#7A7A7A]/60">Pago único. Informe orientativo personalizado.</p>
+          </section>
+
+          {/* SIMULATOR */}
+          <section className="space-y-8">
+             <div className="text-center">
+              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Simulador de mejoras</h2>
+              <p className="text-[#7A7A7A]">Explora cómo impactarían diferentes actuaciones en tu letra y bolsillo.</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {scenarios.map(s => (
+                <div key={s.id} className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6 flex flex-col hover:border-[#00DC82]/30 transition group">
+                  <h3 className="font-heading font-bold text-xl text-[#F0EDE8] mb-1">{s.name}</h3>
+                  <p className="text-xs text-[#7A7A7A] mb-4">{s.objective}</p>
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {s.measures.map((m, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-[#7A7A7A]">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#00DC82] mt-0.5 shrink-0" />
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-4 border-t border-[#262626] space-y-2">
+                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Coste:</span><span className="font-bold">{s.costRange}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Ahorro:</span><span className="font-bold text-[#00DC82]">{s.savingsPercentage}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Salto:</span><span className="font-bold text-[#FFB020]">{s.letterJump}</span></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* MARKETPLACE */}
+          <section className="space-y-8">
+            <div className="text-center">
+              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Marketplace de proveedores</h2>
+              <p className="text-[#7A7A7A]">Empresas verificadas para ejecutar tus mejoras en CP {assessment.zipcode}.</p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {providers.map(p => (
+                <div key={p.id} className="bg-[#131313] border border-[#262626] rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-heading font-bold text-[#F0EDE8]">{p.name}</h4>
+                    {p.verified && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#00DC82]/10 text-[#00DC82]">Verificado</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {JSON.parse(p.categories).map((c: string) => (
+                      <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[#7A7A7A] border border-white/5">{c}</span>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-1 text-[#FFB020]">
+                      <span className="text-xs font-bold">{p.rating}</span>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-1 rounded-full ${i <= p.rating ? 'bg-[#FFB020]' : 'bg-[#262626]'}`} />)}
+                      </div>
+                    </div>
+                    <button className="text-xs font-bold text-[#00DC82] flex items-center gap-1 hover:underline">Solicitar presupuesto <ArrowRight className="w-3 h-3" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
