@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { Home, Bolt, Check, ArrowRight, ArrowLeft, Target, ShieldCheck, Building, Thermometer, Sun, Wind } from 'lucide-react';
+import { Bolt, Target, ShieldCheck, Building } from 'lucide-react';
 
 const assessmentSchema = z.object({
   objective: z.string().min(1, "Selecciona un objetivo"),
@@ -27,7 +27,7 @@ export default function AssessmentWizard() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AssessmentFormValues>({
+  const { register, handleSubmit, watch, setValue } = useForm<AssessmentFormValues>({
     resolver: zodResolver(assessmentSchema),
     defaultValues: {
       objective: '',

@@ -1,11 +1,9 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { prisma } from '@/lib/prisma';
-import { calculateScore } from '@/lib/scoring';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
-import { ShieldCheck, Info, AlertTriangle, ArrowRight, Download, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
+import { Info, AlertTriangle, ArrowRight, Download, CheckCircle2 } from 'lucide-react';
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
   const assessment = await prisma.assessment.findUnique({
@@ -14,7 +12,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
   if (!assessment) return <div>No se encontró el análisis.</div>;
 
-  const scenarios = generateScenarios(assessment.estimatedLetter || 'G');
+  const scenarios = generateScenarios();
   const penalties = JSON.parse(assessment.penalties || '[]');
   
   const providers = await prisma.provider.findMany({ take: 3 });

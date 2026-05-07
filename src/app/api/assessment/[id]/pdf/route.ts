@@ -58,7 +58,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     await browser.close();
 
-    return new Response(pdf, {
+    return new Response(Buffer.from(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="EnerScan_Informe_${assessment.id}.pdf"`

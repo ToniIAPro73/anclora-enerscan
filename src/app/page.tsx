@@ -1,6 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Bolt, ArrowRight, Home, Gauge, Zap, FileText, Check, ShieldCheck, AlertCircle } from 'lucide-react';
+import { ArrowRight, Home, Gauge, Zap, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LandingPage() {

@@ -8,7 +8,7 @@ export interface ImprovementScenario {
   letterJump: string;
 }
 
-export function generateScenarios(currentLetter: string, budget?: number): ImprovementScenario[] {
+export function generateScenarios(): ImprovementScenario[] {
   const scenarios: ImprovementScenario[] = [
     {
       id: "basic",
