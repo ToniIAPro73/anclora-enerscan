@@ -1,14 +1,16 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { AttachmentList } from '@/components/AttachmentList';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
-import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
-import { PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel } from '@/lib/domain/energy-assessment';
+import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
+import { PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
   const assessment = await prisma.assessment.findUnique({
-    where: { id: params.id }
+    where: { id: params.id },
+    include: { attachments: true }
   });
 
   if (!assessment) return <div>No se encontró el análisis.</div>;
@@ -18,14 +20,18 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     area: assessment.area,
     zipcode: assessment.zipcode,
     propertyType: (assessment.propertyType || 'unknown') as PropertyType,
+    orientation: (assessment.orientation || 'unknown') as PropertyOrientation,
+    roofType: (assessment.roofType || 'unknown') as RoofType,
     heating: (assessment.heating || 'unknown') as HeatingSystem,
     cooling: (assessment.cooling || 'unknown') as CoolingSystem,
     waterHeating: (assessment.waterHeating || 'unknown') as WaterHeatingSystem,
+    ventilation: (assessment.ventilation || 'unknown') as VentilationType,
     windows: (assessment.windows || 'unknown') as WindowType,
     renewables: (assessment.renewables || 'unknown') as RenewableSystem,
     facadeInsulation: (assessment.facadeInsulation || 'unknown') as InsulationLevel,
     roofInsulation: (assessment.roofInsulation || 'unknown') as InsulationLevel,
     budgetRange: (assessment.budgetRange || 'unknown') as BudgetRange,
+    timelineHorizon: (assessment.timelineHorizon || 'unknown') as TimelineHorizon,
     targetLetter: (assessment.targetLetter || 'G') as EnergyLetter,
     objective: (assessment.objective || 'unknown') as AssessmentObjective,
   };
@@ -46,22 +52,27 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const providers = await prisma.provider.findMany({ take: 3 });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#F0EDE8]">
+    <div className="min-h-screen app-shell">
       <Navbar />
 
       <main className="pt-24 pb-16 px-4">
         <div className="max-w-6xl mx-auto space-y-12">
 
           {/* HEADER / SCORING */}
-          <div className="grid lg:grid-cols-2 gap-8 items-center bg-[#131313] border border-[#262626] rounded-3xl p-8 lg:p-12 glow-green">
+          <div className="grid lg:grid-cols-2 gap-8 items-center surface border rounded-3xl p-8 lg:p-12 glow-green">
             <div className="space-y-6">
               <div>
-                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">Resultado preliminar</p>
-                <h1 className="font-heading font-bold text-3xl sm:text-4xl text-[#F0EDE8]">Tu clasificación orientativa</h1>
+                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">{assessment.isDemo ? 'Resultado preliminar · Demo' : 'Resultado preliminar'}</p>
+                <h1 className="font-heading font-bold text-3xl sm:text-4xl text-premium">Tu clasificación orientativa</h1>
               </div>
-              <p className="text-[#7A7A7A] leading-relaxed">
+              <p className="text-muted leading-relaxed">
                 Basado en los datos declarados de tu vivienda ({assessment.area}m², construida en {assessment.year}), hemos estimado tu letra energética actual.
               </p>
+              {assessment.isDemo && (
+                <p className="rounded-xl border border-[#FFB020]/30 bg-[#FFB020]/10 p-3 text-xs font-semibold text-[#FFB020]">
+                  Este informe usa datos ficticios para mostrar la experiencia premium sin datos personales.
+                </p>
+              )}
               {scoreResult.explanation && (
                 <p className="text-sm text-[#F0EDE8]">{scoreResult.explanation}</p>
               )}
@@ -69,7 +80,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-[#7A7A7A] uppercase">Confianza del motor</span>
+                    <span className="text-xs font-semibold text-muted uppercase">Confianza del motor</span>
                     <span className={`text-sm font-bold max-w-fit px-2 py-0.5 rounded ${assessment.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : assessment.confidence === 'Media' ? 'bg-[#FFB020]/20 text-[#FFB020]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
                       {assessment.confidence}
                     </span>
@@ -77,13 +88,13 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-[#7A7A7A] uppercase">Zona Climática</span>
-                    <span className="text-sm font-bold text-[#F0EDE8]">{scoreResult.climateZone}</span>
+                    <span className="text-xs font-semibold text-muted uppercase">Zona Climática</span>
+                    <span className="text-sm font-bold text-premium">{scoreResult.climateZone}</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-[10px] text-[#7A7A7A]/60 leading-relaxed italic">
+              <p className="text-[10px] text-muted leading-relaxed italic">
                 {DISCLAIMER_TEXT}
               </p>
             </div>
@@ -99,6 +110,28 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               </div>
             </div>
           </div>
+
+          {/* CAPTURED DATA */}
+          <section className="surface border rounded-3xl p-6 lg:p-8">
+            <h2 className="mb-5 font-heading text-2xl font-bold text-premium">Datos capturados</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                ['Tipo', propertyData.propertyType],
+                ['Orientación', propertyData.orientation],
+                ['Cubierta', propertyData.roofType],
+                ['Ventilación', propertyData.ventilation],
+                ['Calefacción', propertyData.heating],
+                ['Refrigeración', propertyData.cooling],
+                ['ACS', propertyData.waterHeating],
+                ['Horizonte', propertyData.timelineHorizon],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] font-bold uppercase text-muted">{label}</p>
+                  <p className="mt-1 text-sm font-semibold text-premium">{value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* PENALTIES, STRENGTHS & GAPS */}
           <div className="grid md:grid-cols-3 gap-6">
@@ -179,6 +212,26 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* ATTACHMENTS */}
+          <section className="surface border rounded-3xl p-6 lg:p-8">
+            <div className="mb-5 flex items-center gap-2 text-premium">
+              <FileText className="h-5 w-5 text-[#00DC82]" />
+              <h2 className="font-heading text-2xl font-bold">Documentación aportada</h2>
+            </div>
+            <p className="mb-4 text-xs text-muted">Los archivos se registran como soporte documental, pero no han sido analizados automáticamente por EnerScan.</p>
+            <AttachmentList
+              assessmentId={assessment.id}
+              initialAttachments={assessment.attachments.map((attachment) => ({
+                id: attachment.id,
+                name: attachment.name,
+                type: attachment.type,
+                size: attachment.size,
+                path: attachment.path,
+                createdAt: attachment.createdAt.toISOString(),
+              }))}
+            />
           </section>
 
           {/* PREMIUM REPORT CTA */}

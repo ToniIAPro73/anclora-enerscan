@@ -5,7 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { Bolt, Target, ShieldCheck, Building } from 'lucide-react';
+import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText } from 'lucide-react';
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment } from '@/lib/attachments';
+import { usePreferences } from './AppPreferencesProvider';
+import { getLegalDisclaimer } from '@/lib/i18n';
 
 const assessmentSchema = z.object({
   objective: z.string().min(1, "Selecciona un objetivo"),
@@ -13,14 +16,18 @@ const assessmentSchema = z.object({
   year: z.number().min(1800).max(new Date().getFullYear()),
   area: z.number().min(1),
   zipcode: z.string().min(5),
+  orientation: z.string().min(1),
+  roofType: z.string().min(1),
   heating: z.string().min(1),
   cooling: z.string().min(1),
   waterHeating: z.string().min(1),
+  ventilation: z.string().min(1),
   windows: z.string().min(1),
   renewables: z.string().min(1),
   facadeInsulation: z.string().optional(),
   roofInsulation: z.string().optional(),
   budgetRange: z.string().optional(),
+  timelineHorizon: z.string().optional(),
   targetLetter: z.string().optional(),
   acceptTerms: z.literal(true, {
     error: "Debes aceptar el carácter orientativo"
@@ -33,6 +40,9 @@ export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const { dictionary: t, language } = usePreferences();
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AssessmentFormValues>({
     resolver: zodResolver(assessmentSchema),
@@ -42,14 +52,18 @@ export default function AssessmentWizard() {
       year: 1990,
       area: 80,
       zipcode: '',
+      orientation: 'unknown',
+      roofType: 'unknown',
       heating: 'gas',
       cooling: 'none',
       waterHeating: 'gas',
+      ventilation: 'natural',
       windows: 'double',
       renewables: 'none',
       facadeInsulation: 'unknown',
       roofInsulation: 'unknown',
       budgetRange: 'medium',
+      timelineHorizon: 'one_year',
       targetLetter: 'A',
     }
   });
@@ -59,17 +73,45 @@ export default function AssessmentWizard() {
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
+  const addFiles = (incoming: FileList | File[]) => {
+    setFileError(null);
+    const nextFiles = [...files];
+    for (const file of Array.from(incoming)) {
+      if (nextFiles.length >= MAX_ATTACHMENTS) {
+        setFileError(`Máximo ${MAX_ATTACHMENTS} archivos por valoración.`);
+        break;
+      }
+      if (file.size > MAX_ATTACHMENT_SIZE) {
+        setFileError(`${file.name} supera el límite de 8 MB.`);
+        continue;
+      }
+      if (!isAllowedAttachment(file)) {
+        setFileError(`${file.name} no es un tipo admitido.`);
+        continue;
+      }
+      nextFiles.push(file);
+    }
+    setFiles(nextFiles);
+  };
+
   const onSubmit = async (data: AssessmentFormValues) => {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/assessment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: (() => {
+          const formData = new FormData();
+          Object.entries(data).forEach(([key, value]) => formData.append(key, String(value)));
+          files.forEach((file) => formData.append('attachments', file));
+          return formData;
+        })(),
       });
       const result = await response.json();
       if (result.id) {
         router.push(`/assessment/${result.id}`);
+      } else if (result.error) {
+        setFileError(result.error);
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error(error);
@@ -78,7 +120,7 @@ export default function AssessmentWizard() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className="max-w-3xl mx-auto px-4 py-12">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">Paso {step} de 5</p>
@@ -94,7 +136,7 @@ export default function AssessmentWizard() {
         {/* STEP 1: OBJECTIVE */}
         {step === 1 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">¿Cuál es tu objetivo?</h2>
+            <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardTitle}</h2>
             <div className="grid gap-4">
               {[
                 { id: 'current_state', title: 'Conocer situación actual', desc: 'Descubre tu clasificación orientativa.', icon: Target },
@@ -105,14 +147,14 @@ export default function AssessmentWizard() {
                   key={opt.id}
                   type="button"
                   onClick={() => { setValue('objective', opt.id); nextStep(); }}
-                  className={`flex items-start gap-4 p-4 rounded-xl border text-left transition ${objective === opt.id ? 'border-[#00DC82] bg-[#00DC82]/5' : 'border-[#262626] bg-[#131313] hover:border-[#7A7A7A]'}`}
+                  className={`flex items-start gap-4 p-4 rounded-xl border text-left transition ${objective === opt.id ? 'border-[#00DC82] bg-[#00DC82]/5' : 'surface border hover:border-[#7A7A7A]'}`}
                 >
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${objective === opt.id ? 'bg-[#00DC82]/20 text-[#00DC82]' : 'bg-white/5 text-[#7A7A7A]'}`}>
                     <opt.icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-heading font-semibold text-[#F0EDE8]">{opt.title}</p>
-                    <p className="text-xs text-[#7A7A7A] mt-1">{opt.desc}</p>
+                    <p className="font-heading font-semibold text-premium">{opt.title}</p>
+                    <p className="text-xs text-muted mt-1">{opt.desc}</p>
                   </div>
                 </button>
               ))}
@@ -123,7 +165,7 @@ export default function AssessmentWizard() {
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Datos de la vivienda</h2>
+            <h2 className="font-heading font-bold text-2xl text-premium">Datos de la vivienda</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de inmueble</label>
@@ -146,6 +188,26 @@ export default function AssessmentWizard() {
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Código Postal</label>
                 <input type="text" {...register('zipcode')} placeholder="28001" className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Orientación principal</label>
+                <select {...register('orientation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                  <option value="north">Norte</option>
+                  <option value="south">Sur</option>
+                  <option value="east">Este</option>
+                  <option value="west">Oeste</option>
+                  <option value="mixed">Mixta</option>
+                  <option value="unknown">No lo sé</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de cubierta</label>
+                <select {...register('roofType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                  <option value="flat">Plana</option>
+                  <option value="pitched">Inclinada</option>
+                  <option value="shared">Comunitaria / compartida</option>
+                  <option value="unknown">No lo sé</option>
+                </select>
               </div>
             </div>
             <div className="flex gap-4 pt-4">
@@ -185,6 +247,15 @@ export default function AssessmentWizard() {
                   <option value="partial">Parcial</option>
                   <option value="good">Bueno</option>
                   <option value="unknown">No lo sé / No aplica</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Ventilación</label>
+                <select {...register('ventilation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                  <option value="natural">Natural</option>
+                  <option value="mechanical">Mecánica</option>
+                  <option value="heat_recovery">Mecánica con recuperador de calor</option>
+                  <option value="unknown">No lo sé</option>
                 </select>
               </div>
             </div>
@@ -263,12 +334,57 @@ export default function AssessmentWizard() {
                 <option value="unknown">No lo tengo claro</option>
               </select>
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Horizonte temporal deseado</label>
+              <select {...register('timelineHorizon')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                <option value="immediate">Inmediato</option>
+                <option value="six_months">Próximos 6 meses</option>
+                <option value="one_year">Antes de 12 meses</option>
+                <option value="three_years">1-3 años</option>
+                <option value="unknown">No definido</option>
+              </select>
+            </div>
+
+            <div
+              className="rounded-2xl border border-dashed border-[#00DC82]/35 bg-[#00DC82]/5 p-5"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                addFiles(event.dataTransfer.files);
+              }}
+            >
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
+                <UploadCloud className="h-8 w-8 text-[#00DC82]" />
+                <span className="font-heading text-sm font-bold text-premium">Adjunta fotos, PDF, DOCX o Markdown</span>
+                <span className="text-xs text-muted">Arrastra archivos o selecciona hasta {MAX_ATTACHMENTS}. Máximo 8 MB por archivo.</span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.md"
+                  className="sr-only"
+                  onChange={(event) => event.target.files && addFiles(event.target.files)}
+                />
+              </label>
+              {fileError && <p className="mt-3 text-xs text-[#EF4444]">{fileError}</p>}
+              {files.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {files.map((file, index) => (
+                    <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs">
+                      <span className="flex items-center gap-2 text-muted"><FileText className="h-4 w-4 text-[#00DC82]" /> {file.name} ({formatFileSize(file.size)})</span>
+                      <button type="button" onClick={() => setFiles(files.filter((_, fileIndex) => fileIndex !== index))} className="text-muted hover:text-[#EF4444]" aria-label="Eliminar archivo">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-4 pt-4 border-t border-[#262626]">
               <div className="flex items-start gap-3">
                 <input type="checkbox" id="acceptTerms" {...register('acceptTerms')} className="mt-1 accent-[#00DC82]" />
                 <label htmlFor="acceptTerms" className="text-sm text-[#7A7A7A] leading-tight cursor-pointer">
-                  Acepto que EnerScan realice una estimación orientativa. Este prediagnóstico no tiene validez legal ni administrativa y no sustituye al Certificado de Eficiencia Energética oficial (CEE).
+                  Acepto que EnerScan realice una estimación orientativa. {getLegalDisclaimer(language)}
                 </label>
               </div>
               {errors.acceptTerms && <p className="text-red-500 text-xs">{errors.acceptTerms.message}</p>}

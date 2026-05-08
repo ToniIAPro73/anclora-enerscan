@@ -15,6 +15,9 @@ export function generateScenarios(propertyData: PropertyDataV2, result: ScoreRes
   } else {
     basicMeasures.push("Instalación de termostatos inteligentes.");
   }
+  if (propertyData.ventilation === "natural") {
+    basicMeasures.push("Revisión de infiltraciones y mejora de ventilación controlada.");
+  }
 
   scenarios.push({
     id: "basic",
@@ -36,6 +39,9 @@ export function generateScenarios(propertyData: PropertyDataV2, result: ScoreRes
   }
   if (propertyData.renewables === "none" && (propertyData.propertyType === "house" || propertyData.propertyType === "terraced" || propertyData.propertyType === "penthouse")) {
     intermediateMeasures.push("Instalación de paneles solares fotovoltaicos.");
+  }
+  if (propertyData.roofInsulation === "none" || propertyData.roofInsulation === "unknown") {
+    intermediateMeasures.push("Aislamiento de cubierta priorizado por exposición térmica.");
   }
 
   scenarios.push({
