@@ -13,25 +13,34 @@ model Assessment {
   updatedAt       DateTime @updatedAt
 
   // Objective
-  objective       String   // "know", "target", "sell"
+  objective       String?  // "know", "target", "sell"
 
   // Property Data
-  propertyType    String
+  propertyType    String?
   year            Int
   area            Float
   zipcode         String
 
   // Systems
-  heating         String
-  cooling         String
-  waterHeating    String
-  windows         String
-  renewables      String
+  heating         String?
+  cooling         String?
+  waterHeating    String?
+  windows         String?
+  renewables      String?
+  facadeInsulation String?
+  roofInsulation   String?
+  budgetRange      String?
+  targetLetter     String?
 
   // Scoring Results
-  estimatedLetter String?
-  confidence      String?
-  penalties       String?
+  score           Float?
+  estimatedLetter String
+  confidence      String
+  climateZone     String?
+  penalties       String? // JSON string
+  strengths       String? // JSON string
+  missingData     String? // JSON string
+  explanation     String?
   
   // Status
   isPremium       Boolean  @default(false)
