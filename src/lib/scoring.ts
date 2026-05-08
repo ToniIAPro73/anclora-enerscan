@@ -96,6 +96,16 @@ export function calculateScoreV2(data: PropertyDataV2): ScoreResultV2 {
     strengths.push("Menor exposición térmica relativa (piso)");
   }
 
+  if (data.orientation === "unknown") {
+    missingData.push("Orientación principal");
+  } else if (data.orientation === "north") {
+    score += 4;
+    penalties.push("Orientación norte con menor ganancia solar útil");
+  } else if (data.orientation === "south") {
+    score -= 4;
+    strengths.push("Orientación sur favorable para captación solar");
+  }
+
   // Ventanas
   if (data.windows === "unknown") {
     missingData.push("Tipo de ventanas");
@@ -124,6 +134,18 @@ export function calculateScoreV2(data: PropertyDataV2): ScoreResultV2 {
   } else if (data.roofInsulation === "good") {
     score -= 5;
     strengths.push("Buen aislamiento de cubierta");
+  } else if (data.roofInsulation === "none" && isHouse) {
+    score += 7;
+    penalties.push("Cubierta expuesta sin aislamiento declarado");
+  }
+
+  if (data.roofType === "unknown") {
+    missingData.push("Tipo de cubierta");
+  } else if (data.roofType === "flat" && isHouse) {
+    score += 2;
+    penalties.push("Cubierta plana expuesta a ganancias y pérdidas térmicas");
+  } else if (data.roofType === "pitched" && data.renewables === "photovoltaic") {
+    strengths.push("Cubierta inclinada compatible con fotovoltaica declarada");
   }
 
   // Calefacción
@@ -144,6 +166,24 @@ export function calculateScoreV2(data: PropertyDataV2): ScoreResultV2 {
   } else if (data.heating === "biomass") {
     score -= 10;
     strengths.push("Calefacción por biomasa");
+  }
+
+  if (data.ventilation === "unknown") {
+    missingData.push("Tipo de ventilación");
+  } else if (data.ventilation === "natural") {
+    score += 4;
+    penalties.push("Ventilación natural sin recuperación de calor");
+  } else if (data.ventilation === "heat_recovery") {
+    score -= 8;
+    strengths.push("Ventilación con recuperación de calor");
+  }
+
+  if (data.cooling === "central" && data.heating !== "heat_pump") {
+    score += 3;
+    penalties.push("Refrigeración central no vinculada a bomba de calor eficiente");
+  } else if (data.cooling === "heat_pump") {
+    score -= 4;
+    strengths.push("Refrigeración mediante bomba de calor eficiente");
   }
 
   // ACS
@@ -199,7 +239,7 @@ export function calculateScoreV2(data: PropertyDataV2): ScoreResultV2 {
     penalties,
     strengths,
     missingData,
-    explanation: "Estimación basada en el año de construcción, envolvente y eficiencia de sistemas instalados."
+    explanation: "Estimación basada en el año de construcción, orientación, envolvente, ventilación y eficiencia de sistemas instalados."
   };
 }
 
@@ -213,6 +253,9 @@ export function calculateScore(data: PropertyData): ScoringResult {
     heating: data.heating as HeatingSystem || "unknown",
     cooling: "unknown",
     waterHeating: "unknown",
+    orientation: "unknown",
+    roofType: "unknown",
+    ventilation: "unknown",
     windows: data.windows as WindowType || "unknown",
     renewables: data.renewables as RenewableSystem || "unknown",
   });

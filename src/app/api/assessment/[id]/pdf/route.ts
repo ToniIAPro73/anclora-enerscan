@@ -4,13 +4,15 @@ import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
 import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
-import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel } from '@/lib/domain/energy-assessment';
+import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
+import { normalizeLanguage } from '@/lib/preferences';
 import React from 'react';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const assessment = await prisma.assessment.findUnique({
-      where: { id: params.id }
+      where: { id: params.id },
+      include: { attachments: true }
     });
 
     if (!assessment) {
@@ -22,14 +24,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       area: assessment.area,
       zipcode: assessment.zipcode,
       propertyType: (assessment.propertyType || 'unknown') as PropertyType,
+      orientation: (assessment.orientation || 'unknown') as PropertyOrientation,
+      roofType: (assessment.roofType || 'unknown') as RoofType,
       heating: (assessment.heating || 'unknown') as HeatingSystem,
       cooling: (assessment.cooling || 'unknown') as CoolingSystem,
       waterHeating: (assessment.waterHeating || 'unknown') as WaterHeatingSystem,
+      ventilation: (assessment.ventilation || 'unknown') as VentilationType,
       windows: (assessment.windows || 'unknown') as WindowType,
       renewables: (assessment.renewables || 'unknown') as RenewableSystem,
       facadeInsulation: (assessment.facadeInsulation || 'unknown') as InsulationLevel,
       roofInsulation: (assessment.roofInsulation || 'unknown') as InsulationLevel,
       budgetRange: (assessment.budgetRange || 'unknown') as BudgetRange,
+      timelineHorizon: (assessment.timelineHorizon || 'unknown') as TimelineHorizon,
       targetLetter: (assessment.targetLetter || 'G') as EnergyLetter,
       objective: (assessment.objective || 'unknown') as AssessmentObjective,
     };
@@ -46,15 +52,27 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     };
 
     const scenarios = generateScenarios(propertyData, scoreResult);
+    const cookieLanguage = req.headers.get('cookie')?.match(/enerscan-language=(es|en|de)/)?.[1];
+    const language = normalizeLanguage(new URL(req.url).searchParams.get('lang') || cookieLanguage);
 
     const reportData: PremiumReportData = {
       id: assessment.id,
-      date: new Date(assessment.createdAt).toLocaleDateString('es-ES'),
+      date: new Date(assessment.createdAt).toLocaleDateString(language === 'es' ? 'es-ES' : language === 'de' ? 'de-DE' : 'en-US'),
       propertyData,
       scoreResult,
       scenarios,
       regulatoryContext: REGULATORY_TIMELINE,
-      providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"]
+      providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
+      attachments: assessment.attachments.map((attachment) => ({
+        id: attachment.id,
+        name: attachment.name,
+        type: attachment.type,
+        size: attachment.size,
+        path: attachment.path,
+        createdAt: attachment.createdAt.toISOString(),
+      })),
+      language,
+      isDemo: assessment.isDemo,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -50,6 +50,33 @@ export type InsulationLevel =
   | "good"
   | "unknown";
 
+export type PropertyOrientation =
+  | "north"
+  | "south"
+  | "east"
+  | "west"
+  | "mixed"
+  | "unknown";
+
+export type RoofType =
+  | "flat"
+  | "pitched"
+  | "shared"
+  | "unknown";
+
+export type VentilationType =
+  | "natural"
+  | "mechanical"
+  | "heat_recovery"
+  | "unknown";
+
+export type TimelineHorizon =
+  | "immediate"
+  | "six_months"
+  | "one_year"
+  | "three_years"
+  | "unknown";
+
 export type BudgetRange =
   | "low"
   | "medium"
@@ -69,16 +96,29 @@ export interface PropertyDataV2 {
   area: number;
   zipcode: string;
   propertyType: PropertyType;
+  orientation?: PropertyOrientation;
+  roofType?: RoofType;
   heating: HeatingSystem;
   cooling: CoolingSystem;
   waterHeating: WaterHeatingSystem;
+  ventilation?: VentilationType;
   windows: WindowType;
   renewables: RenewableSystem;
   facadeInsulation?: InsulationLevel;
   roofInsulation?: InsulationLevel;
   budgetRange?: BudgetRange;
+  timelineHorizon?: TimelineHorizon;
   targetLetter?: EnergyLetter;
   objective?: AssessmentObjective;
+}
+
+export interface AssessmentAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  path?: string;
+  createdAt?: string;
 }
 
 export interface ScoreResultV2 {
@@ -121,4 +161,7 @@ export interface PremiumReportData {
   scenarios: ImprovementScenario[];
   regulatoryContext: RegulatoryTimelineItem[];
   providerCategories: string[];
+  attachments?: AssessmentAttachment[];
+  language?: "es" | "en" | "de";
+  isDemo?: boolean;
 }

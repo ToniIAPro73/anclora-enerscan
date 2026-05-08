@@ -17,6 +17,8 @@ model Assessment {
 
   // Property Data
   propertyType    String?
+  orientation     String?
+  roofType        String?
   year            Int
   area            Float
   zipcode         String
@@ -25,12 +27,15 @@ model Assessment {
   heating         String?
   cooling         String?
   waterHeating    String?
+  ventilation     String?
   windows         String?
   renewables      String?
   facadeInsulation String?
   roofInsulation   String?
   budgetRange      String?
+  timelineHorizon  String?
   targetLetter     String?
+  isDemo           Boolean  @default(false)
 
   // Scoring Results
   score           Float?
@@ -44,6 +49,18 @@ model Assessment {
   
   // Status
   isPremium       Boolean  @default(false)
+  attachments     AssessmentAttachment[]
+}
+
+model AssessmentAttachment {
+  id              String     @id @default(cuid())
+  assessmentId    String
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  name            String
+  type            String
+  size            Int
+  path            String
+  createdAt       DateTime   @default(now())
 }
 
 model Provider {
