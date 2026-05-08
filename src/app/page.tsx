@@ -2,7 +2,7 @@
 
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { ArrowRight, Home, Gauge, Zap, FileText } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Home, Gauge, Zap, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePreferences } from '@/components/AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
@@ -150,6 +150,66 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* PRECIOS */}
+        <section id="precios" className="py-24 sm:py-32 relative">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">{t.navPricing}</p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">Prediagnóstico claro antes de invertir</h2>
+              <p className="text-muted max-w-2xl mx-auto">
+                EnerScan separa la valoración orientativa gratuita del informe premium demo. No hay pasarela de pago activa en esta versión.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {[
+                {
+                  name: 'Prediagnóstico',
+                  price: '0€',
+                  badge: 'Disponible',
+                  cta: t.startFree,
+                  href: '/wizard',
+                  items: ['Wizard energético completo', 'Letra orientativa y confianza', 'Penalizaciones y fortalezas', 'Contexto normativo básico'],
+                },
+                {
+                  name: 'Informe Premium',
+                  price: 'Demo',
+                  badge: 'Sin pago real',
+                  cta: t.demo,
+                  href: '/api/assessment/demo',
+                  items: ['PDF premium de ejemplo', 'Escenarios de mejora', 'Documentación aportada', 'Categorías de proveedores sugeridas'],
+                },
+              ].map((plan) => (
+                <div key={plan.name} className="surface-2 border rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                      <h3 className="font-heading text-2xl font-bold text-premium">{plan.name}</h3>
+                      <p className="mt-2 text-sm text-muted">{plan.badge}</p>
+                    </div>
+                    <p className="font-heading text-3xl font-bold text-[#00DC82]">{plan.price}</p>
+                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {plan.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-sm text-muted">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#00DC82]" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={plan.href} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#00DC82] px-6 py-3 text-sm font-heading font-bold text-[#0A0A0A] transition hover:brightness-110">
+                    {plan.cta} <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-muted leading-relaxed max-w-3xl mx-auto text-center mt-8">
+              {getLegalDisclaimer(language)}
+            </p>
           </div>
         </section>
 
