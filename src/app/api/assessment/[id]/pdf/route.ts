@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import puppeteer from 'puppeteer';
+import { generateScenarios } from '@/lib/simulator';
+import { REGULATORY_TIMELINE } from '@/lib/regulatory';
+import { renderToStream } from '@react-pdf/renderer';
+import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
+import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel } from '@/lib/domain/energy-assessment';
+import React from 'react';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -8,64 +13,62 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       where: { id: params.id }
     });
 
-    if (!assessment) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!assessment) {
+      return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+    }
 
-    // In a real app, we would use a specialized template. 
-    // For the MVP, we'll navigate to the results page and print it, 
-    // or better, render a dedicated PDF route.
-    
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    
-    // Construct the URL to the results page (assuming it's accessible internally)
-    // For MVP local dev, we can use the absolute URL if we know where the server is running.
-    // Or we can just generate a simple HTML here.
-    
-    const html = `
-      <html>
-        <head>
-          <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=DM+Sans&display=swap" rel="stylesheet">
-          <style>
-            body { font-family: 'DM Sans', sans-serif; background: white; color: black; padding: 40px; }
-            h1 { font-family: 'Space Grotesk', sans-serif; color: #00DC82; }
-            .card { border: 1px solid #eee; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-            .letter { font-size: 80px; font-weight: bold; color: #00DC82; text-align: center; }
-            .footer { font-size: 10px; color: #777; margin-top: 50px; border-top: 1px solid #eee; padding-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <h1>EnerScan - Informe Premium</h1>
-          <div className="card">
-            <h2>Clasificación Estimada</h2>
-            <div class="letter">${assessment.estimatedLetter}</div>
-            <p>Confianza: ${assessment.confidence}</p>
-          </div>
-          <div className="card">
-            <h2>Datos de la Vivienda</h2>
-            <p>Superficie: ${assessment.area} m²</p>
-            <p>Año: ${assessment.year}</p>
-            <p>Ubicación: CP ${assessment.zipcode}</p>
-          </div>
-          <div className="footer">
-            Estimación orientativa. No sustituye al Certificado de Eficiencia Energética oficial (R.D. 390/2021).
-          </div>
-        </body>
-      </html>
-    `;
+    const propertyData: PropertyDataV2 = {
+      year: assessment.year,
+      area: assessment.area,
+      zipcode: assessment.zipcode,
+      propertyType: (assessment.propertyType || 'unknown') as PropertyType,
+      heating: (assessment.heating || 'unknown') as HeatingSystem,
+      cooling: (assessment.cooling || 'unknown') as CoolingSystem,
+      waterHeating: (assessment.waterHeating || 'unknown') as WaterHeatingSystem,
+      windows: (assessment.windows || 'unknown') as WindowType,
+      renewables: (assessment.renewables || 'unknown') as RenewableSystem,
+      facadeInsulation: (assessment.facadeInsulation || 'unknown') as InsulationLevel,
+      roofInsulation: (assessment.roofInsulation || 'unknown') as InsulationLevel,
+      budgetRange: (assessment.budgetRange || 'unknown') as BudgetRange,
+      targetLetter: (assessment.targetLetter || 'G') as EnergyLetter,
+      objective: (assessment.objective || 'unknown') as AssessmentObjective,
+    };
 
-    await page.setContent(html);
-    const pdf = await page.pdf({ format: 'A4', printBackground: true });
+    const scoreResult: ScoreResultV2 = {
+      score: assessment.score || 0,
+      estimatedLetter: assessment.estimatedLetter as EnergyLetter,
+      confidence: (assessment.confidence || 'Media') as ConfidenceLevel,
+      climateZone: assessment.climateZone || 'Desconocida',
+      penalties: JSON.parse(assessment.penalties || '[]'),
+      strengths: JSON.parse(assessment.strengths || '[]'),
+      missingData: JSON.parse(assessment.missingData || '[]'),
+      explanation: assessment.explanation || '',
+    };
 
-    await browser.close();
+    const scenarios = generateScenarios(propertyData, scoreResult);
 
-    return new Response(Buffer.from(pdf), {
+    const reportData: PremiumReportData = {
+      id: assessment.id,
+      date: new Date(assessment.createdAt).toLocaleDateString('es-ES'),
+      propertyData,
+      scoreResult,
+      scenarios,
+      regulatoryContext: REGULATORY_TIMELINE,
+      providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"]
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);
+
+    // Need to cast stream to unknown then ResponseBody because the typings for React PDF Stream can be incomplete in Next
+    return new NextResponse(stream as unknown as ReadableStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="EnerScan_Informe_${assessment.id}.pdf"`
+        'Content-Disposition': `attachment; filename="enerscan-informe-${assessment.id}.pdf"`
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error generating PDF:', error);
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
   }
 }

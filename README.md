@@ -1,36 +1,48 @@
-# Anclora Enerscan
+# Anclora EnerScan
 
-## Getting Started
+EnerScan es una plataforma de prediagnóstico energético orientativa. Permite a los usuarios introducir datos sobre su vivienda para obtener una estimación de su situación energética y de la normativa vigente aplicable.
 
-First, run the development server:
+**Este proyecto NO genera un Certificado de Eficiencia Energética oficial.**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+- Next.js 14
+- TypeScript
+- Prisma + SQLite (configurable para Postgres)
+- Tailwind CSS
+- React Hook Form + Zod
+- @react-pdf/renderer
+
+## Arquitectura
+La aplicación sigue un flujo Wizard -> API -> Resultados:
+1. **Landing/Wizard**: Captura datos estructurales y de sistemas de la vivienda (`src/components/AssessmentWizard.tsx`).
+2. **API**: Valida la información mediante esquemas estrictos de `Zod` y persiste el análisis inicial (`src/app/api/assessment/route.ts`).
+3. **Scoring**: Un motor propio evalúa penalizaciones y puntos fuertes según datos, como el año o el aislamiento (`src/lib/scoring.ts`).
+4. **Resultados**: Muestra clasificación orientativa, zonas de riesgo y proveedores recomendados.
+5. **Generador PDF**: Construye y descarga un reporte Premium renderizado mediante `@react-pdf/renderer`.
+
+## Instalación
+1. Clonar el repositorio
+2. `npm install`
+3. Generar cliente Prisma: `npx prisma generate`
+4. Crear la base de datos: `npx prisma migrate dev`
+5. Levantar el entorno local: `npm run dev`
+
+## Variables de Entorno
+Crea un archivo `.env` basado en `.env.example`:
+```env
+DATABASE_URL="file:./dev.db"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ENABLE_DEMO_PREMIUM="true"
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Limitaciones Legales
+- **Orientativo:** EnerScan solo emite valoraciones automáticas en base a la información declarada.
+- **Sin validez administrativa:** No sustituye al Real Decreto 390/2021 sobre el CEE en España ni normativas autonómicas.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roadmap
+- [x] Motor Scoring v2 (Más factores).
+- [x] Generador PDF nativo y rápido (`@react-pdf/renderer`).
+- [ ] Integración completa con Stripe para Premium real.
+- [ ] Panel Admin de Proveedores.
