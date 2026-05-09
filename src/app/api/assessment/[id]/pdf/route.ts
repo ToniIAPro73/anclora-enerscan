@@ -6,7 +6,7 @@ import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
 import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { normalizeLanguage } from '@/lib/preferences';
-import { createReportDataFromPayload, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
+import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import React from 'react';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -90,7 +90,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new NextResponse(stream as unknown as ReadableStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="enerscan-informe-${params.id.slice(0, 24)}.pdf"`
+        'Content-Disposition': `attachment; filename="enerscan-informe-${getPublicAssessmentRef(params.id)}.pdf"`
       }
     });
   } catch (error) {

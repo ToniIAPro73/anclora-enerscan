@@ -43,6 +43,11 @@ export function parseStatelessAssessmentId(id: string): StatelessAssessmentPaylo
   }
 }
 
+export function getPublicAssessmentRef(id: string): string {
+  if (!isStatelessAssessmentId(id)) return id;
+  return `DEMO-${id.slice(-8).toUpperCase()}`;
+}
+
 export function createStatelessPayload(
   propertyData: PropertyDataV2,
   options: { attachments?: AssessmentAttachment[]; isDemo?: boolean } = {}

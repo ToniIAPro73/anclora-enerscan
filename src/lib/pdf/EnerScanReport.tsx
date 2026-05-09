@@ -4,6 +4,7 @@ import { styles } from './styles';
 import { PremiumReportData } from '../domain/energy-assessment';
 import { getLegalDisclaimer } from '../i18n';
 import { formatFileSize } from '../attachments';
+import { getPublicAssessmentRef } from '../stateless-assessment';
 
 const labels = {
   es: {
@@ -71,9 +72,121 @@ const labels = {
   },
 } as const;
 
+const valueLabels: Record<string, Record<string, string>> = {
+  es: {
+    flat: 'Piso / apartamento',
+    house: 'Casa unifamiliar',
+    terraced: 'Adosado',
+    penthouse: 'Ático',
+    ground_floor: 'Planta baja',
+    north: 'Norte',
+    south: 'Sur',
+    east: 'Este',
+    west: 'Oeste',
+    mixed: 'Mixta',
+    flat_roof: 'Cubierta plana',
+    pitched: 'Cubierta inclinada',
+    shared: 'Cubierta comunitaria',
+    gas: 'Gas',
+    electric: 'Eléctrico',
+    heat_pump: 'Bomba de calor / aerotermia',
+    biomass: 'Biomasa',
+    none: 'Ninguno',
+    split: 'Split',
+    central: 'Centralizado',
+    natural: 'Natural',
+    mechanical: 'Mecánica',
+    heat_recovery: 'Recuperación de calor',
+    single: 'Cristal simple',
+    double: 'Doble acristalamiento',
+    triple: 'Triple / bajo emisivo',
+    partial: 'Parcial',
+    good: 'Bueno',
+    photovoltaic: 'Fotovoltaica',
+    solar_thermal: 'Solar térmica',
+    both: 'Fotovoltaica y solar térmica',
+    unknown: 'No declarado',
+  },
+  en: {
+    flat: 'Apartment',
+    house: 'Detached house',
+    terraced: 'Terraced house',
+    penthouse: 'Penthouse',
+    ground_floor: 'Ground floor',
+    north: 'North',
+    south: 'South',
+    east: 'East',
+    west: 'West',
+    mixed: 'Mixed',
+    flat_roof: 'Flat roof',
+    pitched: 'Pitched roof',
+    shared: 'Shared roof',
+    gas: 'Gas',
+    electric: 'Electric',
+    heat_pump: 'Heat pump',
+    biomass: 'Biomass',
+    none: 'None',
+    split: 'Split unit',
+    central: 'Central system',
+    natural: 'Natural',
+    mechanical: 'Mechanical',
+    heat_recovery: 'Heat recovery',
+    single: 'Single glazing',
+    double: 'Double glazing',
+    triple: 'Triple / low-e glazing',
+    partial: 'Partial',
+    good: 'Good',
+    photovoltaic: 'Photovoltaic',
+    solar_thermal: 'Solar thermal',
+    both: 'Photovoltaic and solar thermal',
+    unknown: 'Not declared',
+  },
+  de: {
+    flat: 'Wohnung',
+    house: 'Einfamilienhaus',
+    terraced: 'Reihenhaus',
+    penthouse: 'Penthouse',
+    ground_floor: 'Erdgeschoss',
+    north: 'Nord',
+    south: 'Süd',
+    east: 'Ost',
+    west: 'West',
+    mixed: 'Gemischt',
+    flat_roof: 'Flachdach',
+    pitched: 'Schrägdach',
+    shared: 'Gemeinschaftsdach',
+    gas: 'Gas',
+    electric: 'Elektrisch',
+    heat_pump: 'Wärmepumpe',
+    biomass: 'Biomasse',
+    none: 'Keine',
+    split: 'Splitgerät',
+    central: 'Zentrales System',
+    natural: 'Natürlich',
+    mechanical: 'Mechanisch',
+    heat_recovery: 'Wärmerückgewinnung',
+    single: 'Einfachverglasung',
+    double: 'Doppelverglasung',
+    triple: 'Dreifachverglasung',
+    partial: 'Teilweise',
+    good: 'Gut',
+    photovoltaic: 'Photovoltaik',
+    solar_thermal: 'Solarthermie',
+    both: 'Photovoltaik und Solarthermie',
+    unknown: 'Nicht angegeben',
+  },
+};
+
+function labelValue(value: string | undefined, language: 'es' | 'en' | 'de') {
+  if (!value) return valueLabels[language].unknown;
+  const key = value === 'flat' ? 'flat_roof' : value;
+  return valueLabels[language][key] || value;
+}
+
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
   const t = labels[language];
+  const reportRef = getPublicAssessmentRef(data.id);
 
   return (
   <Document>
@@ -82,7 +195,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.header}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.subtitle}>{t.subtitle}</Text>
-        <Text style={{ ...styles.text, marginTop: 5 }}>ID: {data.id} | Fecha: {data.date}</Text>
+        <Text style={{ ...styles.text, marginTop: 5 }}>Ref: {reportRef} | Fecha: {data.date}</Text>
         {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
       </View>
 
@@ -97,10 +210,10 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         <Text style={styles.sectionTitle}>{t.data}</Text>
         <View style={styles.row}><Text style={styles.colLeft}>{t.yearArea}</Text><Text style={styles.colRight}>{data.propertyData.year} / {data.propertyData.area} m²</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.zipcode}</Text><Text style={styles.colRight}>{data.propertyData.zipcode}</Text></View>
-        <View style={styles.row}><Text style={styles.colLeft}>{t.orientation}</Text><Text style={styles.colRight}>{data.propertyData.orientation} / {data.propertyData.roofType}</Text></View>
-        <View style={styles.row}><Text style={styles.colLeft}>{t.systems}</Text><Text style={styles.colRight}>{data.propertyData.heating} / {data.propertyData.cooling} / {data.propertyData.waterHeating}</Text></View>
-        <View style={styles.row}><Text style={styles.colLeft}>{t.envelope}</Text><Text style={styles.colRight}>{data.propertyData.windows} / {data.propertyData.facadeInsulation} / {data.propertyData.roofInsulation}</Text></View>
-        <View style={styles.row}><Text style={styles.colLeft}>Renovables</Text><Text style={styles.colRight}>{data.propertyData.renewables}</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>{t.orientation}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.orientation, language)} / {labelValue(data.propertyData.roofType, language)}</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>{t.systems}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.heating, language)} / {labelValue(data.propertyData.cooling, language)} / {labelValue(data.propertyData.waterHeating, language)}</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>{t.envelope}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.windows, language)} / {labelValue(data.propertyData.facadeInsulation, language)} / {labelValue(data.propertyData.roofInsulation, language)}</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>Renovables</Text><Text style={styles.colRight}>{labelValue(data.propertyData.renewables, language)}</Text></View>
       </View>
 
       <View style={styles.section}>
