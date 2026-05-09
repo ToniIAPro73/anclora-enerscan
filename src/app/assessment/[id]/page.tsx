@@ -1,10 +1,12 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { AttachmentList } from '@/components/AttachmentList';
+import { ProviderLeadSection } from '@/components/ProviderLeadSection';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
-import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
-import { PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
+import { AlertTriangle, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
+import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
@@ -50,8 +52,18 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
 
   const scenarios = generateScenarios(propertyData, scoreResult);
-  const providers = await prisma.provider.findMany({ take: 3 }).catch(() => []);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
+  const attachments: AssessmentAttachment[] = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
+    id: attachment.id,
+    name: attachment.name,
+    type: attachment.type,
+    size: attachment.size,
+    path: attachment.path,
+    createdAt: attachment.createdAt.toISOString(),
+  })) || [];
+  const exteriorCount = attachments.filter((attachment) => attachment.category === 'EXTERIOR').length;
+  const interiorCount = attachments.filter((attachment) => attachment.category === 'INTERIOR').length;
+  const ceeCount = attachments.filter((attachment) => attachment.category === 'CEE' || attachment.type === 'application/pdf').length;
 
   return (
     <div className="min-h-screen app-shell">
@@ -234,6 +246,39 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             <p className="text-[10px] text-[#7A7A7A]/60">Documento PDF generado de forma dinámica.</p>
           </section>
 
+          {/* ATTACHMENTS */}
+          <section className="surface border rounded-3xl p-6 lg:p-8">
+            <div className="mb-5 flex items-center gap-2 text-premium">
+              <FileText className="h-5 w-5 text-[#00DC82]" />
+              <h2 className="font-heading text-2xl font-bold">Documentación aportada</h2>
+            </div>
+            <div className="mb-5 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                <p className="text-lg font-bold text-premium">{attachments.length}</p>
+                <p className="text-[10px] font-semibold uppercase text-muted">Total</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                <p className="text-lg font-bold text-[#FFB020]">{ceeCount}</p>
+                <p className="text-[10px] font-semibold uppercase text-muted">CEE/PDF</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                <p className="text-lg font-bold text-[#00DC82]">{exteriorCount + interiorCount}</p>
+                <p className="text-[10px] font-semibold uppercase text-muted">Imágenes</p>
+              </div>
+            </div>
+            <p className="mb-4 text-xs text-muted">
+              {isDemo
+                ? 'La demo incluye imágenes sintéticas y un supuesto CEE aportado por el usuario. Todo el material es ficticio y sin validez oficial.'
+                : 'Los archivos se registran como soporte documental, pero no sustituyen una revisión técnica ni un CEE oficial.'}
+            </p>
+            <div className="mb-4 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
+              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">Exteriores: {exteriorCount}</span>
+              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">Interiores: {interiorCount}</span>
+              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">CEE: {ceeCount}</span>
+            </div>
+            <AttachmentList assessmentId={params.id} initialAttachments={attachments} />
+          </section>
+
           {/* SIMULATOR */}
           <section className="space-y-8">
              <div className="text-center">
@@ -263,41 +308,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
           </section>
 
-          {/* MARKETPLACE */}
-          <section className="space-y-8">
-            <div className="text-center">
-              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Marketplace de proveedores</h2>
-              <p className="text-[#7A7A7A]">Empresas para ejecutar tus mejoras en CP {propertyData.zipcode}.</p>
-            </div>
-            {providers.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {providers.map(p => (
-                  <div key={p.id} className="bg-[#131313] border border-[#262626] rounded-2xl p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-heading font-bold text-[#F0EDE8]">{p.name}</h4>
-                      {p.verified && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#00DC82]/10 text-[#00DC82]">Verificado</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {JSON.parse(p.categories).map((c: string) => (
-                        <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[#7A7A7A] border border-white/5">{c}</span>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-1 text-[#FFB020]">
-                        <span className="text-xs font-bold">{p.rating}</span>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-1 rounded-full ${i <= p.rating ? 'bg-[#FFB020]' : 'bg-[#262626]'}`} />)}
-                        </div>
-                      </div>
-                      <button className="text-xs font-bold text-[#00DC82] flex items-center gap-1 hover:underline">Solicitar presupuesto <ArrowRight className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-[#7A7A7A] text-sm">Aún no hay proveedores registrados en tu zona. Las categorías recomendadas son: aislamiento, ventanas, climatización y fotovoltaica.</div>
-            )}
-          </section>
+          <ProviderLeadSection assessmentId={params.id} zone={propertyData.zipcode} />
 
         </div>
       </main>

@@ -122,6 +122,9 @@ export interface AssessmentAttachment {
   previewDataUri?: string;
   previewText?: string;
   annexNote?: string;
+  category?: "EXTERIOR" | "INTERIOR" | "CEE";
+  caption?: string;
+  ceeLetter?: EnergyLetter;
 }
 
 export interface ScoreResultV2 {

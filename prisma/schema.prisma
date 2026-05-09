@@ -50,6 +50,7 @@ model Assessment {
   // Status
   isPremium       Boolean  @default(false)
   attachments     AssessmentAttachment[]
+  leads           Lead[]
 }
 
 model AssessmentAttachment {
@@ -64,20 +65,98 @@ model AssessmentAttachment {
 }
 
 model Provider {
-  id              String   @id @default(cuid())
-  name            String
-  categories      String   // JSON string or comma separated
-  zones           String   // JSON string or comma separated
-  verified        Boolean  @default(true)
-  rating          Float    @default(4.5)
-  leads           Lead[]
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  name               String
+  legalName          String?
+  taxId              String?
+  contactName        String?
+  email              String?
+  phone              String?
+  website            String?
+
+  categories         String   // JSON string array
+  zones              String   // JSON string array
+  certifications     String?  // JSON string array
+
+  status             String   @default("PENDING") // PENDING, VERIFIED, PREFERRED, SUSPENDED, EXCLUSIVE
+  verified           Boolean  @default(false)
+  rating             Float    @default(4.5)
+  slaHours           Int?
+
+  commissionType     String?  // NONE, LEAD_FEE, SUCCESS_FEE, SUBSCRIPTION, HYBRID
+  commissionRate     Float?
+  leadFeeCents       Int?
+  monthlyFeeCents    Int?
+  attributionMonths  Int      @default(12)
+
+  notes              String?
+  source             String?  // manual, partner, inbound, internal
+
+  partnerId          String?
+  partner            Partner? @relation(fields: [partnerId], references: [id])
+
+  leads              Lead[]
+}
+
+model Partner {
+  id                    String   @id @default(cuid())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  name                  String
+  type                  String   @default("REAL_ESTATE") // REAL_ESTATE, PROVIDER_REFERRER, AGENCY, CONSULTANT, INTERNAL
+  company               String?
+  email                 String?
+  phone                 String?
+  website               String?
+
+  status                String   @default("ACTIVE") // ACTIVE, PAUSED, SUSPENDED
+  attributionMonths     Int      @default(12)
+
+  defaultCommissionRate Float?   // percentage over net revenue, e.g. 25
+  notes                 String?
+
+  providers             Provider[]
+  leads                 Lead[]
 }
 
 model Lead {
-  id              String     @id @default(cuid())
-  assessmentId    String
-  providerId      String
-  provider        Provider   @relation(fields: [providerId], references: [id])
-  status          String     @default("PENDING")
-  createdAt       DateTime   @default(now())
+  id                    String   @id @default(cuid())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  assessmentId          String?
+  assessment            Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  providerId            String?
+  provider              Provider? @relation(fields: [providerId], references: [id])
+
+  partnerId             String?
+  partner               Partner? @relation(fields: [partnerId], references: [id])
+
+  userName              String?
+  userEmail             String?
+  userPhone             String?
+
+  requestedService      String?  // CEE, AUDIT, WINDOWS, INSULATION, HVAC, SOLAR, REFORM, REAL_ESTATE_VALUATION, OTHER
+  estimatedBudget       String?
+  urgency               String?  // LOW, MEDIUM, HIGH, IMMEDIATE
+  zone                  String?
+
+  source                String?  // assessment, demo, partner, manual, provider_marketplace
+  attributionOwner      String?  // ANCLORA, PARTNER, PROVIDER, SHARED
+  attributionExpiresAt  DateTime?
+
+  status                String   @default("PENDING") // PENDING, CONTACTED, QUOTED, WON, LOST, CANCELLED
+  commissionStatus      String   @default("NOT_APPLICABLE") // NOT_APPLICABLE, PENDING, PAYABLE, PAID, DISPUTED
+
+  expectedValueCents    Int?
+  closedValueCents      Int?
+  commissionCents       Int?
+
+  consentAccepted       Boolean  @default(false)
+  notes                 String?
 }

@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server';
-import { demoPropertyData } from '@/lib/demo-assessment';
+import { getDemoAssessmentPayload } from '@/lib/demo-assets';
 import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const payload = createStatelessPayload(demoPropertyData, {
-    isDemo: true,
-    attachments: [
-      {
-        id: 'demo-documentacion',
-        name: 'demo-documentacion.md',
-        type: 'text/markdown',
-        size: 1240,
-        path: 'demo://documentacion',
-      },
-    ],
+  const demo = getDemoAssessmentPayload();
+  const payload = createStatelessPayload(demo.propertyData, {
+    isDemo: demo.isDemo,
+    attachments: demo.attachments,
   });
 
   return NextResponse.redirect(new URL(`/assessment/${createStatelessAssessmentId(payload)}`, req.url));
