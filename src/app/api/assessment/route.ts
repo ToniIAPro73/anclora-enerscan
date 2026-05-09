@@ -24,7 +24,10 @@ import {
   normalizeTimelineHorizon
 } from '@/lib/domain/normalizers';
 
+export const dynamic = 'force-dynamic';
+
 const assessmentSchema = z.object({
+
   year: z.number().or(z.string().transform(Number)).pipe(z.number().min(1800).max(new Date().getFullYear())),
   area: z.number().or(z.string().transform(Number)).pipe(z.number().positive().max(2000)),
   zipcode: z.string().min(4).max(10),

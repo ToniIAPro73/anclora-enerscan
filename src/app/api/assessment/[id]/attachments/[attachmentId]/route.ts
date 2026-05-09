@@ -5,6 +5,8 @@ import { getDemoAssetPath, getDemoAttachmentById } from '@/lib/demo-assets';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { deleteStoredAttachment, readAttachmentBytes } from '@/lib/blob-storage';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_: Request, { params }: { params: { id: string; attachmentId: string } }) {
   const statelessPayload = parseStatelessAssessmentId(params.id);
   if (statelessPayload?.isDemo) {

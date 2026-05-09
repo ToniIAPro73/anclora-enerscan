@@ -5,6 +5,8 @@ import { leadRequestSchema } from '@/lib/lead-validation';
 import { isStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { auth } from '@/auth';
 
+export const dynamic = 'force-dynamic';
+
 const LEAD_RATE_LIMIT_WINDOW_MS = 60_000;
 const LEAD_RATE_LIMIT_MAX = 5;
 const leadRateLimitStore = new Map<string, { count: number; resetAt: number }>();

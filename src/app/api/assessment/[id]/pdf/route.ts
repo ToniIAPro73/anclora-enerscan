@@ -16,6 +16,8 @@ import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAsse
 import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import React from 'react';
 
+export const dynamic = 'force-dynamic';
+
 const execFileAsync = promisify(execFile);
 
 let cachedLogoDataUri: string | undefined;

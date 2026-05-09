@@ -10,7 +10,10 @@ import { AlertTriangle, Download, CheckCircle2, HelpCircle, Lightbulb, FileText 
 import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
+
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },

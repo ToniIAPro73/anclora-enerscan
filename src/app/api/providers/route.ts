@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { formatProviderCategory, parseJsonArray } from '@/lib/domain/partners';
 
+export const dynamic = 'force-dynamic';
+
 const fallbackProviders = [
   {
     id: 'fallback-cee',
