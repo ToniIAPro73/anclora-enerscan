@@ -1,6 +1,7 @@
 import { REGULATORY_TIMELINE } from "./regulatory";
 import { calculateScoreV2 } from "./scoring";
 import { generateScenarios } from "./simulator";
+import { getRelevantSubsidies } from "./subsidies";
 import {
   AssessmentAttachment,
   PremiumReportData,
@@ -72,6 +73,7 @@ export function createReportDataFromPayload(id: string, payload: StatelessAssess
     scoreResult: payload.scoreResult,
     scenarios: generateScenarios(payload.propertyData, payload.scoreResult),
     regulatoryContext: REGULATORY_TIMELINE,
+    subsidies: getRelevantSubsidies(payload.propertyData),
     providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
     attachments: payload.attachments || [],
     language,

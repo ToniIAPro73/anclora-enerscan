@@ -32,6 +32,9 @@ export default function Navbar() {
           <div className="hidden sm:block">
             <PreferenceToggles compact />
           </div>
+          <Link href="/auth" className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-heading font-semibold text-premium transition hover:border-[#00DC82]/40 sm:inline-flex">
+            Acceso
+          </Link>
           <Link href="/wizard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-semibold text-sm hover:brightness-110 transition">
             {t.start}
           </Link>

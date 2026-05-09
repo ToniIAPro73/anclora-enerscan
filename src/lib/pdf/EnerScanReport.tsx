@@ -25,6 +25,7 @@ const labels = {
     strengths: 'Fortalezas principales:',
     scenarios: 'Escenarios de Mejora',
     regulation: 'Contexto Normativo',
+    subsidies: 'Ayudas y subvenciones potencialmente relevantes',
     attachments: 'Documentación aportada',
     attachmentsNote: 'Los archivos se registran como soporte documental, pero no han sido analizados automáticamente.',
     annexTitle: 'Anexo',
@@ -56,6 +57,7 @@ const labels = {
     strengths: 'Main strengths:',
     scenarios: 'Improvement Scenarios',
     regulation: 'Regulatory Context',
+    subsidies: 'Potentially relevant grants and subsidies',
     attachments: 'Submitted documentation',
     attachmentsNote: 'Files are registered as supporting documentation, but have not been automatically analyzed.',
     annexTitle: 'Appendix',
@@ -87,6 +89,7 @@ const labels = {
     strengths: 'Wesentliche Stärken:',
     scenarios: 'Verbesserungsszenarien',
     regulation: 'Regulatorischer Kontext',
+    subsidies: 'Potentiell relevante Förderungen',
     attachments: 'Eingereichte Dokumentation',
     attachmentsNote: 'Dateien werden als Nachweis erfasst, aber nicht automatisch analysiert.',
     annexTitle: 'Anhang',
@@ -451,7 +454,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </View>
     </Page>
 
-    {/* Page 2: Scenarios & Regulatory */}
+    {/* Page 2: Scenarios */}
     <Page size="A4" style={styles.page}>
       <View style={styles.header} fixed>
         <View style={styles.brandHeader}>
@@ -461,7 +464,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.scenarios}</Text>
-            <Text style={styles.subtitle}>{t.regulation}</Text>
+            <Text style={styles.subtitle}>Rutas orientativas de mejora</Text>
           </View>
         </View>
       </View>
@@ -472,8 +475,10 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View key={i} style={styles.scenarioBox}>
             <Text style={styles.scenarioTitle}>{s.title}</Text>
             <Text style={styles.text}>Objetivo: {s.objective}</Text>
+            {s.description && <Text style={styles.text}>{s.description}</Text>}
             <Text style={styles.text}>Impacto esperado: {s.expectedLetterImpact}</Text>
-            <Text style={styles.text}>Coste: {s.estimatedCostRange} | Ahorro: {s.estimatedSavingsRange}</Text>
+            <Text style={styles.text}>Inversión: {s.estimatedCostRange} | Ahorro: {s.estimatedSavingsRange}</Text>
+            {s.rationale && <Text style={styles.text}>Racional: {s.rationale}</Text>}
             <View style={{ marginTop: 5 }}>
               {s.measures.map((m, j) => (
                 <View key={j} style={styles.bullet}>
@@ -482,18 +487,53 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
                 </View>
               ))}
             </View>
+            {(s.disclaimers || []).map((disclaimer, j) => (
+              <Text key={j} style={{ ...styles.text, color: '#856404', fontSize: 8 }}>{disclaimer}</Text>
+            ))}
           </View>
         ))}
+      </View>
+    </Page>
+
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header} fixed>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.regulation}</Text>
+            <Text style={styles.subtitle}>{t.subsidies}</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.regulation}</Text>
         {data.regulatoryContext.map((r, i) => (
           <View key={i} style={{ marginBottom: 10 }}>
-            <Text style={{ ...styles.text, fontWeight: 'bold' }}>{r.year} - {r.title} ({r.status})</Text>
+            <Text style={{ ...styles.text, fontWeight: 'bold' }}>{r.year} - {r.title} ({r.dateLabel})</Text>
             <Text style={styles.text}>{r.description}</Text>
+            <Text style={styles.text}>Impacto para el usuario: {r.impactOnUser}</Text>
+            <Text style={{ ...styles.text, fontSize: 8 }}>{r.legalReference}{r.disclaimer ? ` · ${r.disclaimer}` : ''}</Text>
           </View>
         ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.subsidies}</Text>
+        {(data.subsidies || []).map((item) => (
+          <View key={item.id} style={styles.scenarioBox}>
+            <Text style={styles.scenarioTitle}>{item.title}</Text>
+            <Text style={styles.text}>Ámbito: {item.scope} | Aplica a: {item.appliesTo.join(', ')}</Text>
+            <Text style={styles.text}>{item.description}</Text>
+            <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>{item.eligibilityDisclaimer}</Text>
+          </View>
+        ))}
+        <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>
+          EnergyScan no verifica convocatorias en tiempo real, no garantiza elegibilidad ni importes y recomienda consultar fuentes oficiales.
+        </Text>
       </View>
 
       <View style={styles.section}>

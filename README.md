@@ -2,12 +2,14 @@
 
 Anclora EnergyScan es una plataforma de prediagnóstico energético orientativa. Permite a los usuarios introducir datos sobre su vivienda para obtener una estimación de su situación energética y de la normativa vigente aplicable.
 
-**Este proyecto NO genera un Certificado de Eficiencia Energética oficial.**
+**Este proyecto NO genera un Certificado de Eficiencia Energética oficial ni documentación con validez administrativa.**
 
 ## Stack
 - Next.js 14
 - TypeScript
-- Prisma + SQLite (configurable para Postgres)
+- Prisma + Neon Postgres en producción, con compatibilidad local heredada para SQLite/libSQL
+- Vercel Blob para adjuntos pesados en producción
+- Auth.js/NextAuth open source para credenciales y OAuth Google/GitHub
 - Tailwind CSS
 - React Hook Form + Zod
 - @react-pdf/renderer
@@ -16,16 +18,17 @@ Anclora EnergyScan es una plataforma de prediagnóstico energético orientativa.
 La aplicación sigue un flujo Wizard -> API -> Resultados:
 1. **Landing/Wizard**: Captura datos estructurales y de sistemas de la vivienda (`src/components/AssessmentWizard.tsx`).
 2. **API**: Valida la información mediante esquemas estrictos de `Zod` y persiste el análisis inicial (`src/app/api/assessment/route.ts`).
-3. **Scoring**: Un motor propio evalúa penalizaciones y puntos fuertes según datos, como el año o el aislamiento (`src/lib/scoring.ts`).
-4. **Resultados**: Muestra clasificación orientativa, zonas de riesgo y proveedores recomendados.
-5. **Adjuntos**: Guarda metadatos y ficheros aportados por assessment en almacenamiento local temporal.
+3. **Scoring**: Un motor propio v2.1 evalúa reglas trazables por categoría: envolvente, sistemas, renovables, clima, tipología y calidad de datos (`src/lib/scoring.ts`).
+4. **Resultados**: Muestra clasificación orientativa, score, confianza, brecha regulatoria, ayudas informativas, escenarios y proveedores recomendados.
+5. **Adjuntos**: Guarda metadatos en Prisma y ficheros aportados en Vercel Blob si está configurado, con fallback local.
 6. **Generador PDF**: Construye y descarga un reporte Premium renderizado mediante `@react-pdf/renderer`.
 
 ## Experiencia v0.3
 - **Tema:** selector premium Luna/Sol/Ordenador. La preferencia se guarda en `localStorage` y cookie para evitar flashes visuales.
 - **Idioma:** selector ES/EN/DE. Los textos principales se sirven desde diccionarios locales y se persisten igual que el tema.
 - **Demo:** el botón "Ver ejemplo de valoración" crea una valoración ficticia marcada como demo, sin datos personales.
-- **Adjuntos:** el wizard permite arrastrar o seleccionar imágenes, PDF, DOCX y Markdown. Límite: 6 archivos y 8 MB por archivo.
+- **Adjuntos:** el wizard permite arrastrar o seleccionar PDF, JPG, PNG y WEBP. Límite: 6 archivos, 10 MB por archivo y 50 MB acumulados por valoración.
+- **Normativa:** el contexto distingue Real Decreto 390/2021, Directiva (UE) 2024/1275, PNIEC y horizontes europeos sin convertirlos en obligaciones individuales directas.
 
 ## Partners y proveedores
 
@@ -34,6 +37,20 @@ Anclora EnergyScan prepara una red de proveedores y partners para conectar diagn
 ## Demo enriquecida
 
 La demo incluye una vivienda unifamiliar ficticia, documentación aportada de ejemplo, imágenes interiores/exteriores y un supuesto CEE demo sin validez oficial. Estos assets se usan para mostrar el anexo documental del PDF premium.
+
+## Neon, Blob y autenticación
+
+La base de datos de producción está preparada para Neon Postgres manteniendo Prisma como ORM. Los adjuntos pesados se guardan en Vercel Blob cuando existe `BLOB_READ_WRITE_TOKEN`; en local se conserva el fallback a disco.
+
+La autenticación no usa Neon Auth. Se implementa con Auth.js/NextAuth, Prisma Adapter, credenciales propias con hash `scrypt`, recuperación por token y login social con Google/Gmail y GitHub. Las variables OAuth deben configurarse en Vercel (`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`).
+
+Para migrar datos heredados desde SQLite/libSQL a Neon:
+
+```bash
+SQLITE_DATABASE_URL="file:./dev.db" DATABASE_URL="postgresql://..." BLOB_READ_WRITE_TOKEN="..." npm run migrate:neon
+```
+
+Si `BLOB_READ_WRITE_TOKEN` está presente, el script sube adjuntos locales existentes a Blob y guarda rutas `blob:...` en Prisma. Si no existe, conserva las rutas locales.
 
 ## Campos del Wizard
 El flujo captura objetivo, tipo de inmueble, año, superficie, código postal, orientación, tipo de cubierta, ventanas, aislamiento de fachada y cubierta, ventilación, calefacción, refrigeración, ACS, renovables, presupuesto orientativo, horizonte temporal y aceptación del carácter orientativo.
@@ -60,18 +77,31 @@ Para añadir un idioma:
 ## Variables de Entorno
 Crea un archivo `.env` basado en `.env.example`:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB?sslmode=require&channel_binding=require"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST.REGION.aws.neon.tech/DB?sslmode=require&channel_binding=require"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ENABLE_DEMO_PREMIUM="true"
 STRIPE_SECRET_KEY=""
 STRIPE_WEBHOOK_SECRET=""
+BLOB_READ_WRITE_TOKEN=""
+AUTH_SECRET=""
+AUTH_URL="http://localhost:3000"
+AUTH_TRUST_HOST="true"
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+AUTH_GITHUB_ID=""
+AUTH_GITHUB_SECRET=""
+PASSWORD_RESET_WEBHOOK_URL=""
+SQLITE_DATABASE_URL="file:./dev.db"
 ```
 
-`NEXT_PUBLIC_APP_URL` solo se usa como URL pública de referencia cuando aplique. La i18n actual no requiere proveedor externo.
+`NEXT_PUBLIC_APP_URL` y `AUTH_URL` se usan para construir enlaces absolutos. `PASSWORD_RESET_WEBHOOK_URL` es opcional: si no existe, el enlace de recuperación solo se muestra en local y se registra en logs de desarrollo.
 
 ## Limitaciones Legales
 - **Orientativo:** Anclora EnergyScan solo emite valoraciones automáticas en base a la información declarada.
-- **Sin validez administrativa:** No sustituye al Real Decreto 390/2021 sobre el CEE en España ni normativas autonómicas.
+- **Sin validez administrativa:** No sustituye al Certificado de Eficiencia Energética oficial regulado en España por el Real Decreto 390/2021, no emite certificados oficiales y no puede registrarse ante administraciones.
+- **Contexto normativo:** Las referencias a la Directiva (UE) 2024/1275, PNIEC, ayudas o subvenciones son informativas y pueden variar según transposición, desarrollo normativo, convocatorias y requisitos oficiales.
+- **Ayudas:** No se garantiza elegibilidad, disponibilidad ni importes. Cualquier ayuda o bonificación debe verificarse en fuentes oficiales estatales, autonómicas o municipales.
 
 ## Roadmap
 - [x] Motor Scoring v2 (Más factores).

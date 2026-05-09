@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { readFile, unlink } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { prisma } from '@/lib/prisma';
 import { getDemoAssetPath, getDemoAttachmentById } from '@/lib/demo-assets';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
+import { deleteStoredAttachment, readAttachmentBytes } from '@/lib/blob-storage';
 
 export async function GET(_: Request, { params }: { params: { id: string; attachmentId: string } }) {
   const statelessPayload = parseStatelessAssessmentId(params.id);
@@ -14,7 +15,7 @@ export async function GET(_: Request, { params }: { params: { id: string; attach
     }
 
     const file = await readFile(assetPath);
-    return new NextResponse(file, {
+    return new NextResponse(new Uint8Array(file), {
       headers: {
         'Content-Type': attachment.type,
         'Content-Disposition': `inline; filename="${attachment.name}"`,
@@ -39,8 +40,8 @@ export async function GET(_: Request, { params }: { params: { id: string; attach
     });
   }
 
-  const file = await readFile(attachment.path);
-  return new NextResponse(file, {
+  const { bytes } = await readAttachmentBytes(attachment.path);
+  return new NextResponse(new Uint8Array(bytes), {
     headers: {
       'Content-Type': attachment.type,
       'Content-Disposition': `attachment; filename="${attachment.name}"`,
@@ -58,7 +59,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string; att
   }
 
   if (!attachment.path.startsWith('demo://')) {
-    await unlink(attachment.path).catch(() => undefined);
+    await deleteStoredAttachment(attachment.path).catch(() => undefined);
   }
   await prisma.assessmentAttachment.delete({ where: { id: attachment.id } });
 

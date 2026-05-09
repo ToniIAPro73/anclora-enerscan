@@ -1,13 +1,20 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
-const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db'
-const adapter = new PrismaLibSql({ url: databaseUrl })
+const databaseUrl = process.env.DATABASE_URL?.startsWith('postgres')
+  ? process.env.DATABASE_URL
+  : 'postgresql://postgres:postgres@localhost:5432/anclora_energyscan?schema=public'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
+function createPrismaClient() {
+  const pool = new Pool({ connectionString: databaseUrl })
+  return new PrismaClient({ adapter: new PrismaPg(pool) })
+}
+
 export const prisma =
   globalForPrisma.prisma ||
-  new PrismaClient({ adapter })
+  createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

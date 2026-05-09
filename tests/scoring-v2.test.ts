@@ -75,6 +75,7 @@ describe("calculateScoreV2", () => {
     const result = calculateScoreV2(data);
     expect(result.confidence).toBe("Media");
     expect(result.missingData).toContain("Código postal");
+    expect(result.ruleBreakdown?.some((rule) => rule.category === "data_quality")).toBe(true);
   });
 
   it("Falta envolvente baja confianza", () => {
@@ -130,6 +131,9 @@ describe("calculateScoreV2", () => {
     };
     const result = calculateScoreV2(data);
     expect(result.estimatedLetter).not.toBe("A"); // The penalties should push it down
+    expect(result.penalties).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Ventanas simples|Antigüedad/),
+    ]));
   });
 
   it("Score siempre queda entre 0 y 100", () => {
@@ -177,5 +181,27 @@ describe("calculateScoreV2", () => {
     const result = calculateScoreV2(data);
     expect(result.missingData.length).toBeGreaterThan(5);
     expect(result.confidence).toBe("Baja");
+  });
+
+  it("vivienda con ventanas mejoradas pero sistema fósil conserva penalización de sistemas", () => {
+    const result = calculateScoreV2({
+      ...baseData,
+      year: 2012,
+      windows: "triple",
+      heating: "gas",
+      facadeInsulation: "good",
+      roofInsulation: "good",
+    });
+
+    expect(result.strengths).toEqual(expect.arrayContaining(["Ventanas de alta eficiencia (triple vidrio)"]));
+    expect(result.penalties).toEqual(expect.arrayContaining(["Calefacción basada en combustibles fósiles"]));
+    expect(result.ruleBreakdown?.some((rule) => rule.category === "systems" && rule.type === "penalty")).toBe(true);
+  });
+
+  it("incluye explicación y trazabilidad de reglas por categoría", () => {
+    const result = calculateScoreV2(baseData);
+    expect(result.explanation).toContain("v2.1");
+    expect(result.ruleBreakdown?.length).toBeGreaterThan(3);
+    expect(result.ruleBreakdown?.map((rule) => rule.category)).toEqual(expect.arrayContaining(["typology", "envelope", "systems"]));
   });
 });

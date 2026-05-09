@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateScoreV2 } from '@/lib/scoring';
 import { z } from 'zod';
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
 import { PropertyDataV2 } from '@/lib/domain/energy-assessment';
-import { isAllowedAttachment, MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, sanitizeFilename } from '@/lib/attachments';
+import { validateAttachments } from '@/lib/attachments';
+import { saveAssessmentAttachment } from '@/lib/blob-storage';
 import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
+import { auth } from '@/auth';
 import {
   normalizePropertyType,
   normalizeHeatingSystem,
@@ -61,44 +61,23 @@ async function readRequest(req: Request) {
 }
 
 function validateAttachmentMetadata(files: File[]) {
-  if (files.length > MAX_ATTACHMENTS) {
-    throw new Error(`Máximo ${MAX_ATTACHMENTS} adjuntos por valoración`);
-  }
-  for (const file of files) {
-    if (file.size > MAX_ATTACHMENT_SIZE) {
-      throw new Error(`El archivo ${file.name} supera el límite de 8 MB`);
-    }
-    if (!isAllowedAttachment(file)) {
-      throw new Error(`Tipo de archivo no admitido: ${file.name}`);
-    }
-  }
+  const error = validateAttachments(files);
+  if (error) throw new Error(error);
 }
 
 async function persistAttachments(assessmentId: string, files: File[]) {
   if (files.length === 0) return [];
   validateAttachmentMetadata(files);
 
-  const uploadDir = path.join(process.cwd(), 'uploads', 'assessments', assessmentId);
-  await mkdir(uploadDir, { recursive: true });
-
   const attachmentData = [];
   for (const file of files) {
-    if (file.size > MAX_ATTACHMENT_SIZE) {
-      throw new Error(`El archivo ${file.name} supera el límite de 8 MB`);
-    }
-    if (!isAllowedAttachment(file)) {
-      throw new Error(`Tipo de archivo no admitido: ${file.name}`);
-    }
-    const filename = `${Date.now()}-${sanitizeFilename(file.name)}`;
-    const absolutePath = path.join(uploadDir, filename);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(absolutePath, buffer);
+    const stored = await saveAssessmentAttachment(assessmentId, file);
     attachmentData.push({
       assessmentId,
       name: file.name,
       type: file.type || 'application/octet-stream',
       size: file.size,
-      path: absolutePath,
+      path: stored.path,
     });
   }
   return attachmentData;
@@ -106,6 +85,7 @@ async function persistAttachments(assessmentId: string, files: File[]) {
 
 export async function POST(req: Request) {
   try {
+    const session = await auth().catch(() => null);
     const { rawData, files } = await readRequest(req);
 
     const parseResult = assessmentSchema.safeParse(rawData);
@@ -116,13 +96,18 @@ export async function POST(req: Request) {
     const data: PropertyDataV2 = parseResult.data;
 
     const result = calculateScoreV2(data);
-    validateAttachmentMetadata(files);
+    try {
+      validateAttachmentMetadata(files);
+    } catch (attachmentError) {
+      return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
+    }
 
     let assessment;
     try {
       assessment = await prisma.assessment.create({
       data: {
         objective: data.objective,
+        userId: session?.user?.id,
         propertyType: data.propertyType,
         orientation: data.orientation,
         roofType: data.roofType,

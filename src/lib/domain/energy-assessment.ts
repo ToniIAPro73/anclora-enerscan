@@ -137,27 +137,67 @@ export interface ScoreResultV2 {
   strengths: string[];
   missingData: string[];
   explanation: string;
+  ruleBreakdown?: ScoreRuleBreakdownItem[];
 }
 
 export interface ImprovementScenario {
-  id: "basic" | "intermediate" | "deep";
+  id: string;
   title: string;
   objective: string;
+  description?: string;
   estimatedCostRange: string;
   estimatedSavingsRange: string;
   expectedLetterImpact: string;
+  estimatedScoreDelta?: number;
+  estimatedLetterImprovement?: string;
+  complexity?: "low" | "medium" | "high";
+  investmentRange?: "low" | "medium" | "high";
+  priority?: "recommended" | "optional" | "long_term";
+  rationale?: string;
   measures: string[];
   dependencies: string[];
   warnings: string[];
+  disclaimers?: string[];
   providerCategories: string[];
 }
 
+export type ScoreRuleCategory = "envelope" | "systems" | "renewables" | "climate" | "typology" | "data_quality";
+
+export interface ScoreRuleBreakdownItem {
+  id: string;
+  category: ScoreRuleCategory;
+  label: string;
+  delta: number;
+  reason: string;
+  type: "penalty" | "bonus" | "neutral";
+}
+
+export type RegulatoryJurisdiction = "EU" | "ES" | "AUTONOMIC" | "LOCAL";
+export type RegulatoryStatus = "vigente" | "objetivo_ue" | "en_desarrollo" | "orientativo" | "current" | "upcoming" | "future" | "informative";
+
 export interface RegulatoryTimelineItem {
-  year: "Hoy" | "2030" | "2033" | "2050";
-  status: "vigente" | "objetivo_ue" | "en_desarrollo" | "orientativo";
+  id: string;
+  year: string;
+  dateLabel: string;
+  status: RegulatoryStatus;
   title: string;
   description: string;
   riskLevel: "low" | "medium" | "high";
+  jurisdiction: RegulatoryJurisdiction;
+  legalReference: string;
+  url?: string;
+  impactOnUser: string;
+  disclaimer?: string;
+}
+
+export interface SubsidyInfoItem {
+  id: string;
+  title: string;
+  scope: "state" | "regional" | "local" | "eu";
+  appliesTo: string[];
+  description: string;
+  eligibilityDisclaimer: string;
+  referenceUrl?: string;
 }
 
 export interface PremiumReportData {
@@ -168,6 +208,7 @@ export interface PremiumReportData {
   scoreResult: ScoreResultV2;
   scenarios: ImprovementScenario[];
   regulatoryContext: RegulatoryTimelineItem[];
+  subsidies?: SubsidyInfoItem[];
   providerCategories: string[];
   attachments?: AssessmentAttachment[];
   logoDataUri?: string;

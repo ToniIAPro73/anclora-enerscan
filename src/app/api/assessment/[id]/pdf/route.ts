@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { mkdtemp, readFile, readdir, rm } from 'fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { promisify } from 'util';
@@ -7,11 +7,13 @@ import { execFile } from 'child_process';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
+import { getRelevantSubsidies } from '@/lib/subsidies';
 import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
 import { AssessmentAttachment, PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { normalizeLanguage } from '@/lib/preferences';
 import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
+import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import React from 'react';
 
 const execFileAsync = promisify(execFile);
@@ -52,7 +54,9 @@ async function enrichAttachmentsForPdf(
       const attachmentPath = path.isAbsolute(attachment.path)
         ? attachment.path
         : path.join(process.cwd(), 'public', attachment.path);
-      const file = await readFile(attachmentPath);
+      const file = isBlobAttachmentPath(attachment.path)
+        ? (await readAttachmentBytes(attachment.path)).bytes
+        : await readFile(attachmentPath);
       if (attachment.type.startsWith('image/')) {
         return {
           ...attachment,
@@ -69,7 +73,9 @@ async function enrichAttachmentsForPdf(
       }
 
       if (attachment.type === 'application/pdf' && attachment.category === 'CEE') {
-        const ceePagePreviews = await renderPdfPagesToDataUris(attachmentPath);
+        const ceePagePreviews = isBlobAttachmentPath(attachment.path)
+          ? await renderPdfBytesToDataUris(file)
+          : await renderPdfPagesToDataUris(attachmentPath);
         return {
           ...attachment,
           ceePagePreviews,
@@ -89,6 +95,18 @@ async function enrichAttachmentsForPdf(
       annexNote: 'Formato registrado en el expediente. Anclora EnergyScan no convierte ni analiza automáticamente el contenido de este documento.',
     };
   }));
+}
+
+async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'energyscan-cee-blob-'));
+  const pdfPath = path.join(tempDir, 'source.pdf');
+
+  try {
+    await writeFile(pdfPath, pdfBytes);
+    return await renderPdfPagesToDataUris(pdfPath);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 async function renderPdfPagesToDataUris(pdfPath: string): Promise<string[]> {
@@ -176,6 +194,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         scoreResult,
         scenarios,
         regulatoryContext: REGULATORY_TIMELINE,
+        subsidies: getRelevantSubsidies(propertyData),
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
         attachments: assessment.attachments.map((attachment) => ({
           id: attachment.id,
