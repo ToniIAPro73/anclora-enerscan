@@ -161,7 +161,7 @@ export default function LandingPage() {
               <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">{t.navPricing}</p>
               <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">Prediagnóstico claro antes de invertir</h2>
               <p className="text-muted max-w-2xl mx-auto">
-                EnerScan separa la valoración orientativa gratuita del informe premium demo. No hay pasarela de pago activa en esta versión.
+                Anclora EnergyScan separa la valoración orientativa gratuita del informe premium demo. No hay pasarela de pago activa en esta versión.
               </p>
             </div>
 

@@ -11,6 +11,19 @@ export const styles = StyleSheet.create({
     borderBottom: '2 solid #00DC82',
     paddingBottom: 10,
   },
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 46,
+    height: 46,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  headerText: {
+    flex: 1,
+  },
   title: {
     fontSize: 24,
     color: '#0A0A0A',
@@ -44,6 +57,11 @@ export const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     marginBottom: 5,
+  },
+  annexRow: {
+    flexDirection: 'row',
+    paddingVertical: 5,
+    borderBottom: '1 solid #f1f1f1',
   },
   colLeft: {
     width: '40%',
@@ -99,5 +117,28 @@ export const styles = StyleSheet.create({
   bulletText: {
     flex: 1,
     fontSize: 10,
+  },
+  annexMetaBox: {
+    border: '1 solid #e0e0e0',
+    backgroundColor: '#f8f9fa',
+    padding: 10,
+    borderRadius: 4,
+  },
+  documentFrame: {
+    minHeight: 420,
+    border: '1 solid #e0e0e0',
+    borderRadius: 4,
+    padding: 12,
+    backgroundColor: '#ffffff',
+  },
+  attachmentImage: {
+    maxWidth: '100%',
+    maxHeight: 500,
+    objectFit: 'contain',
+  },
+  preText: {
+    fontSize: 9,
+    color: '#333333',
+    lineHeight: 1.35,
   }
 });

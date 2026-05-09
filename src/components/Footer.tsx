@@ -1,6 +1,7 @@
 'use client';
 
-import { Bolt, Mail } from 'lucide-react';
+import Image from 'next/image';
+import { Mail } from 'lucide-react';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 
@@ -13,10 +14,14 @@ export default function Footer() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           <div>
             <div className="flex items-center gap-2 font-heading font-bold text-lg text-premium mb-4">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#00DC82]/15 text-[#00DC82]">
-                <Bolt className="w-3 h-3" />
-              </span>
-              EnerScan
+              <Image
+                src="/brand/logo-anclora-energy-scan.png"
+                alt="Anclora EnergyScan"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg object-cover"
+              />
+              <span>Anclora EnergyScan</span>
             </div>
             <p className="text-xs text-muted leading-relaxed">
               {t.footerCopy}
@@ -50,7 +55,7 @@ export default function Footer() {
           <p className="text-[11px] text-muted leading-relaxed">
             {getLegalDisclaimer(language)}
           </p>
-          <p className="text-[11px] text-muted">&copy; 2026 EnerScan.</p>
+          <p className="text-[11px] text-muted">&copy; 2026 Anclora EnergyScan.</p>
         </div>
       </div>
     </footer>

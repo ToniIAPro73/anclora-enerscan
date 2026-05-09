@@ -1,10 +1,9 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { AttachmentList } from '@/components/AttachmentList';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
-import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
 import { PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 
@@ -53,14 +52,6 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const scenarios = generateScenarios(propertyData, scoreResult);
   const providers = await prisma.provider.findMany({ take: 3 }).catch(() => []);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
-  const attachments = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
-    id: attachment.id,
-    name: attachment.name,
-    type: attachment.type,
-    size: attachment.size,
-    path: attachment.path,
-    createdAt: attachment.createdAt.toISOString(),
-  })) || [];
 
   return (
     <div className="min-h-screen app-shell">
@@ -223,19 +214,6 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* ATTACHMENTS */}
-          <section className="surface border rounded-3xl p-6 lg:p-8">
-            <div className="mb-5 flex items-center gap-2 text-premium">
-              <FileText className="h-5 w-5 text-[#00DC82]" />
-              <h2 className="font-heading text-2xl font-bold">Documentación aportada</h2>
-            </div>
-            <p className="mb-4 text-xs text-muted">Los archivos se registran como soporte documental, pero no han sido analizados automáticamente por EnerScan.</p>
-            <AttachmentList
-              assessmentId={params.id}
-              initialAttachments={attachments}
-            />
           </section>
 
           {/* PREMIUM REPORT CTA */}

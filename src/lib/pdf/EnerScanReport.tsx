@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 import { styles } from './styles';
 import { PremiumReportData } from '../domain/energy-assessment';
 import { getLegalDisclaimer } from '../i18n';
@@ -8,7 +8,7 @@ import { getPublicAssessmentRef } from '../stateless-assessment';
 
 const labels = {
   es: {
-    title: 'EnerScan Premium Report',
+    title: 'Anclora EnergyScan Premium Report',
     subtitle: 'Prediagnóstico Energético Orientativo',
     demo: 'Informe demo con datos ficticios',
     rating: 'Calificación Estimada',
@@ -27,9 +27,19 @@ const labels = {
     regulation: 'Contexto Normativo',
     attachments: 'Documentación aportada',
     attachmentsNote: 'Los archivos se registran como soporte documental, pero no han sido analizados automáticamente.',
+    annexTitle: 'Anexo',
+    userInfoAnnex: 'Información suministrada por el usuario',
+    documentsAnnex: 'Documentos aportados',
+    noDocuments: 'No se aportaron documentos adicionales.',
+    documentsCount: 'Cada documento se incluye en una página separada de este anexo.',
+    documentPage: 'Documento aportado',
+    fileName: 'Nombre',
+    fileType: 'Tipo',
+    fileSize: 'Tamaño',
+    previewUnavailable: 'El contenido de este formato queda registrado como documento aportado, pero no se convierte automáticamente dentro del informe.',
   },
   en: {
-    title: 'EnerScan Premium Report',
+    title: 'Anclora EnergyScan Premium Report',
     subtitle: 'Indicative Energy Pre-assessment',
     demo: 'Demo report with fictitious data',
     rating: 'Estimated Rating',
@@ -48,9 +58,19 @@ const labels = {
     regulation: 'Regulatory Context',
     attachments: 'Submitted documentation',
     attachmentsNote: 'Files are registered as supporting documentation, but have not been automatically analyzed.',
+    annexTitle: 'Appendix',
+    userInfoAnnex: 'Information supplied by the user',
+    documentsAnnex: 'Submitted documents',
+    noDocuments: 'No additional documents were submitted.',
+    documentsCount: 'Each document is included on a separate page of this appendix.',
+    documentPage: 'Submitted document',
+    fileName: 'Name',
+    fileType: 'Type',
+    fileSize: 'Size',
+    previewUnavailable: 'The content of this format is registered as a submitted document, but is not automatically converted inside the report.',
   },
   de: {
-    title: 'EnerScan Premium Report',
+    title: 'Anclora EnergyScan Premium Report',
     subtitle: 'Orientierende energetische Voreinschätzung',
     demo: 'Demo-Bericht mit fiktiven Daten',
     rating: 'Geschätzte Klasse',
@@ -69,6 +89,16 @@ const labels = {
     regulation: 'Regulatorischer Kontext',
     attachments: 'Eingereichte Dokumentation',
     attachmentsNote: 'Dateien werden als Nachweis erfasst, aber nicht automatisch analysiert.',
+    annexTitle: 'Anhang',
+    userInfoAnnex: 'Vom Nutzer bereitgestellte Informationen',
+    documentsAnnex: 'Eingereichte Dokumente',
+    noDocuments: 'Es wurden keine zusätzlichen Dokumente eingereicht.',
+    documentsCount: 'Jedes Dokument wird auf einer separaten Seite dieses Anhangs aufgeführt.',
+    documentPage: 'Eingereichtes Dokument',
+    fileName: 'Name',
+    fileType: 'Typ',
+    fileSize: 'Grösse',
+    previewUnavailable: 'Der Inhalt dieses Formats wird als eingereichtes Dokument registriert, aber nicht automatisch in den Bericht konvertiert.',
   },
 } as const;
 
@@ -105,6 +135,18 @@ const valueLabels: Record<string, Record<string, string>> = {
     photovoltaic: 'Fotovoltaica',
     solar_thermal: 'Solar térmica',
     both: 'Fotovoltaica y solar térmica',
+    low: 'Bajo',
+    medium: 'Medio',
+    high: 'Alto',
+    immediate: 'Inmediato',
+    six_months: 'Próximos 6 meses',
+    one_year: 'Antes de 12 meses',
+    three_years: '1-3 años',
+    current_state: 'Conocer situación actual',
+    target_letter: 'Alcanzar una letra concreta',
+    sale_rent: 'Preparar venta o alquiler',
+    comfort: 'Mejorar confort',
+    regulatory_readiness: 'Preparación regulatoria',
     unknown: 'No declarado',
   },
   en: {
@@ -139,6 +181,18 @@ const valueLabels: Record<string, Record<string, string>> = {
     photovoltaic: 'Photovoltaic',
     solar_thermal: 'Solar thermal',
     both: 'Photovoltaic and solar thermal',
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    immediate: 'Immediate',
+    six_months: 'Next 6 months',
+    one_year: 'Within 12 months',
+    three_years: '1-3 years',
+    current_state: 'Understand current state',
+    target_letter: 'Reach a target rating',
+    sale_rent: 'Prepare sale or rental',
+    comfort: 'Improve comfort',
+    regulatory_readiness: 'Regulatory readiness',
     unknown: 'Not declared',
   },
   de: {
@@ -173,9 +227,84 @@ const valueLabels: Record<string, Record<string, string>> = {
     photovoltaic: 'Photovoltaik',
     solar_thermal: 'Solarthermie',
     both: 'Photovoltaik und Solarthermie',
+    low: 'Niedrig',
+    medium: 'Mittel',
+    high: 'Hoch',
+    immediate: 'Sofort',
+    six_months: 'Nächste 6 Monate',
+    one_year: 'Innerhalb von 12 Monaten',
+    three_years: '1-3 Jahre',
+    current_state: 'Aktuellen Zustand verstehen',
+    target_letter: 'Zielklasse erreichen',
+    sale_rent: 'Verkauf oder Vermietung vorbereiten',
+    comfort: 'Komfort verbessern',
+    regulatory_readiness: 'Regulatorische Vorbereitung',
     unknown: 'Nicht angegeben',
   },
 };
+
+const annexFieldLabels = {
+  es: {
+    objective: 'Objetivo',
+    propertyType: 'Tipo de inmueble',
+    year: 'Año de construcción',
+    area: 'Superficie útil',
+    zipcode: 'Código postal',
+    orientation: 'Orientación principal',
+    roofType: 'Tipo de cubierta',
+    windows: 'Ventanas',
+    facadeInsulation: 'Aislamiento de fachada',
+    roofInsulation: 'Aislamiento de cubierta',
+    heating: 'Calefacción',
+    cooling: 'Refrigeración',
+    waterHeating: 'Agua caliente sanitaria',
+    ventilation: 'Ventilación',
+    renewables: 'Renovables',
+    budgetRange: 'Presupuesto orientativo',
+    timelineHorizon: 'Horizonte temporal',
+    targetLetter: 'Letra objetivo',
+  },
+  en: {
+    objective: 'Objective',
+    propertyType: 'Property type',
+    year: 'Construction year',
+    area: 'Usable area',
+    zipcode: 'Postcode',
+    orientation: 'Main orientation',
+    roofType: 'Roof type',
+    windows: 'Windows',
+    facadeInsulation: 'Facade insulation',
+    roofInsulation: 'Roof insulation',
+    heating: 'Heating',
+    cooling: 'Cooling',
+    waterHeating: 'Domestic hot water',
+    ventilation: 'Ventilation',
+    renewables: 'Renewables',
+    budgetRange: 'Indicative budget',
+    timelineHorizon: 'Desired timeline',
+    targetLetter: 'Target rating',
+  },
+  de: {
+    objective: 'Ziel',
+    propertyType: 'Immobilientyp',
+    year: 'Baujahr',
+    area: 'Nutzfläche',
+    zipcode: 'Postleitzahl',
+    orientation: 'Hauptausrichtung',
+    roofType: 'Dachtyp',
+    windows: 'Fenster',
+    facadeInsulation: 'Fassadendämmung',
+    roofInsulation: 'Dachdämmung',
+    heating: 'Heizung',
+    cooling: 'Kühlung',
+    waterHeating: 'Warmwasser',
+    ventilation: 'Lüftung',
+    renewables: 'Erneuerbare Energien',
+    budgetRange: 'Orientierungsbudget',
+    timelineHorizon: 'Gewünschter Zeitraum',
+    targetLetter: 'Zielklasse',
+  },
+} as const;
 
 function labelValue(value: string | undefined, language: 'es' | 'en' | 'de') {
   if (!value) return valueLabels[language].unknown;
@@ -183,20 +312,73 @@ function labelValue(value: string | undefined, language: 'es' | 'en' | 'de') {
   return valueLabels[language][key] || value;
 }
 
+function labelPropertyType(value: string | undefined, language: 'es' | 'en' | 'de') {
+  if (!value) return valueLabels[language].unknown;
+  return valueLabels[language][value] || value;
+}
+
+function buildUserDataRows(data: PremiumReportData, language: 'es' | 'en' | 'de') {
+  const p = data.propertyData;
+  const fields = annexFieldLabels[language];
+  return [
+    [fields.objective, labelValue(p.objective, language)],
+    [fields.propertyType, labelPropertyType(p.propertyType, language)],
+    [fields.year, String(p.year)],
+    [fields.area, `${p.area} m²`],
+    [fields.zipcode, p.zipcode],
+    [fields.orientation, labelValue(p.orientation, language)],
+    [fields.roofType, labelValue(p.roofType, language)],
+    [fields.windows, labelValue(p.windows, language)],
+    [fields.facadeInsulation, labelValue(p.facadeInsulation, language)],
+    [fields.roofInsulation, labelValue(p.roofInsulation, language)],
+    [fields.heating, labelValue(p.heating, language)],
+    [fields.cooling, labelValue(p.cooling, language)],
+    [fields.waterHeating, labelValue(p.waterHeating, language)],
+    [fields.ventilation, labelValue(p.ventilation, language)],
+    [fields.renewables, labelValue(p.renewables, language)],
+    [fields.budgetRange, labelValue(p.budgetRange, language)],
+    [fields.timelineHorizon, labelValue(p.timelineHorizon, language)],
+    [fields.targetLetter, p.targetLetter || valueLabels[language].unknown],
+  ];
+}
+
+function formatDocumentsCount(count: number, language: 'es' | 'en' | 'de') {
+  const suffix = labels[language].documentsCount;
+
+  if (language === 'en') {
+    return `${count} submitted ${count === 1 ? 'document' : 'documents'}. ${suffix}`;
+  }
+
+  if (language === 'de') {
+    return `${count} ${count === 1 ? 'eingereichtes Dokument' : 'eingereichte Dokumente'}. ${suffix}`;
+  }
+
+  return `${count} ${count === 1 ? 'documento aportado' : 'documentos aportados'}. ${suffix}`;
+}
+
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
   const t = labels[language];
   const reportRef = getPublicAssessmentRef(data.id);
+  const attachments = data.attachments || [];
 
   return (
   <Document>
     {/* Page 1: Executive Summary */}
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.subtitle}>{t.subtitle}</Text>
-        <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
-        {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.title}</Text>
+            <Text style={styles.subtitle}>{t.subtitle}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
+            {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
+          </View>
+        </View>
       </View>
 
       <View style={styles.scoreBox}>
@@ -251,6 +433,19 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
     {/* Page 2: Scenarios & Regulatory */}
     <Page size="A4" style={styles.page}>
+      <View style={styles.header} fixed>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.scenarios}</Text>
+            <Text style={styles.subtitle}>{t.regulation}</Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.scenarios}</Text>
         {data.scenarios.map((s, i) => (
@@ -281,17 +476,85 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         ))}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t.attachments}</Text>
-        <Text style={styles.text}>{t.attachmentsNote}</Text>
-        {(data.attachments || []).length > 0 ? (data.attachments || []).map((attachment) => (
-          <View key={attachment.id} style={styles.row}>
-            <Text style={styles.colLeft}>{attachment.name}</Text>
-            <Text style={styles.colRight}>{attachment.type} · {formatFileSize(attachment.size)}</Text>
+    </Page>
+
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.annexTitle}</Text>
+            <Text style={styles.subtitle}>{t.userInfoAnnex}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
           </View>
-        )) : <Text style={styles.text}>Sin documentación adicional.</Text>}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.userInfoAnnex}</Text>
+        {buildUserDataRows(data, language).map(([label, value]) => (
+          <View key={label} style={styles.annexRow}>
+            <Text style={styles.colLeft}>{label}</Text>
+            <Text style={styles.colRight}>{value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.documentsAnnex}</Text>
+        <Text style={styles.text}>{attachments.length > 0 ? formatDocumentsCount(attachments.length, language) : t.noDocuments}</Text>
+      </View>
+
+      <View style={styles.disclaimer}>
+        <Text>{t.attachmentsNote}</Text>
       </View>
     </Page>
+
+    {attachments.map((attachment, index) => (
+      <Page key={attachment.id} size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>{t.documentsAnnex}</Text>
+              <Text style={styles.subtitle}>{t.documentPage} {index + 1} / {attachments.length}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{attachment.name}</Text>
+          <View style={styles.annexMetaBox}>
+            <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
+            <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type || 'application/octet-stream'}</Text></View>
+            <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          {attachment.previewDataUri ? (
+            <View style={styles.documentFrame}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
+              <Image src={attachment.previewDataUri} style={styles.attachmentImage} />
+            </View>
+          ) : attachment.previewText ? (
+            <View style={styles.documentFrame}>
+              <Text style={styles.preText}>{attachment.previewText}</Text>
+            </View>
+          ) : (
+            <View style={styles.documentFrame}>
+              <Text style={styles.text}>{attachment.annexNote || t.previewUnavailable}</Text>
+            </View>
+          )}
+        </View>
+      </Page>
+    ))}
   </Document>
   );
 };

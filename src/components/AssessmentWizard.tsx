@@ -384,7 +384,7 @@ export default function AssessmentWizard() {
               <div className="flex items-start gap-3">
                 <input type="checkbox" id="acceptTerms" {...register('acceptTerms')} className="mt-1 accent-[#00DC82]" />
                 <label htmlFor="acceptTerms" className="text-sm text-[#7A7A7A] leading-tight cursor-pointer">
-                  Acepto que EnerScan realice una estimación orientativa. {getLegalDisclaimer(language)}
+                  Acepto que Anclora EnergyScan realice una estimación orientativa. {getLegalDisclaimer(language)}
                 </label>
               </div>
               {errors.acceptTerms && <p className="text-red-500 text-xs">{errors.acceptTerms.message}</p>}

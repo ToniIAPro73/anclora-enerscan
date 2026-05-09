@@ -119,6 +119,9 @@ export interface AssessmentAttachment {
   size: number;
   path?: string;
   createdAt?: string;
+  previewDataUri?: string;
+  previewText?: string;
+  annexNote?: string;
 }
 
 export interface ScoreResultV2 {
@@ -162,6 +165,7 @@ export interface PremiumReportData {
   regulatoryContext: RegulatoryTimelineItem[];
   providerCategories: string[];
   attachments?: AssessmentAttachment[];
+  logoDataUri?: string;
   language?: "es" | "en" | "de";
   isDemo?: boolean;
 }

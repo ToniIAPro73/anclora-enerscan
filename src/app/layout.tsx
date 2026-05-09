@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "EnerScan",
+  title: "Anclora EnergyScan",
   description: "Prediagnóstico energético orientativo para viviendas.",
 };
 

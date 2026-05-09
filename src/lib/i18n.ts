@@ -1,9 +1,9 @@
 import { AppLanguage, normalizeLanguage } from "./preferences";
 
 export const legalDisclaimer = {
-  es: "EnerScan es un prediagnóstico orientativo. No sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente. Ahorros, costes y clasificaciones son estimaciones.",
-  en: "EnerScan is an indicative pre-assessment. It does not replace the official Energy Performance Certificate or an inspection by a qualified technician. Savings, costs and ratings are estimates.",
-  de: "EnerScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen.",
+  es: "Anclora EnergyScan es un prediagnóstico orientativo. No sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente. Ahorros, costes y clasificaciones son estimaciones.",
+  en: "Anclora EnergyScan is an indicative pre-assessment. It does not replace the official Energy Performance Certificate or an inspection by a qualified technician. Savings, costs and ratings are estimates.",
+  de: "Anclora EnergyScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen.",
 };
 
 export const dictionaries = {

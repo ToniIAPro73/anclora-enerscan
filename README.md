@@ -1,6 +1,6 @@
-# Anclora EnerScan
+# Anclora EnergyScan
 
-EnerScan es una plataforma de prediagnóstico energético orientativa. Permite a los usuarios introducir datos sobre su vivienda para obtener una estimación de su situación energética y de la normativa vigente aplicable.
+Anclora EnergyScan es una plataforma de prediagnóstico energético orientativa. Permite a los usuarios introducir datos sobre su vivienda para obtener una estimación de su situación energética y de la normativa vigente aplicable.
 
 **Este proyecto NO genera un Certificado de Eficiencia Energética oficial.**
 
@@ -62,7 +62,7 @@ STRIPE_WEBHOOK_SECRET=""
 `NEXT_PUBLIC_APP_URL` solo se usa como URL pública de referencia cuando aplique. La i18n actual no requiere proveedor externo.
 
 ## Limitaciones Legales
-- **Orientativo:** EnerScan solo emite valoraciones automáticas en base a la información declarada.
+- **Orientativo:** Anclora EnergyScan solo emite valoraciones automáticas en base a la información declarada.
 - **Sin validez administrativa:** No sustituye al Real Decreto 390/2021 sobre el CEE en España ni normativas autonómicas.
 
 ## Roadmap
