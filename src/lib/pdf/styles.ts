@@ -136,6 +136,34 @@ export const styles = StyleSheet.create({
     maxHeight: 500,
     objectFit: 'contain',
   },
+  imageAnnexGrid: {
+    gap: 18,
+  },
+  imageAnnexCard: {
+    height: 235,
+    border: '1 solid #e0e0e0',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 12,
+    backgroundColor: '#f8f9fa',
+  },
+  imageCaption: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#0A0A0A',
+    marginBottom: 8,
+  },
+  annexImage: {
+    width: '100%',
+    height: 166,
+    objectFit: 'cover',
+    borderRadius: 4,
+  },
+  imageMeta: {
+    marginTop: 7,
+    fontSize: 8,
+    color: '#7A7A7A',
+  },
   preText: {
     fontSize: 9,
     color: '#333333',

@@ -356,11 +356,23 @@ function formatDocumentsCount(count: number, language: 'es' | 'en' | 'de') {
   return `${count} ${count === 1 ? 'documento aportado' : 'documentos aportados'}. ${suffix}`;
 }
 
+function chunkPairs<T>(items: T[]): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += 2) {
+    chunks.push(items.slice(index, index + 2));
+  }
+  return chunks;
+}
+
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
   const t = labels[language];
   const reportRef = getPublicAssessmentRef(data.id);
   const attachments = data.attachments || [];
+  const imageAttachments = attachments.filter((attachment) => attachment.previewDataUri);
+  const ceeAttachments = attachments.filter((attachment) => attachment.category === 'CEE');
+  const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && attachment.category !== 'CEE');
+  const imagePages = chunkPairs(imageAttachments);
 
   return (
   <Document>
@@ -476,6 +488,12 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         ))}
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Categorías de partners y proveedores</Text>
+        <Text style={styles.text}>Categorías orientativas sugeridas para estudiar las mejoras: {data.providerCategories.join(', ')}.</Text>
+        <Text style={styles.text}>Los proveedores o categorías sugeridas son orientativos. Cualquier presupuesto, visita técnica o actuación deberá ser confirmado directamente por profesionales cualificados. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial.</Text>
+      </View>
+
     </Page>
 
     <Page size="A4" style={styles.page}>
@@ -506,14 +524,81 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.documentsAnnex}</Text>
         <Text style={styles.text}>{attachments.length > 0 ? formatDocumentsCount(attachments.length, language) : t.noDocuments}</Text>
+        <Text style={styles.text}>Anexo - Documentación aportada por el usuario. Las evidencias mostradas forman parte de una demo y, en un caso real, serían documentación aportada por el usuario.</Text>
       </View>
 
       <View style={styles.disclaimer}>
-        <Text>{t.attachmentsNote}</Text>
+        <Text>Los documentos e imágenes mostrados en este anexo forman parte de una demo. En un caso real, serían documentación aportada por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
       </View>
     </Page>
 
-    {attachments.map((attachment, index) => (
+    {ceeAttachments.length > 0 && (
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>CEE demo aportado</Text>
+              <Text style={styles.subtitle}>Documento aportado por el usuario</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumen del documento</Text>
+          {ceeAttachments.map((attachment) => (
+            <View key={attachment.id} style={styles.annexMetaBox}>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>Letra recogida</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
+              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || 'Documento demo de ejemplo. Sin validez oficial ni administrativa.'}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.disclaimer}>
+          <Text>Documento demo de ejemplo. Sin validez oficial ni administrativa. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
+        </View>
+      </Page>
+    )}
+
+    {imagePages.map((pageAttachments, index) => (
+      <Page key={`image-page-${index}`} size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Anexo - Documentación aportada por el usuario</Text>
+              <Text style={styles.subtitle}>Imágenes aportadas {index + 1} / {imagePages.length}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.imageAnnexGrid}>
+          {pageAttachments.map((attachment) => (
+            <View key={attachment.id} style={styles.imageAnnexCard}>
+              <Text style={styles.imageCaption}>{attachment.caption || attachment.name}</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
+              <Image src={attachment.previewDataUri!} style={styles.annexImage} />
+              <Text style={styles.imageMeta}>{attachment.category === 'EXTERIOR' ? 'Imagen exterior' : 'Imagen interior'} · {attachment.name}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.disclaimer}>
+          <Text>Imágenes demo sin validez pericial. En un caso real, su interpretación exigiría revisión técnica presencial y documentación verificable.</Text>
+        </View>
+      </Page>
+    ))}
+
+    {otherAttachments.map((attachment, index) => (
       <Page key={attachment.id} size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.brandHeader}>
@@ -523,13 +608,13 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             )}
             <View style={styles.headerText}>
               <Text style={styles.title}>{t.documentsAnnex}</Text>
-              <Text style={styles.subtitle}>{t.documentPage} {index + 1} / {attachments.length}</Text>
+              <Text style={styles.subtitle}>{t.documentPage} {index + 1} / {otherAttachments.length}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{attachment.name}</Text>
+          <Text style={styles.sectionTitle}>{attachment.caption || attachment.name}</Text>
           <View style={styles.annexMetaBox}>
             <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
             <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type || 'application/octet-stream'}</Text></View>
@@ -538,12 +623,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         </View>
 
         <View style={styles.section}>
-          {attachment.previewDataUri ? (
-            <View style={styles.documentFrame}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
-              <Image src={attachment.previewDataUri} style={styles.attachmentImage} />
-            </View>
-          ) : attachment.previewText ? (
+          {attachment.previewText ? (
             <View style={styles.documentFrame}>
               <Text style={styles.preText}>{attachment.previewText}</Text>
             </View>

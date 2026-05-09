@@ -6,7 +6,7 @@ import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
 import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
-import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
+import { AssessmentAttachment, PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { normalizeLanguage } from '@/lib/preferences';
 import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import React from 'react';
@@ -23,7 +23,7 @@ async function getReportLogoDataUri() {
 }
 
 async function enrichAttachmentsForPdf(
-  attachments: Array<{ id: string; name: string; type: string; size: number; path?: string; createdAt?: string }>
+  attachments: AssessmentAttachment[]
 ) {
   return Promise.all(attachments.map(async (attachment) => {
     if (!attachment.path) return attachment;
@@ -44,7 +44,10 @@ async function enrichAttachmentsForPdf(
     }
 
     try {
-      const file = await readFile(attachment.path);
+      const attachmentPath = path.isAbsolute(attachment.path)
+        ? attachment.path
+        : path.join(process.cwd(), 'public', attachment.path);
+      const file = await readFile(attachmentPath);
       if (attachment.type.startsWith('image/')) {
         return {
           ...attachment,
@@ -57,6 +60,13 @@ async function enrichAttachmentsForPdf(
         return {
           ...attachment,
           previewText: file.toString('utf8').slice(0, 6000),
+        };
+      }
+
+      if (attachment.type === 'application/pdf' && attachment.category === 'CEE') {
+        return {
+          ...attachment,
+          annexNote: `Supuesto CEE aportado por el usuario. Letra recogida en el documento demo: ${attachment.ceeLetter || 'E'}. Documento demo sin validez oficial ni administrativa.`,
         };
       }
     } catch (error) {

@@ -153,6 +153,36 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* PARTNERS */}
+        <section id="proveedores" className="py-24 sm:py-32 relative">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">De la estimación a la acción</p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">Identifica qué profesional necesitas</h2>
+              <p className="text-muted max-w-3xl leading-relaxed">
+                Además del prediagnóstico orientativo, EnergyScan puede ayudarte a identificar qué tipo de profesional necesitas: certificador energético, técnico, ventanas, aislamiento, climatización, renovables o reforma. La conexión con proveedores se realiza siempre como solicitud de contacto y presupuesto, no como garantía de resultado.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Certificación energética', desc: 'Solicitud de contacto con técnicos para revisar documentación y próximos pasos.', icon: FileText },
+                { title: 'Ventanas y aislamiento', desc: 'Actuaciones sobre envolvente para reducir pérdidas y mejorar confort.', icon: Home },
+                { title: 'Climatización / aerotermia', desc: 'Sistemas más eficientes para calefacción, refrigeración y ACS.', icon: Gauge },
+                { title: 'Fotovoltaica / renovables', desc: 'Evaluación orientativa de autoconsumo y apoyo renovable.', icon: Zap },
+              ].map((item) => (
+                <div key={item.title} className="surface-2 border rounded-2xl p-5">
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#00DC82]/10 text-[#00DC82]">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-heading font-bold text-premium">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* PRECIOS */}
         <section id="precios" className="py-24 sm:py-32 relative">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>

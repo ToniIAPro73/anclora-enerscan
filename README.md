@@ -27,6 +27,14 @@ La aplicación sigue un flujo Wizard -> API -> Resultados:
 - **Demo:** el botón "Ver ejemplo de valoración" crea una valoración ficticia marcada como demo, sin datos personales.
 - **Adjuntos:** el wizard permite arrastrar o seleccionar imágenes, PDF, DOCX y Markdown. Límite: 6 archivos y 8 MB por archivo.
 
+## Partners y proveedores
+
+Anclora EnergyScan prepara una red de proveedores y partners para conectar diagnósticos orientativos con solicitudes de presupuesto o contacto. El sistema distingue entre partners comerciales, proveedores técnicos y leads trazables. Esta funcionalidad no implica recomendación garantizada ni sustitución de servicios técnicos oficiales.
+
+## Demo enriquecida
+
+La demo incluye una vivienda unifamiliar ficticia, documentación aportada de ejemplo, imágenes interiores/exteriores y un supuesto CEE demo sin validez oficial. Estos assets se usan para mostrar el anexo documental del PDF premium.
+
 ## Campos del Wizard
 El flujo captura objetivo, tipo de inmueble, año, superficie, código postal, orientación, tipo de cubierta, ventanas, aislamiento de fachada y cubierta, ventilación, calefacción, refrigeración, ACS, renovables, presupuesto orientativo, horizonte temporal y aceptación del carácter orientativo.
 
