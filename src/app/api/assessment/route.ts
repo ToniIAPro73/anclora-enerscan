@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { PropertyDataV2 } from '@/lib/domain/energy-assessment';
 import { isAllowedAttachment, MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, sanitizeFilename } from '@/lib/attachments';
+import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
 import {
   normalizePropertyType,
   normalizeHeatingSystem,
@@ -59,11 +60,23 @@ async function readRequest(req: Request) {
   return { rawData, files };
 }
 
-async function persistAttachments(assessmentId: string, files: File[]) {
-  if (files.length === 0) return [];
+function validateAttachmentMetadata(files: File[]) {
   if (files.length > MAX_ATTACHMENTS) {
     throw new Error(`Máximo ${MAX_ATTACHMENTS} adjuntos por valoración`);
   }
+  for (const file of files) {
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      throw new Error(`El archivo ${file.name} supera el límite de 8 MB`);
+    }
+    if (!isAllowedAttachment(file)) {
+      throw new Error(`Tipo de archivo no admitido: ${file.name}`);
+    }
+  }
+}
+
+async function persistAttachments(assessmentId: string, files: File[]) {
+  if (files.length === 0) return [];
+  validateAttachmentMetadata(files);
 
   const uploadDir = path.join(process.cwd(), 'uploads', 'assessments', assessmentId);
   await mkdir(uploadDir, { recursive: true });
@@ -103,8 +116,11 @@ export async function POST(req: Request) {
     const data: PropertyDataV2 = parseResult.data;
 
     const result = calculateScoreV2(data);
+    validateAttachmentMetadata(files);
 
-    const assessment = await prisma.assessment.create({
+    let assessment;
+    try {
+      assessment = await prisma.assessment.create({
       data: {
         objective: data.objective,
         propertyType: data.propertyType,
@@ -135,7 +151,30 @@ export async function POST(req: Request) {
         missingData: JSON.stringify(result.missingData),
         explanation: result.explanation
       }
-    });
+      });
+    } catch (databaseError) {
+      console.error('Assessment database write failed, using stateless fallback:', databaseError);
+      const payload = createStatelessPayload(data, {
+        attachments: files.map((file, index) => ({
+          id: `submitted-${index + 1}`,
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+        })),
+      });
+      return NextResponse.json({
+        id: createStatelessAssessmentId(payload),
+        estimatedLetter: payload.scoreResult.estimatedLetter,
+        confidence: payload.scoreResult.confidence,
+        score: payload.scoreResult.score,
+        climateZone: payload.scoreResult.climateZone,
+        penalties: payload.scoreResult.penalties,
+        strengths: payload.scoreResult.strengths,
+        missingData: payload.scoreResult.missingData,
+        stateless: true,
+        attachments: payload.attachments,
+      });
+    }
 
     try {
       const attachmentData = await persistAttachments(assessment.id, files);

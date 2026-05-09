@@ -6,10 +6,19 @@ import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
 import { PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { normalizeLanguage } from '@/lib/preferences';
+import { createReportDataFromPayload, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import React from 'react';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    const cookieLanguage = req.headers.get('cookie')?.match(/enerscan-language=(es|en|de)/)?.[1];
+    const language = normalizeLanguage(new URL(req.url).searchParams.get('lang') || cookieLanguage);
+    const statelessPayload = parseStatelessAssessmentId(params.id);
+    let reportData: PremiumReportData;
+
+    if (statelessPayload) {
+      reportData = createReportDataFromPayload(params.id, statelessPayload, language);
+    } else {
     const assessment = await prisma.assessment.findUnique({
       where: { id: params.id },
       include: { attachments: true }
@@ -52,10 +61,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     };
 
     const scenarios = generateScenarios(propertyData, scoreResult);
-    const cookieLanguage = req.headers.get('cookie')?.match(/enerscan-language=(es|en|de)/)?.[1];
-    const language = normalizeLanguage(new URL(req.url).searchParams.get('lang') || cookieLanguage);
 
-    const reportData: PremiumReportData = {
+    reportData = {
       id: assessment.id,
       date: new Date(assessment.createdAt).toLocaleDateString(language === 'es' ? 'es-ES' : language === 'de' ? 'de-DE' : 'en-US'),
       propertyData,
@@ -74,6 +81,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       language,
       isDemo: assessment.isDemo,
     };
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);
@@ -82,7 +90,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new NextResponse(stream as unknown as ReadableStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="enerscan-informe-${assessment.id}.pdf"`
+        'Content-Disposition': `attachment; filename="enerscan-informe-${params.id.slice(0, 24)}.pdf"`
       }
     });
   } catch (error) {

@@ -6,50 +6,61 @@ import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
 import { AlertTriangle, ArrowRight, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
 import { PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
+import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
-  const assessment = await prisma.assessment.findUnique({
+  const statelessPayload = parseStatelessAssessmentId(params.id);
+  const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },
     include: { attachments: true }
   });
 
-  if (!assessment) return <div>No se encontró el análisis.</div>;
+  if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
 
-  const propertyData: PropertyDataV2 = {
-    year: assessment.year,
-    area: assessment.area,
-    zipcode: assessment.zipcode,
-    propertyType: (assessment.propertyType || 'unknown') as PropertyType,
-    orientation: (assessment.orientation || 'unknown') as PropertyOrientation,
-    roofType: (assessment.roofType || 'unknown') as RoofType,
-    heating: (assessment.heating || 'unknown') as HeatingSystem,
-    cooling: (assessment.cooling || 'unknown') as CoolingSystem,
-    waterHeating: (assessment.waterHeating || 'unknown') as WaterHeatingSystem,
-    ventilation: (assessment.ventilation || 'unknown') as VentilationType,
-    windows: (assessment.windows || 'unknown') as WindowType,
-    renewables: (assessment.renewables || 'unknown') as RenewableSystem,
-    facadeInsulation: (assessment.facadeInsulation || 'unknown') as InsulationLevel,
-    roofInsulation: (assessment.roofInsulation || 'unknown') as InsulationLevel,
-    budgetRange: (assessment.budgetRange || 'unknown') as BudgetRange,
-    timelineHorizon: (assessment.timelineHorizon || 'unknown') as TimelineHorizon,
-    targetLetter: (assessment.targetLetter || 'G') as EnergyLetter,
-    objective: (assessment.objective || 'unknown') as AssessmentObjective,
+  const propertyData: PropertyDataV2 = statelessPayload ? statelessPayload.propertyData : {
+    year: assessment!.year,
+    area: assessment!.area,
+    zipcode: assessment!.zipcode,
+    propertyType: (assessment!.propertyType || 'unknown') as PropertyType,
+    orientation: (assessment!.orientation || 'unknown') as PropertyOrientation,
+    roofType: (assessment!.roofType || 'unknown') as RoofType,
+    heating: (assessment!.heating || 'unknown') as HeatingSystem,
+    cooling: (assessment!.cooling || 'unknown') as CoolingSystem,
+    waterHeating: (assessment!.waterHeating || 'unknown') as WaterHeatingSystem,
+    ventilation: (assessment!.ventilation || 'unknown') as VentilationType,
+    windows: (assessment!.windows || 'unknown') as WindowType,
+    renewables: (assessment!.renewables || 'unknown') as RenewableSystem,
+    facadeInsulation: (assessment!.facadeInsulation || 'unknown') as InsulationLevel,
+    roofInsulation: (assessment!.roofInsulation || 'unknown') as InsulationLevel,
+    budgetRange: (assessment!.budgetRange || 'unknown') as BudgetRange,
+    timelineHorizon: (assessment!.timelineHorizon || 'unknown') as TimelineHorizon,
+    targetLetter: (assessment!.targetLetter || 'G') as EnergyLetter,
+    objective: (assessment!.objective || 'unknown') as AssessmentObjective,
   };
 
-  const scoreResult: ScoreResultV2 = {
-    score: assessment.score || 0,
-    estimatedLetter: assessment.estimatedLetter as EnergyLetter,
-    confidence: (assessment.confidence || 'Media') as ConfidenceLevel,
-    climateZone: assessment.climateZone || 'Desconocida',
-    penalties: JSON.parse(assessment.penalties || '[]'),
-    strengths: JSON.parse(assessment.strengths || '[]'),
-    missingData: JSON.parse(assessment.missingData || '[]'),
-    explanation: assessment.explanation || '',
+  const scoreResult: ScoreResultV2 = statelessPayload ? statelessPayload.scoreResult : {
+    score: assessment!.score || 0,
+    estimatedLetter: assessment!.estimatedLetter as EnergyLetter,
+    confidence: (assessment!.confidence || 'Media') as ConfidenceLevel,
+    climateZone: assessment!.climateZone || 'Desconocida',
+    penalties: JSON.parse(assessment!.penalties || '[]'),
+    strengths: JSON.parse(assessment!.strengths || '[]'),
+    missingData: JSON.parse(assessment!.missingData || '[]'),
+    explanation: assessment!.explanation || '',
   };
 
 
   const scenarios = generateScenarios(propertyData, scoreResult);
-  const providers = await prisma.provider.findMany({ take: 3 });
+  const providers = await prisma.provider.findMany({ take: 3 }).catch(() => []);
+  const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
+  const attachments = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
+    id: attachment.id,
+    name: attachment.name,
+    type: attachment.type,
+    size: attachment.size,
+    path: attachment.path,
+    createdAt: attachment.createdAt.toISOString(),
+  })) || [];
 
   return (
     <div className="min-h-screen app-shell">
@@ -62,13 +73,13 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           <div className="grid lg:grid-cols-2 gap-8 items-center surface border rounded-3xl p-8 lg:p-12 glow-green">
             <div className="space-y-6">
               <div>
-                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">{assessment.isDemo ? 'Resultado preliminar · Demo' : 'Resultado preliminar'}</p>
+                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">{isDemo ? 'Resultado preliminar · Demo' : 'Resultado preliminar'}</p>
                 <h1 className="font-heading font-bold text-3xl sm:text-4xl text-premium">Tu clasificación orientativa</h1>
               </div>
               <p className="text-muted leading-relaxed">
-                Basado en los datos declarados de tu vivienda ({assessment.area}m², construida en {assessment.year}), hemos estimado tu letra energética actual.
+                Basado en los datos declarados de tu vivienda ({propertyData.area}m², construida en {propertyData.year}), hemos estimado tu letra energética actual.
               </p>
-              {assessment.isDemo && (
+              {isDemo && (
                 <p className="rounded-xl border border-[#FFB020]/30 bg-[#FFB020]/10 p-3 text-xs font-semibold text-[#FFB020]">
                   Este informe usa datos ficticios para mostrar la experiencia premium sin datos personales.
                 </p>
@@ -81,8 +92,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-semibold text-muted uppercase">Confianza del motor</span>
-                    <span className={`text-sm font-bold max-w-fit px-2 py-0.5 rounded ${assessment.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : assessment.confidence === 'Media' ? 'bg-[#FFB020]/20 text-[#FFB020]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
-                      {assessment.confidence}
+                    <span className={`text-sm font-bold max-w-fit px-2 py-0.5 rounded ${scoreResult.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : scoreResult.confidence === 'Media' ? 'bg-[#FFB020]/20 text-[#FFB020]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
+                      {scoreResult.confidence}
                     </span>
                   </div>
                 </div>
@@ -101,11 +112,11 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#262626] to-[#0A0A0A] border-2 border-[#00DC82]/30 flex items-center justify-center text-6xl font-heading font-bold text-[#F0EDE8] shadow-2xl shadow-[#00DC82]/10">
-                {assessment.estimatedLetter}
+                {scoreResult.estimatedLetter}
               </div>
               <div className="flex gap-1">
                 {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(l => (
-                  <div key={l} className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${l === assessment.estimatedLetter ? 'bg-[#00DC82] text-[#0A0A0A]' : 'bg-[#262626] text-[#7A7A7A]'}`}>{l}</div>
+                  <div key={l} className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${l === scoreResult.estimatedLetter ? 'bg-[#00DC82] text-[#0A0A0A]' : 'bg-[#262626] text-[#7A7A7A]'}`}>{l}</div>
                 ))}
               </div>
             </div>
@@ -222,15 +233,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
             <p className="mb-4 text-xs text-muted">Los archivos se registran como soporte documental, pero no han sido analizados automáticamente por EnerScan.</p>
             <AttachmentList
-              assessmentId={assessment.id}
-              initialAttachments={assessment.attachments.map((attachment) => ({
-                id: attachment.id,
-                name: attachment.name,
-                type: attachment.type,
-                size: attachment.size,
-                path: attachment.path,
-                createdAt: attachment.createdAt.toISOString(),
-              }))}
+              assessmentId={params.id}
+              initialAttachments={attachments}
             />
           </section>
 
@@ -285,7 +289,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           <section className="space-y-8">
             <div className="text-center">
               <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Marketplace de proveedores</h2>
-              <p className="text-[#7A7A7A]">Empresas para ejecutar tus mejoras en CP {assessment.zipcode}.</p>
+              <p className="text-[#7A7A7A]">Empresas para ejecutar tus mejoras en CP {propertyData.zipcode}.</p>
             </div>
             {providers.length > 0 ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
