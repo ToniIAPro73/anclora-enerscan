@@ -85,7 +85,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </p>
               )}
               {scoreResult.explanation && (
-                <p className="text-sm text-[#F0EDE8]">{scoreResult.explanation}</p>
+                <p className="text-sm text-premium">{scoreResult.explanation}</p>
               )}
 
               <div className="grid grid-cols-2 gap-4">
@@ -111,7 +111,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#262626] to-[#0A0A0A] border-2 border-[#00DC82]/30 flex items-center justify-center text-6xl font-heading font-bold text-[#F0EDE8] shadow-2xl shadow-[#00DC82]/10">
+              <div className="w-32 h-32 rounded-3xl surface-2 border-2 border-[#00DC82]/30 flex items-center justify-center text-6xl font-heading font-bold text-premium shadow-2xl shadow-[#00DC82]/10">
                 {scoreResult.estimatedLetter}
               </div>
               <div className="flex gap-1">

@@ -136,3 +136,69 @@ body {
 .bg-accent {
   background-color: var(--accent);
 }
+
+.light .text-\[\#F0EDE8\] {
+  color: var(--fg) !important;
+}
+
+.light .text-\[\#7A7A7A\] {
+  color: var(--muted) !important;
+}
+
+.light .text-\[\#00DC82\] {
+  color: var(--accent) !important;
+}
+
+.light .text-\[\#FFB020\] {
+  color: var(--warm) !important;
+}
+
+.light .text-\[\#EF4444\] {
+  color: var(--danger) !important;
+}
+
+.light .bg-\[\#0A0A0A\],
+.light .bg-\[\#131313\] {
+  background-color: var(--elevated) !important;
+}
+
+.light .bg-\[\#1A1A1A\],
+.light .bg-\[\#262626\] {
+  background-color: var(--card) !important;
+}
+
+.light .border-\[\#262626\],
+.light .border-white\/5,
+.light .border-white\/10 {
+  border-color: var(--border) !important;
+}
+
+.light .bg-white\/5 {
+  background-color: rgba(23, 21, 18, 0.04) !important;
+}
+
+.light .hover\:border-\[\#7A7A7A\]:hover {
+  border-color: var(--muted) !important;
+}
+
+.light input,
+.light select,
+.light textarea {
+  background-color: var(--elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--fg) !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.light .premium-toggle-option.is-active {
+  color: #07110D !important;
+}
+
+.light .surface,
+.light .surface-2 {
+  box-shadow: 0 12px 32px rgba(23, 21, 18, 0.06);
+}

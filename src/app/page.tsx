@@ -38,7 +38,7 @@ export default function LandingPage() {
                   <Link href="/api/assessment/demo" className="px-7 py-3.5 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.demo}
                   </Link>
-                  <Link href="#como-funciona" className="px-7 py-3.5 rounded-full border border-[#262626] text-[#F0EDE8] font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
+                  <Link href="#como-funciona" className="px-7 py-3.5 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
                     {t.howItWorks}
                   </Link>
                 </div>
@@ -70,7 +70,7 @@ export default function LandingPage() {
             {/* STATS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 lg:mt-20">
               {[
-                { label: '% del parque deficiente', val: '80%', color: 'text-[#F0EDE8]' },
+                { label: '% del parque deficiente', val: '80%', color: 'text-premium' },
                 { label: 'Primera fecha clave', val: '2030', color: 'text-[#FFB020]' },
                 { label: 'Objetivo Clase E', val: '2033', color: 'text-[#EF4444]' },
                 { label: 'Pasos del análisis', val: '7', color: 'text-[#00DC82]' },
