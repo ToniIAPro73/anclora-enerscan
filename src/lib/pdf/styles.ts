@@ -147,6 +147,9 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#f8f9fa',
   },
+  imageAnnexCardSingle: {
+    marginTop: 110,
+  },
   imageCaption: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -158,6 +161,17 @@ export const styles = StyleSheet.create({
     height: 166,
     objectFit: 'cover',
     borderRadius: 4,
+  },
+  ceePageFrame: {
+    border: '1 solid #e0e0e0',
+    borderRadius: 4,
+    padding: 6,
+    backgroundColor: '#ffffff',
+  },
+  ceePageImage: {
+    width: '100%',
+    height: 610,
+    objectFit: 'contain',
   },
   imageMeta: {
     marginTop: 7,

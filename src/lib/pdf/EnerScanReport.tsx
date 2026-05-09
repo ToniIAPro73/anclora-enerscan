@@ -367,12 +367,20 @@ function chunkPairs<T>(items: T[]): T[][] {
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
   const t = labels[language];
-  const reportRef = getPublicAssessmentRef(data.id);
+  const reportRef = data.publicRef || getPublicAssessmentRef(data.id);
   const attachments = data.attachments || [];
   const imageAttachments = attachments.filter((attachment) => attachment.previewDataUri);
   const ceeAttachments = attachments.filter((attachment) => attachment.category === 'CEE');
   const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && attachment.category !== 'CEE');
   const imagePages = chunkPairs(imageAttachments);
+  const ceePagePreviews = ceeAttachments.flatMap((attachment) =>
+    (attachment.ceePagePreviews || []).map((src, pageIndex) => ({
+      attachment,
+      src,
+      pageIndex,
+      totalPages: attachment.ceePagePreviews?.length || 0,
+    }))
+  );
 
   return (
   <Document>
@@ -566,6 +574,28 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </Page>
     )}
 
+    {ceePagePreviews.map(({ attachment, src, pageIndex, totalPages }) => (
+      <Page key={`${attachment.id}-cee-page-${pageIndex}`} size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>CEE demo aportado</Text>
+              <Text style={styles.subtitle}>Página {pageIndex + 1} / {totalPages} del documento aportado</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.ceePageFrame}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
+          <Image src={src} style={styles.ceePageImage} />
+        </View>
+      </Page>
+    ))}
+
     {imagePages.map((pageAttachments, index) => (
       <Page key={`image-page-${index}`} size="A4" style={styles.page}>
         <View style={styles.header}>
@@ -583,7 +613,10 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
         <View style={styles.imageAnnexGrid}>
           {pageAttachments.map((attachment) => (
-            <View key={attachment.id} style={styles.imageAnnexCard}>
+            <View
+              key={attachment.id}
+              style={pageAttachments.length === 1 ? [styles.imageAnnexCard, styles.imageAnnexCardSingle] : styles.imageAnnexCard}
+            >
               <Text style={styles.imageCaption}>{attachment.caption || attachment.name}</Text>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
               <Image src={attachment.previewDataUri!} style={styles.annexImage} />

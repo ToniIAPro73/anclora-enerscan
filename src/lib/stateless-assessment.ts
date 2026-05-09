@@ -11,6 +11,7 @@ import {
 type StatelessAssessmentPayload = {
   propertyData: PropertyDataV2;
   scoreResult: ScoreResultV2;
+  publicRef?: string;
   attachments?: AssessmentAttachment[];
   isDemo?: boolean;
   createdAt?: string;
@@ -50,11 +51,12 @@ export function getPublicAssessmentRef(id: string): string {
 
 export function createStatelessPayload(
   propertyData: PropertyDataV2,
-  options: { attachments?: AssessmentAttachment[]; isDemo?: boolean } = {}
+  options: { attachments?: AssessmentAttachment[]; isDemo?: boolean; publicRef?: string } = {}
 ): StatelessAssessmentPayload {
   return {
     propertyData,
     scoreResult: calculateScoreV2(propertyData),
+    publicRef: options.publicRef,
     attachments: options.attachments || [],
     isDemo: options.isDemo || false,
     createdAt: new Date().toISOString(),
@@ -64,6 +66,7 @@ export function createStatelessPayload(
 export function createReportDataFromPayload(id: string, payload: StatelessAssessmentPayload, language: "es" | "en" | "de" = "es"): PremiumReportData {
   return {
     id,
+    publicRef: payload.publicRef,
     date: new Date(payload.createdAt || Date.now()).toLocaleDateString(language === "es" ? "es-ES" : language === "de" ? "de-DE" : "en-US"),
     propertyData: payload.propertyData,
     scoreResult: payload.scoreResult,

@@ -268,7 +268,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
             <p className="mb-4 text-xs text-muted">
               {isDemo
-                ? 'La demo incluye imágenes sintéticas y un supuesto CEE aportado por el usuario. Todo el material es ficticio y sin validez oficial.'
+                ? 'La demo incluye imágenes realistas de ejemplo y un supuesto CEE aportado por el usuario. Todo el material es ficticio y sin validez oficial.'
                 : 'Los archivos se registran como soporte documental, pero no sustituyen una revisión técnica ni un CEE oficial.'}
             </p>
             <div className="mb-4 flex flex-wrap gap-2 text-[10px] font-bold uppercase">

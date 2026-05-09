@@ -9,16 +9,27 @@ import {
 } from '../src/lib/demo-assets';
 
 describe('demo assets', () => {
-  it('includes at least six images and one CEE PDF', () => {
+  it('includes nine final images and one CEE PDF', () => {
     const images = demoAttachments.filter((attachment) => attachment.type.startsWith('image/'));
     const pdfs = demoAttachments.filter((attachment) => attachment.type === 'application/pdf');
-    expect(images).toHaveLength(6);
+    expect(images).toHaveLength(9);
     expect(pdfs.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('includes two exterior and four interior images', () => {
-    expect(demoAttachments.filter((attachment) => attachment.category === 'EXTERIOR')).toHaveLength(2);
-    expect(demoAttachments.filter((attachment) => attachment.category === 'INTERIOR')).toHaveLength(4);
+  it('includes the selected image captions for the demo PDF annex', () => {
+    expect(demoAttachments.filter((attachment) => attachment.category === 'EXTERIOR')).toHaveLength(3);
+    expect(demoAttachments.filter((attachment) => attachment.category === 'INTERIOR')).toHaveLength(6);
+    expect(demoAttachments.map((attachment) => attachment.caption)).toEqual(expect.arrayContaining([
+      'Fachada principal',
+      'Vista exterior lateral',
+      'Distribuidor de planta superior',
+      'Baño principal / baño en suite',
+      'Dormitorio principal',
+      'Acceso y escalera interior',
+      'Cocina',
+      'Salón principal',
+      'Vista exterior posterior con piscina',
+    ]));
   });
 
   it('resolves every demo asset to an existing local file', () => {
@@ -39,7 +50,9 @@ describe('demo assets', () => {
   it('builds a stateless demo payload with consistent attachments', () => {
     const payload = getDemoAssessmentPayload();
     expect(payload.isDemo).toBe(true);
+    expect(payload.publicRef).toBe('DEMO-EZNFOIFQ');
     expect(payload.attachments.map((attachment) => attachment.id)).toContain('demo-cee');
+    expect(payload.attachments).toHaveLength(10);
     expect(payload.propertyData.area).toBe(185);
   });
 });

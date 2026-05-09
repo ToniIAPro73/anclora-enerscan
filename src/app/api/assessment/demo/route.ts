@@ -9,6 +9,7 @@ export async function GET(req: Request) {
   const payload = createStatelessPayload(demo.propertyData, {
     isDemo: demo.isDemo,
     attachments: demo.attachments,
+    publicRef: demo.publicRef,
   });
 
   return NextResponse.redirect(new URL(`/assessment/${createStatelessAssessmentId(payload)}`, req.url));

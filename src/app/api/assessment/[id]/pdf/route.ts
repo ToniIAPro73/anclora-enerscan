@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'fs/promises';
 import path from 'path';
+import os from 'os';
+import { promisify } from 'util';
+import { execFile } from 'child_process';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
@@ -10,6 +13,8 @@ import { AssessmentAttachment, PremiumReportData, PropertyDataV2, ScoreResultV2,
 import { normalizeLanguage } from '@/lib/preferences';
 import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import React from 'react';
+
+const execFileAsync = promisify(execFile);
 
 let cachedLogoDataUri: string | undefined;
 
@@ -64,8 +69,10 @@ async function enrichAttachmentsForPdf(
       }
 
       if (attachment.type === 'application/pdf' && attachment.category === 'CEE') {
+        const ceePagePreviews = await renderPdfPagesToDataUris(attachmentPath);
         return {
           ...attachment,
+          ceePagePreviews,
           annexNote: `Supuesto CEE aportado por el usuario. Letra recogida en el documento demo: ${attachment.ceeLetter || 'E'}. Documento demo sin validez oficial ni administrativa.`,
         };
       }
@@ -82,6 +89,31 @@ async function enrichAttachmentsForPdf(
       annexNote: 'Formato registrado en el expediente. Anclora EnergyScan no convierte ni analiza automáticamente el contenido de este documento.',
     };
   }));
+}
+
+async function renderPdfPagesToDataUris(pdfPath: string): Promise<string[]> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'energyscan-cee-'));
+  const outputPrefix = path.join(tempDir, 'page');
+
+  try {
+    await execFileAsync('pdftoppm', ['-png', '-r', '120', pdfPath, outputPrefix], {
+      maxBuffer: 1024 * 1024 * 20,
+    });
+
+    const files = (await readdir(tempDir))
+      .filter((file) => file.endsWith('.png'))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    return Promise.all(files.map(async (file) => {
+      const page = await readFile(path.join(tempDir, file));
+      return `data:image/png;base64,${page.toString('base64')}`;
+    }));
+  } catch (error) {
+    console.error('Could not render CEE PDF pages for annex', error);
+    return [];
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -165,10 +197,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);
 
     // Need to cast stream to unknown then ResponseBody because the typings for React PDF Stream can be incomplete in Next
+    const reportRef = reportData.publicRef || getPublicAssessmentRef(params.id);
+
     return new NextResponse(stream as unknown as ReadableStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="enerscan-informe-${getPublicAssessmentRef(params.id)}.pdf"`
+        'Content-Disposition': `attachment; filename="enerscan-informe-${reportRef}.pdf"`
       }
     });
   } catch (error) {

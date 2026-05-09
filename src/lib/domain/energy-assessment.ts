@@ -120,6 +120,7 @@ export interface AssessmentAttachment {
   path?: string;
   createdAt?: string;
   previewDataUri?: string;
+  ceePagePreviews?: string[];
   previewText?: string;
   annexNote?: string;
   category?: "EXTERIOR" | "INTERIOR" | "CEE";
@@ -161,6 +162,7 @@ export interface RegulatoryTimelineItem {
 
 export interface PremiumReportData {
   id: string;
+  publicRef?: string;
   date: string;
   propertyData: PropertyDataV2;
   scoreResult: ScoreResultV2;
