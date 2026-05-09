@@ -195,7 +195,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.header}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.subtitle}>{t.subtitle}</Text>
-        <Text style={{ ...styles.text, marginTop: 5 }}>Ref: {reportRef} | Fecha: {data.date}</Text>
+        <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
         {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
       </View>
 
