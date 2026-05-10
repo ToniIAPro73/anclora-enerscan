@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { calculateScoreV2 } from '@/lib/scoring';
 import { z } from 'zod';
 import { PropertyDataV2 } from '@/lib/domain/energy-assessment';
-import { validateAttachments } from '@/lib/attachments';
-import { saveAssessmentAttachment } from '@/lib/blob-storage';
+import { isAllowedAttachment, validateAttachments } from '@/lib/attachments';
+import { deleteStoredAttachment, saveAssessmentAttachment } from '@/lib/blob-storage';
 import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
 import { auth } from '@/auth';
 import {
@@ -49,10 +49,41 @@ const assessmentSchema = z.object({
   isDemo: z.boolean().optional(),
 });
 
+const uploadedAttachmentSchema = z.object({
+  name: z.string().min(1).max(180),
+  type: z.string().min(1).max(120),
+  size: z.number().int().positive().max(10 * 1024 * 1024),
+  pathname: z.string().min(1).max(500),
+  url: z.string().url().optional(),
+}).superRefine((attachment, context) => {
+  if (!attachment.pathname.startsWith('assessment-drafts/')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Ruta de adjunto no permitida',
+      path: ['pathname'],
+    });
+  }
+
+  if (!isAllowedAttachment(attachment)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Tipo de archivo no admitido: ${attachment.name}`,
+      path: ['type'],
+    });
+  }
+});
+
+type UploadedAssessmentAttachment = z.infer<typeof uploadedAttachmentSchema>;
+
 async function readRequest(req: Request) {
   const contentType = req.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
-    return { rawData: await req.json(), files: [] as File[] };
+    const rawData = await req.json();
+    return {
+      rawData,
+      files: [] as File[],
+      uploadedAttachments: Array.isArray(rawData.uploadedAttachments) ? rawData.uploadedAttachments : [],
+    };
   }
 
   const formData = await req.formData();
@@ -60,12 +91,23 @@ async function readRequest(req: Request) {
     Array.from(formData.entries()).filter(([, value]) => typeof value === 'string')
   );
   const files = formData.getAll('attachments').filter((value): value is File => value instanceof File && value.size > 0);
-  return { rawData, files };
+  return { rawData, files, uploadedAttachments: [] };
 }
 
 function validateAttachmentMetadata(files: File[]) {
   const error = validateAttachments(files);
   if (error) throw new Error(error);
+}
+
+function inferAttachmentCategory(file: { name: string; type: string }) {
+  if (file.type === 'application/pdf') return 'CEE';
+  if (file.type.startsWith('image/')) {
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.includes('ext')) return 'EXTERIOR';
+    if (lowerName.includes('int')) return 'INTERIOR';
+    return 'EXTERIOR';
+  }
+  return 'OTHER';
 }
 
 async function persistAttachments(assessmentId: string, files: File[]) {
@@ -75,22 +117,12 @@ async function persistAttachments(assessmentId: string, files: File[]) {
   const attachmentData = [];
   for (const file of files) {
     const stored = await saveAssessmentAttachment(assessmentId, file);
-    
-    // Categorización básica para MVP
-    let category = 'OTHER';
-    if (file.type === 'application/pdf') category = 'CEE';
-    else if (file.type.startsWith('image/')) {
-      const lowerName = file.name.toLowerCase();
-      if (lowerName.includes('ext')) category = 'EXTERIOR';
-      else if (lowerName.includes('int')) category = 'INTERIOR';
-      else category = 'EXTERIOR'; // Default for images
-    }
 
     attachmentData.push({
       assessmentId,
       name: file.name,
       type: file.type || 'application/octet-stream',
-      category,
+      category: inferAttachmentCategory(file),
       size: file.size,
       path: stored.path,
     });
@@ -98,10 +130,37 @@ async function persistAttachments(assessmentId: string, files: File[]) {
   return attachmentData;
 }
 
+function validateUploadedAttachments(rawAttachments: unknown[]) {
+  const parsed = z.array(uploadedAttachmentSchema).safeParse(rawAttachments);
+  if (!parsed.success) {
+    throw new Error('Adjunto subido no válido');
+  }
+
+  const error = validateAttachments(parsed.data);
+  if (error) throw new Error(error);
+
+  return parsed.data;
+}
+
+function persistUploadedAttachmentMetadata(assessmentId: string, uploadedAttachments: UploadedAssessmentAttachment[]) {
+  return uploadedAttachments.map((attachment) => ({
+    assessmentId,
+    name: attachment.name,
+    type: attachment.type,
+    category: inferAttachmentCategory(attachment),
+    size: attachment.size,
+    path: `blob:${attachment.pathname}`,
+  }));
+}
+
+function serializeAttachment(file: { name: string; type: string; size: number }) {
+  return { name: file.name, type: file.type, size: file.size };
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth().catch(() => null);
-    const { rawData, files } = await readRequest(req);
+    const { rawData, files, uploadedAttachments: rawUploadedAttachments } = await readRequest(req);
 
     const parseResult = assessmentSchema.safeParse(rawData);
     if (!parseResult.success) {
@@ -113,6 +172,13 @@ export async function POST(req: Request) {
     const result = calculateScoreV2(data);
     try {
       validateAttachmentMetadata(files);
+    } catch (attachmentError) {
+      return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
+    }
+
+    let uploadedAttachments: UploadedAssessmentAttachment[] = [];
+    try {
+      uploadedAttachments = validateUploadedAttachments(rawUploadedAttachments);
     } catch (attachmentError) {
       return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
     }
@@ -155,12 +221,17 @@ export async function POST(req: Request) {
     } catch (databaseError) {
       console.error('Assessment database write failed, using stateless fallback:', databaseError);
       const payload = createStatelessPayload(data, {
-        attachments: files.map((file, index) => ({
+        attachments: [...files.map((file, index) => ({
           id: `submitted-${index + 1}`,
           name: file.name,
           type: file.type || 'application/octet-stream',
           size: file.size,
-        })),
+        })), ...uploadedAttachments.map((attachment, index) => ({
+          id: `uploaded-${index + 1}`,
+          name: attachment.name,
+          type: attachment.type,
+          size: attachment.size,
+        }))],
       });
       return NextResponse.json({
         id: createStatelessAssessmentId(payload),
@@ -177,12 +248,16 @@ export async function POST(req: Request) {
     }
 
     try {
-      const attachmentData = await persistAttachments(assessment.id, files);
+      const attachmentData = [
+        ...(await persistAttachments(assessment.id, files)),
+        ...persistUploadedAttachmentMetadata(assessment.id, uploadedAttachments),
+      ];
       if (attachmentData.length > 0) {
         await prisma.assessmentAttachment.createMany({ data: attachmentData });
       }
     } catch (attachmentError) {
       await prisma.assessment.delete({ where: { id: assessment.id } });
+      await Promise.all(uploadedAttachments.map((attachment) => deleteStoredAttachment(`blob:${attachment.pathname}`).catch(() => undefined)));
       return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
     }
 
@@ -195,7 +270,10 @@ export async function POST(req: Request) {
       penalties: result.penalties,
       strengths: result.strengths,
       missingData: result.missingData,
-      attachments: files.map((file) => ({ name: file.name, type: file.type, size: file.size }))
+      attachments: [
+        ...files.map(serializeAttachment),
+        ...uploadedAttachments.map(serializeAttachment),
+      ]
     });
   } catch (error) {
     console.error(error);
