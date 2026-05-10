@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'fs/promises';
 import path from 'path';
+import os from 'os';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
@@ -16,7 +19,16 @@ import React from 'react';
 // Forzar dinamismo para evitar problemas de pre-renderizado con DB y librerías nativas
 export const dynamic = 'force-dynamic';
 
+const execFileAsync = promisify(execFile);
 let cachedLogoDataUri: string | undefined;
+
+function isPdfAttachment(attachment: AssessmentAttachment) {
+  return attachment.type === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf');
+}
+
+function isCeeAttachment(attachment: AssessmentAttachment) {
+  return attachment.category === 'CEE' || isPdfAttachment(attachment);
+}
 
 async function getReportLogoDataUri() {
   if (cachedLogoDataUri) return cachedLogoDataUri;
@@ -70,10 +82,11 @@ async function enrichAttachmentsForPdf(
         };
       }
 
-      if (attachment.type === 'application/pdf' && attachment.category === 'CEE') {
+      if (isPdfAttachment(attachment)) {
         const ceePagePreviews = await renderPdfBytesToDataUris(file);
         return {
           ...attachment,
+          category: isCeeAttachment(attachment) ? 'CEE' : attachment.category,
           ceePagePreviews,
           annexNote: `Supuesto CEE aportado por el usuario. Letra recogida en el documento demo: ${attachment.ceeLetter || 'E'}. Documento demo sin validez oficial ni administrativa.`,
         };
@@ -105,12 +118,12 @@ async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
     });
 
     const pdf = await loadingTask.promise;
-    const numPages = Math.min(pdf.numPages, 10); // Limitar a 10 páginas para evitar timeouts en Serverless
+    const numPages = pdf.numPages;
     const dataUris: string[] = [];
 
     for (let i = 1; i <= numPages; i++) {
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 }); // ~144 DPI
+      const viewport = page.getViewport({ scale: 1.8 });
       
       const canvas = createCanvas(viewport.width, viewport.height);
       const context = canvas.getContext('2d');
@@ -125,10 +138,35 @@ async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
       dataUris.push(`data:image/png;base64,${pngBuffer.toString('base64')}`);
     }
     
-    return dataUris;
+    if (dataUris.length === numPages) return dataUris;
+    return await renderPdfBytesWithPdftoppm(pdfBytes);
   } catch (error) {
     console.error('PDF to Image conversion failed:', error);
+    return await renderPdfBytesWithPdftoppm(pdfBytes);
+  }
+}
+
+async function renderPdfBytesWithPdftoppm(pdfBytes: Buffer): Promise<string[]> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'energyscan-cee-pages-'));
+  const pdfPath = path.join(tempDir, 'source.pdf');
+  const outputPrefix = path.join(tempDir, 'page');
+
+  try {
+    await writeFile(pdfPath, pdfBytes);
+    await execFileAsync('pdftoppm', ['-png', '-r', '180', pdfPath, outputPrefix]);
+    const files = (await readdir(tempDir))
+      .filter((file) => /^page-\d+\.png$/.test(file))
+      .sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0));
+
+    return await Promise.all(files.map(async (file) => {
+      const image = await readFile(path.join(tempDir, file));
+      return `data:image/png;base64,${image.toString('base64')}`;
+    }));
+  } catch (error) {
+    console.error('pdftoppm PDF conversion failed:', error);
     return [];
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
   }
 }
 
@@ -198,7 +236,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           id: attachment.id,
           name: attachment.name,
           type: attachment.type,
-          category: attachment.category as AssessmentAttachment['category'],
+          category: (attachment.category || (attachment.type === 'application/pdf' ? 'CEE' : undefined)) as AssessmentAttachment['category'],
           size: attachment.size,
           path: attachment.path,
           createdAt: attachment.createdAt.toISOString(),

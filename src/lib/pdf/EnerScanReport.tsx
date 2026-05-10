@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 import { styles } from './styles';
-import { PremiumReportData } from '../domain/energy-assessment';
+import { AssessmentAttachment, PremiumReportData } from '../domain/energy-assessment';
 import { getLegalDisclaimer } from '../i18n';
 import { formatFileSize } from '../attachments';
 import { getPublicAssessmentRef } from '../stateless-assessment';
@@ -373,8 +373,10 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const reportRef = data.publicRef || getPublicAssessmentRef(data.id);
   const attachments = data.attachments || [];
   const imageAttachments = attachments.filter((attachment) => attachment.previewDataUri);
-  const ceeAttachments = attachments.filter((attachment) => attachment.category === 'CEE');
-  const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && attachment.category !== 'CEE');
+  const isPdfAttachment = (attachment: AssessmentAttachment) => attachment.type === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf');
+  const isCeeAttachment = (attachment: AssessmentAttachment) => attachment.category === 'CEE' || isPdfAttachment(attachment);
+  const ceeAttachments = attachments.filter(isCeeAttachment);
+  const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && !isCeeAttachment(attachment));
   const imagePages = chunkPairs(imageAttachments);
   const ceePagePreviews = ceeAttachments.flatMap((attachment) =>
     (attachment.ceePagePreviews || []).map((src, pageIndex) => ({
@@ -614,25 +616,10 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </Page>
     )}
 
-    {ceePagePreviews.map(({ attachment, src, pageIndex, totalPages }) => (
-      <Page key={`${attachment.id}-cee-page-${pageIndex}`} size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View style={styles.brandHeader}>
-            {data.logoDataUri && (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
-              <Image src={data.logoDataUri} style={styles.logo} />
-            )}
-            <View style={styles.headerText}>
-              <Text style={styles.title}>CEE demo aportado</Text>
-              <Text style={styles.subtitle}>Página {pageIndex + 1} / {totalPages} del documento aportado</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.ceePageFrame}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
-          <Image src={src} style={styles.ceePageImage} />
-        </View>
+    {ceePagePreviews.map(({ attachment, src, pageIndex }) => (
+      <Page key={`${attachment.id}-cee-page-${pageIndex}`} size="A4" style={styles.ceeFullPage}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
+        <Image src={src} style={styles.ceeFullPageImage} />
       </Page>
     ))}
 
