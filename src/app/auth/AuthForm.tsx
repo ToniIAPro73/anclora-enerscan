@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { GitBranch, Mail } from 'lucide-react';
 import { requestPasswordReset, signInWithEmail, signInWithProvider, signUpWithEmail } from './actions';
 
@@ -86,6 +87,18 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
         <SocialButton provider="google" label="Google/Gmail" icon={<Mail className="h-4 w-4" />} enabled={googleEnabled} />
         <SocialButton provider="github" label="GitHub" icon={<GitBranch className="h-4 w-4" />} enabled={githubEnabled} />
       </div>
+
+      <p className="mt-5 text-xs leading-relaxed text-muted">
+        Al continuar aceptas los{' '}
+        <Link href="/terms" className="font-semibold text-premium hover:text-[#00DC82]">
+          términos del servicio
+        </Link>{' '}
+        y la{' '}
+        <Link href="/privacy" className="font-semibold text-premium hover:text-[#00DC82]">
+          política de privacidad
+        </Link>
+        .
+      </p>
     </div>
   );
 }

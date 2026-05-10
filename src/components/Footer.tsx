@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Mail } from 'lucide-react';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
@@ -39,9 +40,9 @@ export default function Footer() {
           <div>
             <h4 className="font-heading font-semibold text-sm text-premium mb-3">Legal</h4>
             <ul className="space-y-2 text-xs text-muted">
-              <li><a href="#" className="hover:text-premium transition">Términos de uso</a></li>
-              <li><a href="#" className="hover:text-premium transition">Política de privacidad</a></li>
-              <li><a href="#" className="hover:text-premium transition">Aviso legal</a></li>
+              <li><Link href="/terms" className="hover:text-premium transition">Términos del servicio</Link></li>
+              <li><Link href="/privacy" className="hover:text-premium transition">Política de privacidad</Link></li>
+              <li><Link href="/legal" className="hover:text-premium transition">Aviso legal</Link></li>
             </ul>
           </div>
           <div>
