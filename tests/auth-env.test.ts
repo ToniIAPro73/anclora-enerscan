@@ -9,12 +9,20 @@ describe('getOAuthEnv', () => {
     // Clear relevant env vars
     delete process.env.AUTH_GOOGLE_ID;
     delete process.env.AUTH_GOOGLE_SECRET;
+    delete process.env.AUTH_GOOGLE_CLIENT_ID;
+    delete process.env.AUTH_GOOGLE_CLIENT_SECRET;
     delete process.env.GOOGLE_CLIENT_ID;
     delete process.env.GOOGLE_CLIENT_SECRET;
+    delete process.env.GOOGLE_ID;
+    delete process.env.GOOGLE_SECRET;
     delete process.env.AUTH_GITHUB_ID;
     delete process.env.AUTH_GITHUB_SECRET;
+    delete process.env.AUTH_GITHUB_CLIENT_ID;
+    delete process.env.AUTH_GITHUB_CLIENT_SECRET;
     delete process.env.GITHUB_CLIENT_ID;
     delete process.env.GITHUB_CLIENT_SECRET;
+    delete process.env.GITHUB_ID;
+    delete process.env.GITHUB_SECRET;
   });
 
   afterAll(() => {
@@ -48,6 +56,15 @@ describe('getOAuthEnv', () => {
     expect(oauth.google.clientSecret).toBe('google-secret-alias');
   });
 
+  it('should enable Google if AUTH_GOOGLE_CLIENT_* aliases are set', () => {
+    process.env.AUTH_GOOGLE_CLIENT_ID = 'google-id-client-alias';
+    process.env.AUTH_GOOGLE_CLIENT_SECRET = 'google-secret-client-alias';
+    const oauth = getOAuthEnv();
+    expect(oauth.google.enabled).toBe(true);
+    expect(oauth.google.clientId).toBe('google-id-client-alias');
+    expect(oauth.google.clientSecret).toBe('google-secret-client-alias');
+  });
+
   it('should enable GitHub if AUTH_GITHUB_* vars are set', () => {
     process.env.AUTH_GITHUB_ID = 'github-id';
     process.env.AUTH_GITHUB_SECRET = 'github-secret';
@@ -55,6 +72,15 @@ describe('getOAuthEnv', () => {
     expect(oauth.github.enabled).toBe(true);
     expect(oauth.github.clientId).toBe('github-id');
     expect(oauth.github.clientSecret).toBe('github-secret');
+  });
+
+  it('should enable GitHub if GITHUB_* aliases are set', () => {
+    process.env.GITHUB_ID = 'github-id-short';
+    process.env.GITHUB_SECRET = 'github-secret-short';
+    const oauth = getOAuthEnv();
+    expect(oauth.github.enabled).toBe(true);
+    expect(oauth.github.clientId).toBe('github-id-short');
+    expect(oauth.github.clientSecret).toBe('github-secret-short');
   });
 
   it('should report missing secret if only ID is set', () => {

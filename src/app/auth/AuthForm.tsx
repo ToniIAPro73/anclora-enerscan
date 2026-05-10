@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { GitBranch, Mail } from 'lucide-react';
@@ -14,10 +14,29 @@ type AuthFormProps = {
 
 export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [providerStatus, setProviderStatus] = useState({ googleEnabled, githubEnabled });
   const [signInState, signInAction] = useFormState(signInWithEmail, {});
   const [signUpState, signUpAction] = useFormState(signUpWithEmail, {});
   const [resetState, resetAction] = useFormState(requestPasswordReset, {});
   const state = mode === 'signin' ? signInState : mode === 'signup' ? signUpState : resetState;
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/providers-status', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((status) => {
+        if (!active || !status) return;
+        setProviderStatus({
+          googleEnabled: Boolean(status.google?.enabled),
+          githubEnabled: Boolean(status.github?.enabled),
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="surface border rounded-3xl p-6 shadow-2xl sm:p-8">
@@ -27,14 +46,14 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
           onClick={() => setMode('signin')}
           className={`h-11 rounded-xl text-sm font-bold transition ${mode === 'signin' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
         >
-          Sign In
+          Entrar
         </button>
         <button
           type="button"
           onClick={() => setMode('signup')}
           className={`h-11 rounded-xl text-sm font-bold transition ${mode === 'signup' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
         >
-          Sign Up
+          Crear cuenta
         </button>
       </div>
 
@@ -52,7 +71,7 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
               En local: {resetState.resetUrl}
             </p>
           )}
-          <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-muted hover:text-premium">Volver a Sign In</button>
+          <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-muted hover:text-premium">Volver al acceso</button>
         </form>
       ) : (
         <form action={mode === 'signin' ? signInAction : signUpAction} className="space-y-4">
@@ -67,7 +86,7 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
           <input name="email" type="email" required placeholder="Email" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
           <input name="password" type="password" required minLength={8} placeholder="Contraseña" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
 
-          <SubmitButton label={mode === 'signin' ? 'Sign In' : 'Sign Up'} pendingLabel="Procesando..." />
+          <SubmitButton label={mode === 'signin' ? 'Entrar' : 'Crear cuenta'} pendingLabel="Procesando..." />
 
           <button type="button" onClick={() => setMode('forgot')} className="text-sm font-semibold text-muted hover:text-premium">
             ¿Olvidó su contraseña?
@@ -79,13 +98,13 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs font-bold uppercase text-muted">Social login</span>
+        <span className="text-xs font-bold uppercase text-muted">Acceso social</span>
         <div className="h-px flex-1 bg-white/10" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <SocialButton provider="google" label="Google/Gmail" icon={<Mail className="h-4 w-4" />} enabled={googleEnabled} />
-        <SocialButton provider="github" label="GitHub" icon={<GitBranch className="h-4 w-4" />} enabled={githubEnabled} />
+        <SocialButton provider="google" label="Google/Gmail" icon={<Mail className="h-4 w-4" />} enabled={providerStatus.googleEnabled} />
+        <SocialButton provider="github" label="GitHub" icon={<GitBranch className="h-4 w-4" />} enabled={providerStatus.githubEnabled} />
       </div>
 
       <p className="mt-5 text-xs leading-relaxed text-muted">

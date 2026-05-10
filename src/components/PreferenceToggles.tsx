@@ -35,19 +35,21 @@ export function PreferenceToggles({ compact = false }: { compact?: boolean }) {
         })}
       </div>
 
-      <div className="premium-toggle" role="group" aria-label="Selector de idioma">
-        {languages.map((item: AppLanguage) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setLanguage(item)}
-            className={`premium-toggle-option text-[11px] font-bold ${language === item ? 'is-active' : ''}`}
-            aria-pressed={language === item}
-          >
-            {item.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      {languages.length > 1 && (
+        <div className="premium-toggle" role="group" aria-label="Selector de idioma">
+          {languages.map((item: AppLanguage) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setLanguage(item)}
+              className={`premium-toggle-option text-[11px] font-bold ${language === item ? 'is-active' : ''}`}
+              aria-pressed={language === item}
+            >
+              {item.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

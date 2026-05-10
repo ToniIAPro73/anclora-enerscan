@@ -10,23 +10,23 @@ import { COST_LEGAL_DISCLAIMER, FUTURE_PRICE_SOURCE_NOTE, PRICE_TRACEABILITY_NOT
 
 const labels = {
   es: {
-    title: 'Anclora EnergyScan Premium Report',
-    subtitle: 'Prediagnóstico Energético Orientativo',
+    title: 'Informe Premium Anclora EnergyScan',
+    subtitle: 'Prediagnóstico energético orientativo',
     demo: 'Informe demo con datos ficticios',
-    rating: 'Calificación Estimada',
+    rating: 'Calificación estimada',
     confidence: 'Confianza',
     zone: 'Zona Climática',
-    data: 'Datos Declarados',
+    data: 'Datos declarados',
     yearArea: 'Año / Superficie',
     zipcode: 'Código Postal',
     orientation: 'Orientación / Cubierta',
     systems: 'Sistemas',
     envelope: 'Envolvente',
-    findings: 'Resumen de Hallazgos',
+    findings: 'Resumen de hallazgos',
     penalties: 'Penalizaciones principales:',
     strengths: 'Fortalezas principales:',
-    scenarios: 'Escenarios de Mejora',
-    regulation: 'Contexto Normativo',
+    scenarios: 'Escenarios de mejora',
+    regulation: 'Contexto normativo',
     subsidies: 'Ayudas y subvenciones potencialmente relevantes',
     attachments: 'Documentación aportada',
     attachmentsNote: 'Los archivos se registran como soporte documental, pero no han sido analizados automáticamente.',
@@ -34,7 +34,7 @@ const labels = {
     userInfoAnnex: 'Información suministrada por el usuario',
     documentsAnnex: 'Documentos aportados',
     noDocuments: 'No se aportaron documentos adicionales.',
-    documentsCount: 'Cada documento se incluye en una página separada de este anexo.',
+    documentsCount: 'Los PDF aportados se incorporan después de su resumen en su formato original.',
     documentPage: 'Documento aportado',
     fileName: 'Nombre',
     fileType: 'Tipo',
@@ -380,14 +380,6 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const ceeAttachments = attachments.filter(isCeeAttachment);
   const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && !isCeeAttachment(attachment));
   const imagePages = chunkPairs(imageAttachments);
-  const ceePagePreviews = ceeAttachments.flatMap((attachment) =>
-    (attachment.ceePagePreviews || []).map((src, pageIndex) => ({
-      attachment,
-      src,
-      pageIndex,
-      totalPages: attachment.ceePagePreviews?.length || 0,
-    }))
-  );
 
   return (
   <Document>
@@ -476,7 +468,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.scenarios}</Text>
         {data.scenarios.map((s, i) => (
-          <View key={i} style={styles.scenarioBox}>
+          <View key={i} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{s.title}</Text>
             <Text style={styles.text}>Objetivo: {s.objective}</Text>
             {s.description && <Text style={styles.text}>{s.description}</Text>}
@@ -524,7 +516,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumen económico por escenario</Text>
         {data.scenarios.filter((scenario) => scenario.costEstimate).map((scenario) => (
-          <View key={scenario.id} style={styles.scenarioBox}>
+          <View key={scenario.id} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{scenario.title}</Text>
             <Text style={styles.text}>Salto estimado: {scenario.expectedLetterImpact}</Text>
             <Text style={styles.text}>Nivel de intervención: {scenario.costEstimate?.interventionLevel || scenario.complexity || 'Orientativo'}</Text>
@@ -540,7 +532,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Detalle de actuaciones estimadas</Text>
         {data.scenarios.filter((scenario) => scenario.costEstimate).slice(0, 2).map((scenario) => (
-          <View key={`${scenario.id}-cost-lines`} style={{ marginBottom: 8 }}>
+          <View key={`${scenario.id}-cost-lines`} style={{ marginBottom: 8 }} wrap={false}>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>{scenario.title}</Text>
             {scenario.costEstimate!.lines.slice(0, 5).map((line) => (
               <Text key={`${scenario.id}-${line.priceItemCode}`} style={{ ...styles.text, fontSize: 8 }}>
@@ -592,7 +584,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.regulation}</Text>
-            <Text style={styles.subtitle}>{t.subsidies}</Text>
+            <Text style={styles.subtitle}>Marco regulatorio aplicable</Text>
           </View>
         </View>
       </View>
@@ -600,7 +592,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.regulation}</Text>
         {data.regulatoryContext.map((r, i) => (
-          <View key={i} style={{ marginBottom: 10 }}>
+          <View key={i} style={{ marginBottom: 10 }} wrap={false}>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>{r.year} - {r.title} ({r.dateLabel})</Text>
             <Text style={styles.text}>{r.description}</Text>
             <Text style={styles.text}>Impacto para el usuario: {r.impactOnUser}</Text>
@@ -608,11 +600,26 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           </View>
         ))}
       </View>
+    </Page>
+
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header} fixed>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.subsidies}</Text>
+            <Text style={styles.subtitle}>Ayudas, cautelas y categorías profesionales</Text>
+          </View>
+        </View>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.subsidies}</Text>
         {(data.subsidies || []).map((item) => (
-          <View key={item.id} style={styles.scenarioBox}>
+          <View key={item.id} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{item.title}</Text>
             <Text style={styles.text}>Ámbito: {item.scope} | Aplica a: {item.appliesTo.join(', ')}</Text>
             <Text style={styles.text}>{item.description}</Text>
@@ -624,12 +631,11 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         </Text>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.section} wrap={false}>
         <Text style={styles.sectionTitle}>Categorías de partners y proveedores</Text>
         <Text style={styles.text}>Categorías orientativas sugeridas para estudiar las mejoras: {data.providerCategories.join(', ')}.</Text>
         <Text style={styles.text}>Los proveedores o categorías sugeridas son orientativos. Cualquier presupuesto, visita técnica o actuación deberá ser confirmado directamente por profesionales cualificados. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial.</Text>
       </View>
-
     </Page>
 
     <Page size="A4" style={styles.page}>
@@ -668,47 +674,6 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </View>
     </Page>
 
-    {ceeAttachments.length > 0 && (
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View style={styles.brandHeader}>
-            {data.logoDataUri && (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
-              <Image src={data.logoDataUri} style={styles.logo} />
-            )}
-            <View style={styles.headerText}>
-              <Text style={styles.title}>CEE demo aportado</Text>
-              <Text style={styles.subtitle}>Documento aportado por el usuario</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen del documento</Text>
-          {ceeAttachments.map((attachment) => (
-            <View key={attachment.id} style={styles.annexMetaBox}>
-              <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
-              <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type}</Text></View>
-              <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
-              <View style={styles.row}><Text style={styles.colLeft}>Letra recogida</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
-              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || 'Documento demo de ejemplo. Sin validez oficial ni administrativa.'}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.disclaimer}>
-          <Text>Documento demo de ejemplo. Sin validez oficial ni administrativa. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
-        </View>
-      </Page>
-    )}
-
-    {ceePagePreviews.map(({ attachment, src, pageIndex }) => (
-      <Page key={`${attachment.id}-cee-page-${pageIndex}`} size="A4" style={styles.ceeFullPage}>
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
-        <Image src={src} style={styles.ceeFullPageImage} />
-      </Page>
-    ))}
-
     {imagePages.map((pageAttachments, index) => (
       <Page key={`image-page-${index}`} size="A4" style={styles.page}>
         <View style={styles.header}>
@@ -729,6 +694,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             <View
               key={attachment.id}
               style={pageAttachments.length === 1 ? [styles.imageAnnexCard, styles.imageAnnexCardSingle] : styles.imageAnnexCard}
+              wrap={false}
             >
               <Text style={styles.imageCaption}>{attachment.caption || attachment.name}</Text>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
@@ -761,7 +727,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{attachment.caption || attachment.name}</Text>
-          <View style={styles.annexMetaBox}>
+          <View style={styles.annexMetaBox} wrap={false}>
             <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
             <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type || 'application/octet-stream'}</Text></View>
             <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
@@ -781,6 +747,43 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         </View>
       </Page>
     ))}
+
+    {ceeAttachments.length > 0 && (
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>CEE aportado</Text>
+              <Text style={styles.subtitle}>Documento aportado por el usuario</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumen del documento</Text>
+          {ceeAttachments.map((attachment) => (
+            <View key={attachment.id} style={styles.annexMetaBox} wrap={false}>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>Letra recogida</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
+              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || 'Documento PDF aportado por el usuario.'}</Text>
+              <Text style={{ ...styles.text, color: '#008F5A', fontWeight: 'bold', marginTop: 6 }}>
+                Las páginas siguientes reproducen el PDF original aportado, sin rasterizar ni resumir su contenido.
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.disclaimer}>
+          <Text>Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
+        </View>
+      </Page>
+    )}
   </Document>
   );
 };

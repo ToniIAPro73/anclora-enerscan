@@ -81,7 +81,7 @@ async function enrichAttachmentsForPdf(
       if (isPdfAttachment(attachment)) {
         return {
           ...attachment,
-          annexNote: `Documento PDF aportado por el usuario. Se adjunta al final del informe en su formato original.`,
+          annexNote: `Documento PDF aportado por el usuario. Después de este resumen se incorporan todas sus páginas en formato original, sin sustituir el CEE oficial ni validar administrativamente su contenido.`,
         };
       }
     } catch (error) {

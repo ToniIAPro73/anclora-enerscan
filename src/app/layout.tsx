@@ -33,7 +33,7 @@ export default function RootLayout({
               (function () {
                 try {
                   var theme = localStorage.getItem('enerscan-theme') || 'dark';
-                  var language = localStorage.getItem('enerscan-language') || 'es';
+                  var language = 'es';
                   var resolved = theme === 'system' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
                   document.documentElement.dataset.theme = theme;
                   document.documentElement.lang = language;

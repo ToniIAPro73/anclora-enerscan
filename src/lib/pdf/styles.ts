@@ -4,11 +4,11 @@ export const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F6F2EA',
   },
   header: {
-    marginBottom: 30,
-    borderBottom: '2 solid #00DC82',
+    marginBottom: 24,
+    borderBottom: '2 solid #008F5A',
     paddingBottom: 10,
   },
   brandHeader: {
@@ -26,28 +26,28 @@ export const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#0A0A0A',
+    color: '#171512',
     fontWeight: 'bold',
   },
   subtitle: {
     fontSize: 14,
-    color: '#7A7A7A',
+    color: '#645D53',
     marginTop: 5,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
-    color: '#00DC82',
+    color: '#008F5A',
     fontWeight: 'bold',
     marginBottom: 10,
-    borderBottom: '1 solid #eeeeee',
+    borderBottom: '1 solid #D8CEC0',
     paddingBottom: 5,
   },
   text: {
     fontSize: 10,
-    color: '#333333',
+    color: '#2B2721',
     lineHeight: 1.5,
     marginBottom: 5,
   },
@@ -61,21 +61,22 @@ export const styles = StyleSheet.create({
   annexRow: {
     flexDirection: 'row',
     paddingVertical: 5,
-    borderBottom: '1 solid #f1f1f1',
+    borderBottom: '1 solid #E7DED1',
   },
   colLeft: {
     width: '40%',
     fontSize: 10,
-    color: '#7A7A7A',
+    color: '#645D53',
   },
   colRight: {
     width: '60%',
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#0A0A0A',
+    color: '#171512',
   },
   scoreBox: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#EFE8DD',
+    border: '1 solid #D8CEC0',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
@@ -84,26 +85,27 @@ export const styles = StyleSheet.create({
   letter: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#00DC82',
+    color: '#008F5A',
   },
   disclaimer: {
-    marginTop: 30,
+    marginTop: 18,
     padding: 10,
-    backgroundColor: '#fff3cd',
+    backgroundColor: '#F4E7C2',
     fontSize: 8,
-    color: '#856404',
+    color: '#6F4A00',
     fontStyle: 'italic',
   },
   scenarioBox: {
-    border: '1 solid #e0e0e0',
-    padding: 10,
+    border: '1 solid #D8CEC0',
+    padding: 11,
     marginBottom: 10,
     borderRadius: 4,
+    backgroundColor: '#FFFDF8',
   },
   scenarioTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#0A0A0A',
+    color: '#171512',
     marginBottom: 5,
   },
   bullet: {
@@ -119,17 +121,17 @@ export const styles = StyleSheet.create({
     fontSize: 10,
   },
   annexMetaBox: {
-    border: '1 solid #e0e0e0',
-    backgroundColor: '#f8f9fa',
+    border: '1 solid #D8CEC0',
+    backgroundColor: '#FFFDF8',
     padding: 10,
     borderRadius: 4,
   },
   documentFrame: {
     minHeight: 420,
-    border: '1 solid #e0e0e0',
+    border: '1 solid #D8CEC0',
     borderRadius: 4,
     padding: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFDF8',
   },
   attachmentImage: {
     maxWidth: '100%',
@@ -141,11 +143,11 @@ export const styles = StyleSheet.create({
   },
   imageAnnexCard: {
     height: 235,
-    border: '1 solid #e0e0e0',
+    border: '1 solid #D8CEC0',
     borderRadius: 6,
     padding: 10,
     marginBottom: 12,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FFFDF8',
   },
   imageAnnexCardSingle: {
     marginTop: 110,
@@ -153,7 +155,7 @@ export const styles = StyleSheet.create({
   imageCaption: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#0A0A0A',
+    color: '#171512',
     marginBottom: 8,
   },
   annexImage: {
@@ -186,11 +188,11 @@ export const styles = StyleSheet.create({
   imageMeta: {
     marginTop: 7,
     fontSize: 8,
-    color: '#7A7A7A',
+    color: '#645D53',
   },
   preText: {
     fontSize: 9,
-    color: '#333333',
+    color: '#2B2721',
     lineHeight: 1.35,
   }
 });

@@ -26,9 +26,13 @@ describe('attachment validation', () => {
 });
 
 describe('preference normalization', () => {
-  it('persists only supported language and theme values', () => {
-    expect(normalizeLanguage('en')).toBe('en');
+  it('keeps the public app in Spanish until full translations are complete', () => {
+    expect(normalizeLanguage('en')).toBe('es');
+    expect(normalizeLanguage('de')).toBe('es');
     expect(normalizeLanguage('fr')).toBe('es');
+  });
+
+  it('persists only supported theme values', () => {
     expect(normalizeTheme('system')).toBe('system');
     expect(normalizeTheme('sepia')).toBe('dark');
   });
