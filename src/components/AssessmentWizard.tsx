@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import { upload } from '@vercel/blob/client';
 import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText } from 'lucide-react';
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment } from '@/lib/attachments';
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 
@@ -36,12 +37,21 @@ const assessmentSchema = z.object({
 
 type AssessmentFormValues = z.infer<typeof assessmentSchema>;
 
+type UploadedAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  pathname: string;
+  url: string;
+};
+
 export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { dictionary: t, language } = usePreferences();
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AssessmentFormValues>({
@@ -94,28 +104,80 @@ export default function AssessmentWizard() {
     setFiles(nextFiles);
   };
 
+  const parseAssessmentResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    const message = await response.text();
+    return {
+      error: response.ok ? undefined : message || `Error ${response.status} al crear la valoración`,
+    };
+  };
+
+  const uploadAttachments = async (): Promise<UploadedAttachment[]> => {
+    const uploaded: UploadedAttachment[] = [];
+    const batchId = crypto.randomUUID();
+
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const pathname = `assessment-drafts/${batchId}/${index + 1}-${sanitizeFilename(file.name)}`;
+      const blob = await upload(pathname, file, {
+        access: 'private',
+        handleUploadUrl: '/api/blob/upload',
+        contentType: file.type || 'application/octet-stream',
+        multipart: file.size > 4.5 * 1024 * 1024,
+        clientPayload: JSON.stringify({
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+        }),
+        onUploadProgress: ({ percentage }) => {
+          setUploadProgress(Math.round(((index + percentage / 100) / files.length) * 100));
+        },
+      });
+
+      uploaded.push({
+        name: file.name,
+        type: file.type || blob.contentType || 'application/octet-stream',
+        size: file.size,
+        pathname: blob.pathname,
+        url: blob.url,
+      });
+    }
+
+    return uploaded;
+  };
+
   const onSubmit = async (data: AssessmentFormValues) => {
     setIsSubmitting(true);
+    setFileError(null);
+    setUploadProgress(files.length > 0 ? 0 : null);
+
     try {
+      const uploadedAttachments = files.length > 0 ? await uploadAttachments() : [];
       const response = await fetch('/api/assessment', {
         method: 'POST',
-        body: (() => {
-          const formData = new FormData();
-          Object.entries(data).forEach(([key, value]) => formData.append(key, String(value)));
-          files.forEach((file) => formData.append('attachments', file));
-          return formData;
-        })(),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          uploadedAttachments,
+        }),
       });
-      const result = await response.json();
+      const result = await parseAssessmentResponse(response);
       if (result.id) {
         router.push(`/assessment/${result.id}`);
       } else if (result.error) {
         setFileError(result.error);
         setIsSubmitting(false);
+        setUploadProgress(null);
       }
     } catch (error) {
       console.error(error);
+      setFileError(error instanceof Error ? error.message : 'No se pudo completar la valoración');
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -366,6 +428,14 @@ export default function AssessmentWizard() {
                 />
               </label>
               {fileError && <p className="mt-3 text-xs text-[#EF4444]">{fileError}</p>}
+              {uploadProgress !== null && (
+                <div className="mt-3 space-y-1">
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-[#00DC82]" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-muted">Subiendo adjuntos a almacenamiento seguro: {uploadProgress}%</p>
+                </div>
+              )}
               {files.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {files.map((file, index) => (
