@@ -62,7 +62,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     id: attachment.id,
     name: attachment.name,
     type: attachment.type,
-    category: attachment.category as any,
+    category: attachment.category as AssessmentAttachment['category'],
     size: attachment.size,
     path: attachment.path,
     createdAt: attachment.createdAt.toISOString(),

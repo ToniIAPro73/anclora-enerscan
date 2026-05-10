@@ -117,7 +117,7 @@ async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
       const context = canvas.getContext('2d');
       
       await page.render({
-        canvasContext: context as any,
+        canvasContext: context as unknown as CanvasRenderingContext2D,
         viewport,
       }).promise;
       
@@ -198,7 +198,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           id: attachment.id,
           name: attachment.name,
           type: attachment.type,
-          category: attachment.category as any,
+          category: attachment.category as AssessmentAttachment['category'],
           size: attachment.size,
           path: attachment.path,
           createdAt: attachment.createdAt.toISOString(),
