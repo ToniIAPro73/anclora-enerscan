@@ -191,9 +191,14 @@ async function main() {
         assessmentId: asString(row.assessmentId) || '',
         name: asString(row.name) || 'attachment',
         type: asString(row.type) || 'application/octet-stream',
+        category: asString(row.category),
         size: asNumber(row.size) || 0,
         path: await migrateAttachmentPath(row),
         createdAt: asDate(row.createdAt),
+        ocrStatus: asString(row.ocrStatus) || 'skipped',
+        ocrData: row.ocrData as any,
+        ocrProcessedAt: asDate(row.ocrProcessedAt),
+        ocrError: asString(row.ocrError),
       },
     });
   }

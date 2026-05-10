@@ -65,6 +65,11 @@ model AssessmentAttachment {
   size         Int
   path         String
   createdAt    DateTime   @default(now())
+
+  ocrStatus      String    @default("pending") // pending, processing, done, failed, skipped
+  ocrData        Json?
+  ocrProcessedAt DateTime?
+  ocrError       String?
 }
 
 model Provider {

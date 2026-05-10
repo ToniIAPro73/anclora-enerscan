@@ -44,6 +44,17 @@ La base de datos de producción está preparada para Neon Postgres manteniendo P
 
 La autenticación no usa Neon Auth. Se implementa con Auth.js/NextAuth, Prisma Adapter, credenciales propias con hash `scrypt`, recuperación por token y login social con Google/Gmail y GitHub. Las variables OAuth deben configurarse en Vercel (`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`).
 
+### Configuración OAuth
+
+Callback URLs esperadas:
+- **Google Local:** `http://localhost:3000/api/auth/callback/google`
+- **GitHub Local:** `http://localhost:3000/api/auth/callback/github`
+- **Vercel/Production:** `https://<dominio>/api/auth/callback/<provider>`
+
+Aliases compatibles (opcionales):
+- Google: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- GitHub: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+
 Para migrar datos heredados desde SQLite/libSQL a Neon:
 
 ```bash

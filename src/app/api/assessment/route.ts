@@ -114,6 +114,8 @@ async function persistAttachments(assessmentId: string, files: File[]) {
   if (files.length === 0) return [];
   validateAttachmentMetadata(files);
 
+  const ocrStatus = process.env.ENABLE_OCR === 'true' ? 'pending' : 'skipped';
+
   const attachmentData = [];
   for (const file of files) {
     const stored = await saveAssessmentAttachment(assessmentId, file);
@@ -125,6 +127,7 @@ async function persistAttachments(assessmentId: string, files: File[]) {
       category: inferAttachmentCategory(file),
       size: file.size,
       path: stored.path,
+      ocrStatus,
     });
   }
   return attachmentData;
@@ -143,6 +146,8 @@ function validateUploadedAttachments(rawAttachments: unknown[]) {
 }
 
 function persistUploadedAttachmentMetadata(assessmentId: string, uploadedAttachments: UploadedAssessmentAttachment[]) {
+  const ocrStatus = process.env.ENABLE_OCR === 'true' ? 'pending' : 'skipped';
+
   return uploadedAttachments.map((attachment) => ({
     assessmentId,
     name: attachment.name,
@@ -150,6 +155,7 @@ function persistUploadedAttachmentMetadata(assessmentId: string, uploadedAttachm
     category: inferAttachmentCategory(attachment),
     size: attachment.size,
     path: `blob:${attachment.pathname}`,
+    ocrStatus,
   }));
 }
 
