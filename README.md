@@ -52,6 +52,16 @@ SQLITE_DATABASE_URL="file:./dev.db" DATABASE_URL="postgresql://..." BLOB_READ_WR
 
 Si `BLOB_READ_WRITE_TOKEN` está presente, el script sube adjuntos locales existentes a Blob y guarda rutas `blob:...` en Prisma. Si no existe, conserva las rutas locales.
 
+## Estimaciones económicas orientativas
+
+El PDF Premium y la pantalla de resultados incluyen una primera estimación económica por escenario de mejora. El motor usa un catálogo interno versionado de partidas, fuentes y medidas energéticas, preparado para futuras ingestas BC3/FIEBDC, BEDEC, CYPE, PREOC/PREMETI, IVE o BCCA. Los importes se muestran siempre como rango orientativo y no constituyen presupuesto cerrado, oferta vinculante, medición profesional ni CEE oficial.
+
+Para sembrar el catálogo en Neon:
+
+```bash
+DATABASE_URL="postgresql://..." npm run db:seed:prices
+```
+
 ## Campos del Wizard
 El flujo captura objetivo, tipo de inmueble, año, superficie, código postal, orientación, tipo de cubierta, ventanas, aislamiento de fachada y cubierta, ventilación, calefacción, refrigeración, ACS, renovables, presupuesto orientativo, horizonte temporal y aceptación del carácter orientativo.
 

@@ -5,6 +5,8 @@ import { AssessmentAttachment, PremiumReportData } from '../domain/energy-assess
 import { getLegalDisclaimer } from '../i18n';
 import { formatFileSize } from '../attachments';
 import { getPublicAssessmentRef } from '../stateless-assessment';
+import { formatEuroRange, formatUnitPrice } from '../costs/format';
+import { COST_LEGAL_DISCLAIMER, FUTURE_PRICE_SOURCE_NOTE, PRICE_TRACEABILITY_NOTE } from '../costs/cost-disclaimers';
 
 const labels = {
   es: {
@@ -480,6 +482,14 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             {s.description && <Text style={styles.text}>{s.description}</Text>}
             <Text style={styles.text}>Impacto esperado: {s.expectedLetterImpact}</Text>
             <Text style={styles.text}>Inversión: {s.estimatedCostRange} | Ahorro: {s.estimatedSavingsRange}</Text>
+            {s.costEstimate && (
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ ...styles.text, fontWeight: 'bold', color: '#008F5A' }}>
+                  Rango orientativo: {formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal)} · Confianza: {s.costEstimate.confidence}
+                </Text>
+                <Text style={{ ...styles.text, fontSize: 8 }}>{s.costEstimate.sourceSummary}</Text>
+              </View>
+            )}
             {s.rationale && <Text style={styles.text}>Racional: {s.rationale}</Text>}
             <View style={{ marginTop: 5 }}>
               {s.measures.map((m, j) => (
@@ -496,6 +506,82 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         ))}
       </View>
     </Page>
+
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header} fixed>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Estimación económica orientativa</Text>
+            <Text style={styles.subtitle}>Rangos por escenario y trazabilidad de fuentes</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Resumen económico por escenario</Text>
+        {data.scenarios.filter((scenario) => scenario.costEstimate).map((scenario) => (
+          <View key={scenario.id} style={styles.scenarioBox}>
+            <Text style={styles.scenarioTitle}>{scenario.title}</Text>
+            <Text style={styles.text}>Salto estimado: {scenario.expectedLetterImpact}</Text>
+            <Text style={styles.text}>Nivel de intervención: {scenario.costEstimate?.interventionLevel || scenario.complexity || 'Orientativo'}</Text>
+            <Text style={{ ...styles.text, fontWeight: 'bold' }}>
+              Conservador / recomendado / premium: {formatEuroRange(scenario.costEstimate!.minTotal, scenario.costEstimate!.maxTotal, scenario.costEstimate!.midTotal)}
+            </Text>
+            <Text style={styles.text}>Confianza: {scenario.costEstimate!.confidence}</Text>
+            <Text style={{ ...styles.text, fontSize: 8 }}>{scenario.costEstimate!.sourceSummary}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Detalle de actuaciones estimadas</Text>
+        {data.scenarios.filter((scenario) => scenario.costEstimate).slice(0, 2).map((scenario) => (
+          <View key={`${scenario.id}-cost-lines`} style={{ marginBottom: 8 }}>
+            <Text style={{ ...styles.text, fontWeight: 'bold' }}>{scenario.title}</Text>
+            {scenario.costEstimate!.lines.slice(0, 5).map((line) => (
+              <Text key={`${scenario.id}-${line.priceItemCode}`} style={{ ...styles.text, fontSize: 8 }}>
+                {line.title} · {line.quantity} {line.unit} · {formatUnitPrice(line.minUnitPrice, line.unit)} - {formatUnitPrice(line.maxUnitPrice, line.unit)} · {formatEuroRange(line.minSubtotal, line.maxSubtotal, line.midSubtotal)} · {line.confidence}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.disclaimer}>
+        <Text>{PRICE_TRACEABILITY_NOTE}</Text>
+        <Text>{FUTURE_PRICE_SOURCE_NOTE}</Text>
+        <Text>{COST_LEGAL_DISCLAIMER}</Text>
+      </View>
+    </Page>
+
+    {data.scenarios.some((scenario) => scenario.costEstimate?.heatPumpTechnicalNote) && (
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.brandHeader}>
+            {data.logoDataUri && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API.
+              <Image src={data.logoDataUri} style={styles.logo} />
+            )}
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Bomba de calor y aerotermia</Text>
+              <Text style={styles.subtitle}>Dependencias técnicas y cautelas</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Nota técnica</Text>
+          <Text style={styles.text}>{data.scenarios.find((scenario) => scenario.costEstimate?.heatPumpTechnicalNote)?.costEstimate?.heatPumpTechnicalNote}</Text>
+          <Text style={styles.text}>Antes de presupuestar debe revisarse aislamiento, espacio para equipos, emisores, instalación eléctrica, acústica, normativa local y consumos reales.</Text>
+        </View>
+        <View style={styles.disclaimer}>
+          <Text>{COST_LEGAL_DISCLAIMER}</Text>
+        </View>
+      </Page>
+    )}
 
     <Page size="A4" style={styles.page}>
       <View style={styles.header} fixed>
