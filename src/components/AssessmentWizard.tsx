@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
@@ -45,12 +46,37 @@ type UploadedAttachment = {
   url: string;
 };
 
+const DIRECT_UPLOAD_FALLBACK_LIMIT = 4 * 1024 * 1024;
+
+const fieldSteps: Partial<Record<keyof AssessmentFormValues, number>> = {
+  objective: 1,
+  propertyType: 2,
+  year: 2,
+  area: 2,
+  zipcode: 2,
+  orientation: 2,
+  roofType: 2,
+  windows: 3,
+  facadeInsulation: 3,
+  roofInsulation: 3,
+  ventilation: 3,
+  heating: 4,
+  cooling: 4,
+  waterHeating: 4,
+  renewables: 4,
+  budgetRange: 5,
+  timelineHorizon: 5,
+  targetLetter: 5,
+  acceptTerms: 5,
+};
+
 export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { dictionary: t, language } = usePreferences();
 
@@ -150,26 +176,65 @@ export default function AssessmentWizard() {
     return uploaded;
   };
 
+  const submitAssessmentJson = async (data: AssessmentFormValues, uploadedAttachments: UploadedAttachment[]) => {
+    return fetch('/api/assessment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        uploadedAttachments,
+      }),
+    });
+  };
+
+  const submitAssessmentMultipart = async (data: AssessmentFormValues) => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+    files.forEach((file) => formData.append('attachments', file));
+
+    return fetch('/api/assessment', {
+      method: 'POST',
+      body: formData,
+    });
+  };
+
+  const canUseDirectUploadFallback = () =>
+    files.reduce((total, file) => total + file.size, 0) <= DIRECT_UPLOAD_FALLBACK_LIMIT;
+
   const onSubmit = async (data: AssessmentFormValues) => {
     setIsSubmitting(true);
     setFileError(null);
+    setFormError(null);
     setUploadProgress(files.length > 0 ? 0 : null);
 
     try {
-      const uploadedAttachments = files.length > 0 ? await uploadAttachments() : [];
-      const response = await fetch('/api/assessment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          uploadedAttachments,
-        }),
-      });
+      let response: Response;
+      if (files.length === 0) {
+        response = await submitAssessmentJson(data, []);
+      } else {
+        try {
+          const uploadedAttachments = await uploadAttachments();
+          response = await submitAssessmentJson(data, uploadedAttachments);
+        } catch (uploadError) {
+          if (!canUseDirectUploadFallback()) throw uploadError;
+          setUploadProgress(null);
+          response = await submitAssessmentMultipart(data);
+        }
+      }
+
       const result = await parseAssessmentResponse(response);
       if (result.id) {
         router.push(`/assessment/${result.id}`);
       } else if (result.error) {
         setFileError(result.error);
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      } else {
+        setFileError('No se pudo completar la valoración. Inténtalo de nuevo.');
         setIsSubmitting(false);
         setUploadProgress(null);
       }
@@ -179,6 +244,19 @@ export default function AssessmentWizard() {
       setIsSubmitting(false);
       setUploadProgress(null);
     }
+  };
+
+  const onInvalid = (validationErrors: FieldErrors<AssessmentFormValues>) => {
+    const firstField = Object.keys(validationErrors)[0] as keyof AssessmentFormValues | undefined;
+    if (firstField && fieldSteps[firstField]) {
+      setStep(fieldSteps[firstField]);
+    }
+    const firstError = firstField ? validationErrors[firstField] : undefined;
+    setFormError(
+      typeof firstError?.message === 'string'
+        ? firstError.message
+        : 'Revisa los campos obligatorios antes de obtener el resultado.'
+    );
   };
 
   return (
@@ -194,7 +272,13 @@ export default function AssessmentWizard() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {formError && (
+        <div className="mb-6 rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 p-4 text-sm text-[#EF4444]">
+          {formError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
         {/* STEP 1: OBJECTIVE */}
         {step === 1 && (
           <div className="space-y-6">
