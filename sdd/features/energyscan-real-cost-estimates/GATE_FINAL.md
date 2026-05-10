@@ -1,0 +1,26 @@
+# GATE FINAL — EnergyScan Real Cost Estimates
+
+- [x] Rama creada desde main.
+- [x] Estado inicial del repo documentado.
+- [x] SDD creado.
+- [x] Prisma schema ampliado con catálogo de precios y estimaciones.
+- [x] Migración creada o bloqueo documentado.
+- [x] Seed de fuentes/precios/medidas creado e idempotente.
+- [x] Motor de cantidades implementado.
+- [x] Motor de costes por rango implementado.
+- [x] Matriz de escenarios por tipología/salto energético creada.
+- [x] Integración con simulator realizada sin romper escenarios actuales.
+- [x] Resultados UI muestran costes orientativos con confianza.
+- [x] PDF Premium incluye resumen económico, detalle de actuaciones y trazabilidad.
+- [x] Nota de referencias reales/mercado añadida al PDF.
+- [x] Bomba de calor/aerotermia enriquecida en escenarios y PDF.
+- [x] Roadmap ETL BC3/FIEBDC documentado.
+- [x] No se integró bc3reader en el core.
+- [x] Demo assessment alineado con costes y escenarios.
+- [x] Tests de coste/cantidad/matriz añadidos.
+- [x] npm test ejecutado.
+- [x] npm run lint ejecutado.
+- [x] npm run build ejecutado.
+- [x] npx prisma validate ejecutado.
+- [x] npx prisma generate ejecutado.
+- [x] Riesgos pendientes documentados.

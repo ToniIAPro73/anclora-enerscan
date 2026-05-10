@@ -1,4 +1,7 @@
 import { ImprovementScenario, PropertyDataV2, ScoreResultV2 } from "./domain/energy-assessment";
+import { calculateScenarioCostEstimate } from "./costs/cost-engine";
+import { mapPropertyType } from "./costs/quantity-resolver";
+import { measuresForSimulatorScenario } from "./costs/scenario-matrix";
 
 function estimateLetterImpact(result: ScoreResultV2, delta: number) {
   const projected = Math.max(0, Math.min(100, result.score - delta));
@@ -162,5 +165,33 @@ export function generateScenarios(propertyData: PropertyDataV2, result: ScoreRes
     providerCategories: ["aislamiento", "ventanas", "climatización", "fotovoltaica", "certificador", "reforma"],
   });
 
-  return scenarios;
+  return scenarios.map((scenario) => {
+    try {
+      const propertyType = mapPropertyType(propertyData.propertyType);
+      const template = measuresForSimulatorScenario({
+        simulatorScenarioId: scenario.id,
+        propertyType,
+        currentLetter: result.estimatedLetter,
+        targetLetter: propertyData.targetLetter,
+        budgetRange: propertyData.budgetRange,
+      });
+      if (!template) return scenario;
+      const costEstimate = calculateScenarioCostEstimate({
+        scenarioId: scenario.id,
+        scenarioTitle: scenario.title,
+        propertyData,
+        propertyType,
+        measureCodes: template.measureCodes,
+        quality: template.budgetLevel === 'PREMIUM' ? 'PREMIUM' : template.budgetLevel === 'LOW' ? 'BASIC' : 'MEDIUM',
+        complexity: scenario.complexity === 'high' ? 'HIGH' : scenario.complexity === 'low' ? 'LOW' : 'MEDIUM',
+        region: propertyData.zipcode,
+        interventionLevel: template.interventionLevel,
+        letterGainTarget: template.letterGainMax,
+      });
+      return costEstimate ? { ...scenario, costEstimate } : scenario;
+    } catch (error) {
+      console.error('Cost estimate generation failed:', error);
+      return scenario;
+    }
+  });
 }

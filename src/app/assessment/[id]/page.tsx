@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
 import { getRelevantSubsidies, SUBSIDY_DISCLAIMER } from '@/lib/subsidies';
+import { formatEuroRange } from '@/lib/costs/format';
+import { COST_ESTIMATE_DISCLAIMER } from '@/lib/costs/cost-disclaimers';
 import { AlertTriangle, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
 import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
@@ -309,6 +311,19 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   </ul>
                   <div className="pt-4 border-t border-[#262626] space-y-2">
                     <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Inversión:</span><span className="font-bold text-right">{s.estimatedCostRange}</span></div>
+                    {s.costEstimate && (
+                      <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-[#7A7A7A]">Rango orientativo:</span>
+                          <span className="font-bold text-[#00DC82] text-right">{formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal)}</span>
+                        </div>
+                        <div className="mt-1 flex justify-between gap-3">
+                          <span className="text-[#7A7A7A]">Confianza:</span>
+                          <span className="font-bold text-[#FFB020]">{s.costEstimate.confidence}</span>
+                        </div>
+                        <p className="mt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.costEstimate.sourceSummary}</p>
+                      </div>
+                    )}
                     <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Ahorro:</span><span className="font-bold text-[#00DC82] text-right">{s.estimatedSavingsRange}</span></div>
                     <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Salto:</span><span className="font-bold text-[#FFB020]">{s.expectedLetterImpact}</span></div>
                     {s.rationale && <p className="pt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.rationale}</p>}
@@ -316,6 +331,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
               ))}
             </div>
+            <p className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-[#7A7A7A]">
+              {COST_ESTIMATE_DISCLAIMER} Factores que pueden modificar el precio: superficie real de huecos, estado inicial, calidades, accesibilidad, ubicación, permisos, comunidad de propietarios, disponibilidad de materiales y visita técnica.
+            </p>
           </section>
 
           {/* SUBSIDIES */}

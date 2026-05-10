@@ -1,3 +1,5 @@
+import type { ScenarioCostEstimate } from '../costs/types';
+
 export type EnergyLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type ConfidenceLevel = "Alta" | "Media" | "Baja";
 
@@ -159,6 +161,7 @@ export interface ImprovementScenario {
   warnings: string[];
   disclaimers?: string[];
   providerCategories: string[];
+  costEstimate?: ScenarioCostEstimate;
 }
 
 export type ScoreRuleCategory = "envelope" | "systems" | "renewables" | "climate" | "typology" | "data_quality";

@@ -49,9 +49,10 @@ model Assessment {
   explanation     String?
 
   // Status
-  isPremium   Boolean                @default(false)
-  attachments AssessmentAttachment[]
-  leads       Lead[]
+  isPremium        Boolean                @default(false)
+  attachments      AssessmentAttachment[]
+  leads            Lead[]
+  costEstimateRuns EstimateRun[]
 }
 
 model AssessmentAttachment {
@@ -60,7 +61,7 @@ model AssessmentAttachment {
   assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   name         String
   type         String
-  category     String?    // CEE, INTERIOR, EXTERIOR, OTHER
+  category     String? // CEE, INTERIOR, EXTERIOR, OTHER
   size         Int
   path         String
   createdAt    DateTime   @default(now())
@@ -227,4 +228,136 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PriceSource {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name         String
+  providerType String
+  sourceKind   String
+  versionLabel String?
+  region       String?
+  url          String?
+  licenseNote  String?
+  reliability  String
+  capturedAt   DateTime?
+  validFrom    DateTime?
+  validTo      DateTime?
+  notes        String?
+
+  items PriceItem[]
+}
+
+model PriceItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guid     String      @unique
+  sourceId String
+  source   PriceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  code         String
+  externalCode String?
+  title        String
+  description  String?
+  unit         String
+  minUnitPrice Float
+  midUnitPrice Float?
+  maxUnitPrice Float
+  currency     String  @default("EUR")
+  region       String?
+  category     String
+  applicableTo String
+  tags         String
+  confidence   String
+  isActive     Boolean @default(true)
+
+  mappings MeasurePriceMap[]
+}
+
+model EnergyMeasure {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guid                 String  @unique
+  code                 String  @unique
+  title                String
+  description          String?
+  category             String
+  impactArea           String
+  defaultPriority      String
+  complexity           String
+  typicalLetterGainMin Int?
+  typicalLetterGainMax Int?
+  isActive             Boolean @default(true)
+
+  priceMappings MeasurePriceMap[]
+}
+
+model MeasurePriceMap {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  measureId       String
+  priceItemId     String
+  quantityFormula String
+  defaultFactor   Float   @default(1.0)
+  minFactor       Float?
+  maxFactor       Float?
+  notes           String?
+
+  measure   EnergyMeasure @relation(fields: [measureId], references: [id], onDelete: Cascade)
+  priceItem PriceItem     @relation(fields: [priceItemId], references: [id], onDelete: Cascade)
+}
+
+model EstimateRun {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  assessmentId String?
+  assessment   Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  scenarioId       String?
+  scenarioTitle    String?
+  propertyType     String?
+  profile          String?
+  letterGainTarget Int?
+
+  currency      String  @default("EUR")
+  minTotal      Float
+  midTotal      Float?
+  maxTotal      Float
+  confidence    String
+  sourceSummary String?
+  assumptions   String
+  disclaimer    String
+
+  lines EstimateLine[]
+}
+
+model EstimateLine {
+  id            String      @id @default(cuid())
+  estimateRunId String
+  estimateRun   EstimateRun @relation(fields: [estimateRunId], references: [id], onDelete: Cascade)
+
+  measureCode   String
+  priceItemCode String
+  title         String
+  unit          String
+  quantity      Float
+  minUnitPrice  Float
+  midUnitPrice  Float?
+  maxUnitPrice  Float
+  minSubtotal   Float
+  midSubtotal   Float?
+  maxSubtotal   Float
+  sourceLabel   String?
+  confidence    String
+  assumptions   String?
 }

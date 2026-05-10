@@ -10,6 +10,7 @@
     "test": "jest",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed:prices": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed-price-catalog.ts",
     "migrate:neon": "ts-node scripts/migrate-sqlite-to-neon.ts",
     "postinstall": "prisma generate"
   },
