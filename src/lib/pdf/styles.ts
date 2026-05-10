@@ -173,6 +173,16 @@ export const styles = StyleSheet.create({
     height: 610,
     objectFit: 'contain',
   },
+  ceeFullPage: {
+    padding: 0,
+    margin: 0,
+    backgroundColor: '#ffffff',
+  },
+  ceeFullPageImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+  },
   imageMeta: {
     marginTop: 7,
     fontSize: 8,
