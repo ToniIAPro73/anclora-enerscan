@@ -12,7 +12,7 @@ export function parseCeeText(text: string): CeeData {
                              cleanText.match(/Calificación energética del edificio en consumo\s+([A-G])/i) ||
                              cleanText.match(/([A-G])\s+Consumo de energía/i);
   if (energyLetterMatch) {
-    data.energyLetter = (energyLetterMatch[2] || energyLetterMatch[1]).toUpperCase() as any;
+    data.energyLetter = (energyLetterMatch[2] || energyLetterMatch[1]).toUpperCase() as CeeData['energyLetter'];
     rawMatches.energyLetter = energyLetterMatch[0];
   }
 
@@ -21,7 +21,7 @@ export function parseCeeText(text: string): CeeData {
                                cleanText.match(/Calificación energética del edificio en emisiones\s+([A-G])/i) ||
                                cleanText.match(/([A-G])\s+Emisiones/i);
   if (emissionsLetterMatch) {
-    data.emissionsLetter = (emissionsLetterMatch[2] || emissionsLetterMatch[1]).toUpperCase() as any;
+    data.emissionsLetter = (emissionsLetterMatch[2] || emissionsLetterMatch[1]).toUpperCase() as CeeData['emissionsLetter'];
     rawMatches.emissionsLetter = emissionsLetterMatch[0];
   }
 

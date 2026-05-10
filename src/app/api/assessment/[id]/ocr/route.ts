@@ -4,6 +4,7 @@ import { processAttachmentOcr } from '@/lib/ocr';
 import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { Prisma } from '@prisma/client';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -43,7 +44,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const body = await req.json().catch(() => ({}));
     const { attachmentId } = body;
 
-    const whereClause: any = { assessmentId: params.id };
+    const whereClause: Prisma.AssessmentAttachmentWhereInput = { assessmentId: params.id };
     if (attachmentId) {
       whereClause.id = attachmentId;
     } else {
@@ -96,7 +97,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           where: { id: attachment.id },
           data: {
             ocrStatus: ocrResult.status,
-            ocrData: ocrResult as any,
+            ocrData: ocrResult as unknown as Prisma.InputJsonValue,
             ocrProcessedAt: new Date(ocrResult.processedAt),
             ocrError: ocrResult.error || null,
           },

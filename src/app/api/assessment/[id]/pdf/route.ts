@@ -173,10 +173,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       const rawScenarios = generateScenarios(propertyData, scoreResult);
       const scenarios = rawScenarios.map(s => ({
         ...s,
-        costEstimate: getScenarioCostEstimate(s.id, propertyData)
+        costEstimate: getScenarioCostEstimate(s.id, propertyData) || undefined
       }));
 
-      rawAttachments = assessment.attachments;
+      rawAttachments = assessment.attachments.map(att => ({
+        id: att.id,
+        name: att.name,
+        type: att.type,
+        category: att.category as AssessmentAttachment['category'],
+        size: att.size,
+        path: att.path,
+        createdAt: att.createdAt.toISOString(),
+      }));
 
       reportData = {
         id: assessment.id,
@@ -187,15 +195,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         regulatoryContext: REGULATORY_TIMELINE,
         subsidies: getRelevantSubsidies(propertyData),
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
-        attachments: rawAttachments.map((attachment) => ({
-          id: attachment.id,
-          name: attachment.name,
-          type: attachment.type,
-          category: (attachment.category || (attachment.type === 'application/pdf' ? 'CEE' : undefined)) as AssessmentAttachment['category'],
-          size: attachment.size,
-          path: attachment.path,
-          createdAt: attachment.createdAt.toISOString(),
-        })),
+        attachments: rawAttachments,
         language,
         isDemo: assessment.isDemo,
       };
@@ -209,6 +209,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     
     // Convert stream to Buffer
     const chunks: Uint8Array[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for await (const chunk of stream as any) {
       chunks.push(chunk);
     }
@@ -236,7 +237,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     const reportRef = reportData.publicRef || getPublicAssessmentRef(params.id);
 
-    return new NextResponse(finalPdfBytes, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new NextResponse(finalPdfBytes as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="enerscan-informe-${reportRef}.pdf"`

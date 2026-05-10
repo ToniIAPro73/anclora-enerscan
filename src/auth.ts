@@ -53,6 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ].filter(Boolean) as any[],
   callbacks: {
     jwt({ token, user }) {

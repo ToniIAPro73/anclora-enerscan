@@ -17,7 +17,7 @@ export async function extractTextFromImage(imageBytes: Buffer): Promise<ImageOcr
 
     // 2. OCR with Tesseract
     const worker = await createWorker('spa+eng');
-    const { data: { text, confidence } } = await worker.recognize(processedImage);
+    const { data: { text } } = await worker.recognize(processedImage);
     await worker.terminate();
 
     data.detectedText = text;
