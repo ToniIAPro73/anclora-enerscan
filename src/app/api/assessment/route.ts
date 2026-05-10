@@ -75,10 +75,22 @@ async function persistAttachments(assessmentId: string, files: File[]) {
   const attachmentData = [];
   for (const file of files) {
     const stored = await saveAssessmentAttachment(assessmentId, file);
+    
+    // Categorización básica para MVP
+    let category = 'OTHER';
+    if (file.type === 'application/pdf') category = 'CEE';
+    else if (file.type.startsWith('image/')) {
+      const lowerName = file.name.toLowerCase();
+      if (lowerName.includes('ext')) category = 'EXTERIOR';
+      else if (lowerName.includes('int')) category = 'INTERIOR';
+      else category = 'EXTERIOR'; // Default for images
+    }
+
     attachmentData.push({
       assessmentId,
       name: file.name,
       type: file.type || 'application/octet-stream',
+      category,
       size: file.size,
       path: stored.path,
     });

@@ -60,6 +60,7 @@ model AssessmentAttachment {
   assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   name         String
   type         String
+  category     String?    // CEE, INTERIOR, EXTERIOR, OTHER
   size         Int
   path         String
   createdAt    DateTime   @default(now())

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import path from 'path';
-import os from 'os';
-import { promisify } from 'util';
-import { execFile } from 'child_process';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
@@ -16,9 +13,8 @@ import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAsse
 import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import React from 'react';
 
+// Forzar dinamismo para evitar problemas de pre-renderizado con DB y librerías nativas
 export const dynamic = 'force-dynamic';
-
-const execFileAsync = promisify(execFile);
 
 let cachedLogoDataUri: string | undefined;
 
@@ -75,9 +71,7 @@ async function enrichAttachmentsForPdf(
       }
 
       if (attachment.type === 'application/pdf' && attachment.category === 'CEE') {
-        const ceePagePreviews = isBlobAttachmentPath(attachment.path)
-          ? await renderPdfBytesToDataUris(file)
-          : await renderPdfPagesToDataUris(attachmentPath);
+        const ceePagePreviews = await renderPdfBytesToDataUris(file);
         return {
           ...attachment,
           ceePagePreviews,
@@ -100,39 +94,41 @@ async function enrichAttachmentsForPdf(
 }
 
 async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'energyscan-cee-blob-'));
-  const pdfPath = path.join(tempDir, 'source.pdf');
-
   try {
-    await writeFile(pdfPath, pdfBytes);
-    return await renderPdfPagesToDataUris(pdfPath);
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
-  }
-}
+    // Importación dinámica para evitar problemas con librerías nativas en el arranque
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const { createCanvas } = await import('@napi-rs/canvas');
 
-async function renderPdfPagesToDataUris(pdfPath: string): Promise<string[]> {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'energyscan-cee-'));
-  const outputPrefix = path.join(tempDir, 'page');
-
-  try {
-    await execFileAsync('pdftoppm', ['-png', '-r', '120', pdfPath, outputPrefix], {
-      maxBuffer: 1024 * 1024 * 20,
+    const loadingTask = getDocument({ 
+      data: new Uint8Array(pdfBytes),
+      useWorkerFetch: false,
+      isEvalSupported: false,
     });
 
-    const files = (await readdir(tempDir))
-      .filter((file) => file.endsWith('.png'))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const pdf = await loadingTask.promise;
+    const numPages = Math.min(pdf.numPages, 10); // Limitar a 10 páginas para evitar timeouts en Serverless
+    const dataUris: string[] = [];
 
-    return Promise.all(files.map(async (file) => {
-      const page = await readFile(path.join(tempDir, file));
-      return `data:image/png;base64,${page.toString('base64')}`;
-    }));
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 }); // ~144 DPI
+      
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext('2d');
+      
+      await page.render({
+        canvasContext: context as any,
+        viewport,
+      }).promise;
+      
+      const pngBuffer = await canvas.encode('png');
+      dataUris.push(`data:image/png;base64,${pngBuffer.toString('base64')}`);
+    }
+    
+    return dataUris;
   } catch (error) {
-    console.error('Could not render CEE PDF pages for annex', error);
+    console.error('PDF to Image conversion failed:', error);
     return [];
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
   }
 }
 
@@ -202,6 +198,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           id: attachment.id,
           name: attachment.name,
           type: attachment.type,
+          category: attachment.category as any,
           size: attachment.size,
           path: attachment.path,
           createdAt: attachment.createdAt.toISOString(),
