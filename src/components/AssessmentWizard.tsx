@@ -82,7 +82,7 @@ export default function AssessmentWizard() {
         break;
       }
       if (file.size > MAX_ATTACHMENT_SIZE) {
-        setFileError(`${file.name} supera el límite de 8 MB.`);
+        setFileError(`${file.name} supera el límite de ${formatFileSize(MAX_ATTACHMENT_SIZE)}.`);
         continue;
       }
       if (!isAllowedAttachment(file)) {
@@ -356,7 +356,7 @@ export default function AssessmentWizard() {
               <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
                 <UploadCloud className="h-8 w-8 text-[#00DC82]" />
                 <span className="font-heading text-sm font-bold text-premium">Adjunta fotos, PDF, DOCX o Markdown</span>
-                <span className="text-xs text-muted">Arrastra archivos o selecciona hasta {MAX_ATTACHMENTS}. Máximo 8 MB por archivo.</span>
+                <span className="text-xs text-muted">Arrastra archivos o selecciona hasta {MAX_ATTACHMENTS}. Máximo {formatFileSize(MAX_ATTACHMENT_SIZE)} por archivo.</span>
                 <input
                   type="file"
                   multiple

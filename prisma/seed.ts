@@ -1,8 +1,13 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
-const adapter = new PrismaLibSql({ url: 'file:./dev.db' })
-const prisma = new PrismaClient({ adapter })
+const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db'
+if (!databaseUrl.startsWith('postgres')) {
+  throw new Error('Seed now targets Neon/PostgreSQL. Set DATABASE_URL to a Postgres connection string before running it.')
+}
+
+const prisma = new PrismaClient({ adapter: new PrismaPg(new Pool({ connectionString: databaseUrl })) })
 
 async function main() {
   console.log('Seeding partners and providers...')

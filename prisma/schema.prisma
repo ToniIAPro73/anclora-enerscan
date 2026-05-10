@@ -1,41 +1,42 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Assessment {
-  id              String   @id @default(cuid())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Objective
-  objective       String?  // "know", "target", "sell"
+  objective String? // "know", "target", "sell"
 
   // Property Data
-  propertyType    String?
-  orientation     String?
-  roofType        String?
-  year            Int
-  area            Float
-  zipcode         String
+  propertyType String?
+  orientation  String?
+  roofType     String?
+  year         Int
+  area         Float
+  zipcode      String
 
   // Systems
-  heating         String?
-  cooling         String?
-  waterHeating    String?
-  ventilation     String?
-  windows         String?
-  renewables      String?
+  heating          String?
+  cooling          String?
+  waterHeating     String?
+  ventilation      String?
+  windows          String?
+  renewables       String?
   facadeInsulation String?
   roofInsulation   String?
   budgetRange      String?
   timelineHorizon  String?
   targetLetter     String?
-  isDemo           Boolean  @default(false)
+  isDemo           Boolean @default(false)
 
   // Scoring Results
   score           Float?
@@ -46,117 +47,184 @@ model Assessment {
   strengths       String? // JSON string
   missingData     String? // JSON string
   explanation     String?
-  
+
   // Status
-  isPremium       Boolean  @default(false)
-  attachments     AssessmentAttachment[]
-  leads           Lead[]
+  isPremium   Boolean                @default(false)
+  attachments AssessmentAttachment[]
+  leads       Lead[]
 }
 
 model AssessmentAttachment {
-  id              String     @id @default(cuid())
-  assessmentId    String
-  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  name            String
-  type            String
-  size            Int
-  path            String
-  createdAt       DateTime   @default(now())
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  name         String
+  type         String
+  category     String?    // CEE, INTERIOR, EXTERIOR, OTHER
+  size         Int
+  path         String
+  createdAt    DateTime   @default(now())
 }
 
 model Provider {
-  id                 String   @id @default(cuid())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  name               String
-  legalName          String?
-  taxId              String?
-  contactName        String?
-  email              String?
-  phone              String?
-  website            String?
+  name        String
+  legalName   String?
+  taxId       String?
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
 
-  categories         String   // JSON string array
-  zones              String   // JSON string array
-  certifications     String?  // JSON string array
+  categories     String // JSON string array
+  zones          String // JSON string array
+  certifications String? // JSON string array
 
-  status             String   @default("PENDING") // PENDING, VERIFIED, PREFERRED, SUSPENDED, EXCLUSIVE
-  verified           Boolean  @default(false)
-  rating             Float    @default(4.5)
-  slaHours           Int?
+  status   String  @default("PENDING") // PENDING, VERIFIED, PREFERRED, SUSPENDED, EXCLUSIVE
+  verified Boolean @default(false)
+  rating   Float   @default(4.5)
+  slaHours Int?
 
-  commissionType     String?  // NONE, LEAD_FEE, SUCCESS_FEE, SUBSCRIPTION, HYBRID
-  commissionRate     Float?
-  leadFeeCents       Int?
-  monthlyFeeCents    Int?
-  attributionMonths  Int      @default(12)
+  commissionType    String? // NONE, LEAD_FEE, SUCCESS_FEE, SUBSCRIPTION, HYBRID
+  commissionRate    Float?
+  leadFeeCents      Int?
+  monthlyFeeCents   Int?
+  attributionMonths Int     @default(12)
 
-  notes              String?
-  source             String?  // manual, partner, inbound, internal
+  notes  String?
+  source String? // manual, partner, inbound, internal
 
-  partnerId          String?
-  partner            Partner? @relation(fields: [partnerId], references: [id])
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
 
-  leads              Lead[]
+  leads Lead[]
 }
 
 model Partner {
-  id                    String   @id @default(cuid())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  name                  String
-  type                  String   @default("REAL_ESTATE") // REAL_ESTATE, PROVIDER_REFERRER, AGENCY, CONSULTANT, INTERNAL
-  company               String?
-  email                 String?
-  phone                 String?
-  website               String?
+  name    String
+  type    String  @default("REAL_ESTATE") // REAL_ESTATE, PROVIDER_REFERRER, AGENCY, CONSULTANT, INTERNAL
+  company String?
+  email   String?
+  phone   String?
+  website String?
 
-  status                String   @default("ACTIVE") // ACTIVE, PAUSED, SUSPENDED
-  attributionMonths     Int      @default(12)
+  status            String @default("ACTIVE") // ACTIVE, PAUSED, SUSPENDED
+  attributionMonths Int    @default(12)
 
-  defaultCommissionRate Float?   // percentage over net revenue, e.g. 25
+  defaultCommissionRate Float? // percentage over net revenue, e.g. 25
   notes                 String?
 
-  providers             Provider[]
-  leads                 Lead[]
+  providers Provider[]
+  leads     Lead[]
 }
 
 model Lead {
-  id                    String   @id @default(cuid())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  assessmentId          String?
-  assessment            Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  assessmentId String?
+  assessment   Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
 
-  providerId            String?
-  provider              Provider? @relation(fields: [providerId], references: [id])
+  providerId String?
+  provider   Provider? @relation(fields: [providerId], references: [id])
 
-  partnerId             String?
-  partner               Partner? @relation(fields: [partnerId], references: [id])
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
 
-  userName              String?
-  userEmail             String?
-  userPhone             String?
+  userName  String?
+  userEmail String?
+  userPhone String?
 
-  requestedService      String?  // CEE, AUDIT, WINDOWS, INSULATION, HVAC, SOLAR, REFORM, REAL_ESTATE_VALUATION, OTHER
-  estimatedBudget       String?
-  urgency               String?  // LOW, MEDIUM, HIGH, IMMEDIATE
-  zone                  String?
+  requestedService String? // CEE, AUDIT, WINDOWS, INSULATION, HVAC, SOLAR, REFORM, REAL_ESTATE_VALUATION, OTHER
+  estimatedBudget  String?
+  urgency          String? // LOW, MEDIUM, HIGH, IMMEDIATE
+  zone             String?
 
-  source                String?  // assessment, demo, partner, manual, provider_marketplace
-  attributionOwner      String?  // ANCLORA, PARTNER, PROVIDER, SHARED
-  attributionExpiresAt  DateTime?
+  source               String? // assessment, demo, partner, manual, provider_marketplace
+  attributionOwner     String? // ANCLORA, PARTNER, PROVIDER, SHARED
+  attributionExpiresAt DateTime?
 
-  status                String   @default("PENDING") // PENDING, CONTACTED, QUOTED, WON, LOST, CANCELLED
-  commissionStatus      String   @default("NOT_APPLICABLE") // NOT_APPLICABLE, PENDING, PAYABLE, PAID, DISPUTED
+  status           String @default("PENDING") // PENDING, CONTACTED, QUOTED, WON, LOST, CANCELLED
+  commissionStatus String @default("NOT_APPLICABLE") // NOT_APPLICABLE, PENDING, PAYABLE, PAID, DISPUTED
 
-  expectedValueCents    Int?
-  closedValueCents      Int?
-  commissionCents       Int?
+  expectedValueCents Int?
+  closedValueCents   Int?
+  commissionCents    Int?
 
-  consentAccepted       Boolean  @default(false)
-  notes                 String?
+  consentAccepted Boolean @default(false)
+  notes           String?
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String?              @unique
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  assessments         Assessment[]
+  leads               Lead[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expires   DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

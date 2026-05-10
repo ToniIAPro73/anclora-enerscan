@@ -5,11 +5,15 @@ import { ProviderLeadSection } from '@/components/ProviderLeadSection';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
+import { getRelevantSubsidies, SUBSIDY_DISCLAIMER } from '@/lib/subsidies';
 import { AlertTriangle, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
 import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
+
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },
@@ -52,11 +56,13 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
 
   const scenarios = generateScenarios(propertyData, scoreResult);
+  const subsidies = getRelevantSubsidies(propertyData);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
   const attachments: AssessmentAttachment[] = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
     id: attachment.id,
     name: attachment.name,
     type: attachment.type,
+    category: attachment.category as AssessmentAttachment['category'],
     size: attachment.size,
     path: attachment.path,
     createdAt: attachment.createdAt.toISOString(),
@@ -217,12 +223,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               {REGULATORY_TIMELINE.map((n, i) => (
                 <div key={i} className="bg-[#131313] border border-[#262626] rounded-2xl p-5 space-y-3 relative overflow-hidden">
                   <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-2xl opacity-10 ${n.riskLevel === 'high' ? 'bg-[#EF4444]' : n.riskLevel === 'medium' ? 'bg-[#FFB020]' : 'bg-[#00DC82]'}`} />
-                  <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center justify-between gap-2 relative z-10">
                     <span className="font-heading font-bold text-xl text-[#F0EDE8]">{n.year}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${n.status === 'vigente' ? 'bg-[#00DC82]/20 text-[#00DC82]' : 'bg-[#FFB020]/20 text-[#FFB020]'}`}>{n.status}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${n.status === 'current' || n.status === 'vigente' ? 'bg-[#00DC82]/20 text-[#00DC82]' : 'bg-[#FFB020]/20 text-[#FFB020]'}`}>{n.dateLabel}</span>
                   </div>
                   <p className="font-bold text-sm text-[#F0EDE8] relative z-10">{n.title}</p>
                   <p className="text-xs text-[#7A7A7A] leading-relaxed relative z-10">{n.description}</p>
+                  <p className="text-xs text-[#B8B8B8] leading-relaxed relative z-10">{n.impactOnUser}</p>
+                  <p className="text-[10px] text-[#7A7A7A] relative z-10">{n.legalReference}</p>
                 </div>
               ))}
             </div>
@@ -232,7 +240,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           <section className="bg-gradient-to-r from-[#00DC82]/20 to-[#FFB020]/20 border border-white/10 rounded-3xl p-8 text-center space-y-6">
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#F0EDE8]">Obtén tu Informe Premium Detallado</h2>
             <p className="text-[#7A7A7A] max-w-2xl mx-auto">
-              Descarga un PDF completo con 3 escenarios de mejora, desglose de costes, ahorro anual estimado y acceso prioritario a proveedores.
+              Descarga un PDF completo con escenarios de mejora, contexto normativo, ayudas potencialmente relevantes y acceso prioritario a proveedores.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <a
@@ -290,6 +298,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 <div key={s.id} className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6 flex flex-col hover:border-[#00DC82]/30 transition group">
                   <h3 className="font-heading font-bold text-xl text-[#F0EDE8] mb-1">{s.title}</h3>
                   <p className="text-xs text-[#7A7A7A] mb-4">{s.objective}</p>
+                  {s.description && <p className="text-xs text-[#B8B8B8] mb-4">{s.description}</p>}
                   <ul className="space-y-2 mb-6 flex-1">
                     {s.measures.map((m, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-[#7A7A7A]">
@@ -299,10 +308,31 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                     ))}
                   </ul>
                   <div className="pt-4 border-t border-[#262626] space-y-2">
-                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Coste:</span><span className="font-bold">{s.estimatedCostRange}</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Ahorro:</span><span className="font-bold text-[#00DC82]">{s.estimatedSavingsRange}</span></div>
+                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Inversión:</span><span className="font-bold text-right">{s.estimatedCostRange}</span></div>
+                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Ahorro:</span><span className="font-bold text-[#00DC82] text-right">{s.estimatedSavingsRange}</span></div>
                     <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Salto:</span><span className="font-bold text-[#FFB020]">{s.expectedLetterImpact}</span></div>
+                    {s.rationale && <p className="pt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.rationale}</p>}
                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* SUBSIDIES */}
+          <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
+            <div>
+              <h2 className="font-heading font-bold text-2xl text-premium">Ayudas y subvenciones potencialmente relevantes</h2>
+              <p className="mt-2 text-xs leading-relaxed text-muted">{SUBSIDY_DISCLAIMER}</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {subsidies.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="font-heading text-base font-bold text-premium">{item.title}</h3>
+                    <span className="rounded-full bg-[#00DC82]/10 px-2 py-1 text-[10px] font-bold uppercase text-[#00DC82]">{item.scope}</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted">{item.description}</p>
+                  <p className="mt-3 text-[10px] leading-relaxed text-[#FFB020]">{item.eligibilityDisclaimer}</p>
                 </div>
               ))}
             </div>
