@@ -3,6 +3,8 @@ import { priceItems, measurePriceMaps } from './seed-data';
 import { resolveQuantity, mapPropertyType } from './quantity-resolver';
 import { buildSourceSummary } from './source-summary';
 import { COST_ESTIMATE_DISCLAIMER, COST_LEGAL_DISCLAIMER, HEAT_PUMP_TECHNICAL_NOTE } from './cost-disclaimers';
+import { PropertyDataV2 } from '../domain/energy-assessment';
+import { measuresForSimulatorScenario } from './scenario-matrix';
 
 const qualityFactor: Record<CostQuality, number> = { BASIC: 0.85, MEDIUM: 1, PREMIUM: 1.25 };
 const complexityFactor: Record<CostComplexity, number> = { LOW: 0.9, MEDIUM: 1, HIGH: 1.2 };
@@ -94,4 +96,30 @@ export function calculateScenarioCostEstimate(input: CostEngineInput): ScenarioC
     letterGainTarget: input.letterGainTarget,
     heatPumpTechnicalNote: hasHeatPump ? HEAT_PUMP_TECHNICAL_NOTE : undefined,
   };
+}
+
+export function getScenarioCostEstimate(scenarioId: string, propertyData: PropertyDataV2): ScenarioCostEstimate | null {
+  const propertyType = mapPropertyType(propertyData.propertyType);
+  const template = measuresForSimulatorScenario({
+    simulatorScenarioId: scenarioId,
+    propertyType,
+    currentLetter: 'E', // Default if unknown
+    targetLetter: propertyData.targetLetter,
+    budgetRange: propertyData.budgetRange,
+  });
+
+  if (!template) return null;
+
+  return calculateScenarioCostEstimate({
+    scenarioId,
+    scenarioTitle: '', // Not needed for calculation
+    propertyData,
+    propertyType,
+    measureCodes: template.measureCodes,
+    quality: template.budgetLevel === 'PREMIUM' ? 'PREMIUM' : template.budgetLevel === 'LOW' ? 'BASIC' : 'MEDIUM',
+    complexity: 'MEDIUM',
+    region: propertyData.zipcode,
+    interventionLevel: template.interventionLevel,
+    letterGainTarget: template.letterGainMax,
+  });
 }

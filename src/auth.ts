@@ -5,6 +5,9 @@ import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/password';
+import { getOAuthEnv } from '@/lib/auth-env';
+
+const oauth = getOAuthEnv();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -14,8 +17,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/auth',
   },
   providers: [
-    Google,
-    GitHub,
+    oauth.google.enabled
+      ? Google({
+          clientId: oauth.google.clientId!,
+          clientSecret: oauth.google.clientSecret!,
+        })
+      : null,
+    oauth.github.enabled
+      ? GitHub({
+          clientId: oauth.github.clientId!,
+          clientSecret: oauth.github.clientSecret!,
+        })
+      : null,
     Credentials({
       credentials: {
         email: { label: 'Email', type: 'email' },
@@ -40,7 +53,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
-  ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ].filter(Boolean) as any[],
   callbacks: {
     jwt({ token, user }) {
       if (user?.id) token.sub = user.id;
