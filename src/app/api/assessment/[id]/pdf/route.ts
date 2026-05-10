@@ -211,7 +211,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     reportData.attachments = await enrichAttachmentsForPdf(reportData.attachments || []);
     reportData.logoDataUri = await getReportLogoDataUri();
 
-    const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);
 
     // Need to cast stream to unknown then ResponseBody because the typings for React PDF Stream can be incomplete in Next
     const reportRef = reportData.publicRef || getPublicAssessmentRef(params.id);
