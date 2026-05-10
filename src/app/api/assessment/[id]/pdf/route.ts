@@ -102,7 +102,6 @@ async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
     const loadingTask = getDocument({ 
       data: new Uint8Array(pdfBytes),
       useWorkerFetch: false,
-      isEvalSupported: false,
     });
 
     const pdf = await loadingTask.promise;
@@ -118,6 +117,7 @@ async function renderPdfBytesToDataUris(pdfBytes: Buffer): Promise<string[]> {
       
       await page.render({
         canvasContext: context as unknown as CanvasRenderingContext2D,
+        canvas: canvas as unknown as HTMLCanvasElement,
         viewport,
       }).promise;
       
@@ -211,8 +211,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     reportData.attachments = await enrichAttachmentsForPdf(reportData.attachments || []);
     reportData.logoDataUri = await getReportLogoDataUri();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);
+    const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }));
 
     // Need to cast stream to unknown then ResponseBody because the typings for React PDF Stream can be incomplete in Next
     const reportRef = reportData.publicRef || getPublicAssessmentRef(params.id);
