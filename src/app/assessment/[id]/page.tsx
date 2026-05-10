@@ -2,19 +2,31 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { AttachmentList } from '@/components/AttachmentList';
 import { ProviderLeadSection } from '@/components/ProviderLeadSection';
+import { PdfDownloadLink } from '@/components/PdfDownloadLink';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
-import { REGULATORY_TIMELINE, DISCLAIMER_TEXT, REGULATORY_DISCLAIMER } from '@/lib/regulatory';
-import { getRelevantSubsidies, SUBSIDY_DISCLAIMER } from '@/lib/subsidies';
+import { REGULATORY_TIMELINE } from '@/lib/regulatory';
+import { getRelevantSubsidies } from '@/lib/subsidies';
 import { formatEuroRange } from '@/lib/costs/format';
 import { COST_ESTIMATE_DISCLAIMER } from '@/lib/costs/cost-disclaimers';
-import { AlertTriangle, Download, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
 import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
+import { cookies } from 'next/headers';
+import { getPreferencesForLanguage, normalizeCurrency, normalizeLanguage, normalizeMeasurementSystem } from '@/lib/preferences';
+import { formatArea } from '@/lib/formatters';
+import { getDictionary, getLegalDisclaimer } from '@/lib/i18n';
+import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
+  const cookieStore = cookies();
+  const language = normalizeLanguage(cookieStore.get('enerscan-language')?.value);
+  const defaults = getPreferencesForLanguage(language);
+  const currency = normalizeCurrency(cookieStore.get('enerscan-currency')?.value || defaults.currency);
+  const measurementSystem = normalizeMeasurementSystem(cookieStore.get('enerscan-measurement-system')?.value || defaults.measurementSystem);
+  const t = getDictionary(language);
 
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
@@ -57,8 +69,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   };
 
 
-  const scenarios = generateScenarios(propertyData, scoreResult);
-  const subsidies = getRelevantSubsidies(propertyData);
+  const scenarios = localizeScenarios(generateScenarios(propertyData, scoreResult), language);
+  const subsidies = localizeSubsidies(getRelevantSubsidies(propertyData), language);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
   const attachments: AssessmentAttachment[] = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
     id: attachment.id,
@@ -84,15 +96,15 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           <div className="grid lg:grid-cols-2 gap-8 items-center surface border rounded-3xl p-8 lg:p-12 glow-green">
             <div className="space-y-6">
               <div>
-                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">{isDemo ? 'Resultado preliminar · Demo' : 'Resultado preliminar'}</p>
-                <h1 className="font-heading font-bold text-3xl sm:text-4xl text-premium">Tu clasificación orientativa</h1>
+                <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider mb-2">{isDemo ? t.resultDemo : t.result}</p>
+                <h1 className="font-heading font-bold text-3xl sm:text-4xl text-premium">{t.estimatedRating}</h1>
               </div>
               <p className="text-muted leading-relaxed">
-                Basado en los datos declarados de tu vivienda ({propertyData.area}m², construida en {propertyData.year}), hemos estimado tu letra energética actual.
+                {t.resultCopy} ({formatArea(propertyData.area, measurementSystem, language)}, {propertyData.year}).
               </p>
               {isDemo && (
                 <p className="rounded-xl border border-[#FFB020]/30 bg-[#FFB020]/10 p-3 text-xs font-semibold text-[#FFB020]">
-                  Este informe usa datos ficticios para mostrar la experiencia premium sin datos personales.
+                  {t.demoNotice}
                 </p>
               )}
               {scoreResult.explanation && (
@@ -102,7 +114,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-muted uppercase">Confianza del motor</span>
+                    <span className="text-xs font-semibold text-muted uppercase">{t.engineConfidence}</span>
                     <span className={`text-sm font-bold max-w-fit px-2 py-0.5 rounded ${scoreResult.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : scoreResult.confidence === 'Media' ? 'bg-[#FFB020]/20 text-[#FFB020]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
                       {scoreResult.confidence}
                     </span>
@@ -110,14 +122,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-muted uppercase">Zona Climática</span>
+                    <span className="text-xs font-semibold text-muted uppercase">{t.climateZone}</span>
                     <span className="text-sm font-bold text-premium">{scoreResult.climateZone}</span>
                   </div>
                 </div>
               </div>
 
               <p className="text-[10px] text-muted leading-relaxed italic">
-                {DISCLAIMER_TEXT}
+                {getLegalDisclaimer(language)}
               </p>
             </div>
 
@@ -135,7 +147,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
           {/* CAPTURED DATA */}
           <section className="surface border rounded-3xl p-6 lg:p-8">
-            <h2 className="mb-5 font-heading text-2xl font-bold text-premium">Datos capturados</h2>
+            <h2 className="mb-5 font-heading text-2xl font-bold text-premium">{t.capturedData}</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 ['Tipo', propertyData.propertyType],
@@ -160,7 +172,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6">
               <div className="flex items-center gap-2 text-[#EF4444] mb-4">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="font-heading font-bold text-lg">Factores penalizadores</h3>
+                <h3 className="font-heading font-bold text-lg">{t.penalties}</h3>
               </div>
               {scoreResult.penalties.length > 0 ? (
                 <ul className="space-y-3">
@@ -172,14 +184,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-[#7A7A7A]">No se detectaron penalizaciones mayores.</p>
+                <p className="text-sm text-[#7A7A7A]">{t.noMajorPenalties}</p>
               )}
             </div>
 
             <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6">
               <div className="flex items-center gap-2 text-[#00DC82] mb-4">
                 <Lightbulb className="w-5 h-5" />
-                <h3 className="font-heading font-bold text-lg">Puntos fuertes</h3>
+                <h3 className="font-heading font-bold text-lg">{t.strengths}</h3>
               </div>
               {scoreResult.strengths.length > 0 ? (
                 <ul className="space-y-3">
@@ -191,14 +203,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-[#7A7A7A]">No se detectaron puntos fuertes destacados.</p>
+                <p className="text-sm text-[#7A7A7A]">{t.noStrengths}</p>
               )}
             </div>
 
             <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-6">
               <div className="flex items-center gap-2 text-[#FFB020] mb-4">
                 <HelpCircle className="w-5 h-5" />
-                <h3 className="font-heading font-bold text-lg">Datos faltantes</h3>
+                <h3 className="font-heading font-bold text-lg">{t.missingData}</h3>
               </div>
               {scoreResult.missingData.length > 0 ? (
                 <ul className="space-y-3">
@@ -210,7 +222,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-[#7A7A7A]">Datos completos.</p>
+                <p className="text-sm text-[#7A7A7A]">{t.completeData}</p>
               )}
             </div>
           </div>
@@ -218,8 +230,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           {/* REGULATORY TIMELINE */}
           <section className="space-y-8">
             <div className="text-center">
-              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Contexto regulatorio</h2>
-              <p className="text-[#7A7A7A] text-sm italic">{REGULATORY_DISCLAIMER}</p>
+              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">{language === 'en' ? 'Regulatory context' : language === 'de' ? 'Regulatorischer Kontext' : 'Contexto regulatorio'}</h2>
+              <p className="text-[#7A7A7A] text-sm italic">{getLegalDisclaimer(language)}</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {REGULATORY_TIMELINE.map((n, i) => (
@@ -240,32 +252,26 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
           {/* PREMIUM REPORT CTA */}
           <section className="bg-gradient-to-r from-[#00DC82]/20 to-[#FFB020]/20 border border-white/10 rounded-3xl p-8 text-center space-y-6">
-            <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#F0EDE8]">Obtén tu Informe Premium Detallado</h2>
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#F0EDE8]">{t.premiumReportTitle}</h2>
             <p className="text-[#7A7A7A] max-w-2xl mx-auto">
-              Descarga un PDF completo con escenarios de mejora, contexto normativo, ayudas potencialmente relevantes y acceso prioritario a proveedores.
+              {t.premiumReportCopy}
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a
-                href={`/api/assessment/${params.id}/pdf`}
-                className="px-8 py-4 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold flex items-center gap-2 hover:brightness-110 transition shadow-xl shadow-[#00DC82]/20"
-                download
-              >
-                <Download className="w-5 h-5" /> Descargar PDF (Demo Premium)
-              </a>
+              <PdfDownloadLink assessmentId={params.id} />
             </div>
-            <p className="text-[10px] text-[#7A7A7A]/60">Documento PDF generado de forma dinámica.</p>
+            <p className="text-[10px] text-[#7A7A7A]/60">{t.dynamicPdf}</p>
           </section>
 
           {/* ATTACHMENTS */}
           <section className="surface border rounded-3xl p-6 lg:p-8">
             <div className="mb-5 flex items-center gap-2 text-premium">
               <FileText className="h-5 w-5 text-[#00DC82]" />
-              <h2 className="font-heading text-2xl font-bold">Documentación aportada</h2>
+              <h2 className="font-heading text-2xl font-bold">{t.attachments}</h2>
             </div>
             <div className="mb-5 grid grid-cols-3 gap-2">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
                 <p className="text-lg font-bold text-premium">{attachments.length}</p>
-                <p className="text-[10px] font-semibold uppercase text-muted">Total</p>
+                <p className="text-[10px] font-semibold uppercase text-muted">{t.total}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
                 <p className="text-lg font-bold text-[#FFB020]">{ceeCount}</p>
@@ -273,17 +279,17 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
                 <p className="text-lg font-bold text-[#00DC82]">{exteriorCount + interiorCount}</p>
-                <p className="text-[10px] font-semibold uppercase text-muted">Imágenes</p>
+                <p className="text-[10px] font-semibold uppercase text-muted">{t.images}</p>
               </div>
             </div>
             <p className="mb-4 text-xs text-muted">
               {isDemo
-                ? 'La demo incluye imágenes realistas de ejemplo y un supuesto CEE aportado por el usuario. Todo el material es ficticio y sin validez oficial.'
-                : 'Los archivos se registran como soporte documental, pero no sustituyen una revisión técnica ni un CEE oficial.'}
+                ? t.attachmentsDemoCopy
+                : t.attachmentsRealCopy}
             </p>
             <div className="mb-4 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
-              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">Exteriores: {exteriorCount}</span>
-              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">Interiores: {interiorCount}</span>
+              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">{t.exterior}: {exteriorCount}</span>
+              <span className="rounded-full bg-white/5 px-2 py-1 text-muted">{t.interior}: {interiorCount}</span>
               <span className="rounded-full bg-white/5 px-2 py-1 text-muted">CEE: {ceeCount}</span>
             </div>
             <AttachmentList assessmentId={params.id} initialAttachments={attachments} />
@@ -292,8 +298,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           {/* SIMULATOR */}
           <section className="space-y-8">
              <div className="text-center">
-              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">Simulador de mejoras</h2>
-              <p className="text-[#7A7A7A]">Explora cómo impactarían diferentes actuaciones en tu letra y bolsillo.</p>
+              <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">{t.simulatorTitle}</h2>
+              <p className="text-[#7A7A7A]">{t.simulatorCopy}</p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {scenarios.map(s => (
@@ -310,22 +316,22 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                     ))}
                   </ul>
                   <div className="pt-4 border-t border-[#262626] space-y-2">
-                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Inversión:</span><span className="font-bold text-right">{s.estimatedCostRange}</span></div>
+                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">{t.investment}:</span><span className="font-bold text-right">{s.estimatedCostRange}</span></div>
                     {s.costEstimate && (
                       <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
                         <div className="flex justify-between gap-3">
-                          <span className="text-[#7A7A7A]">Rango orientativo:</span>
-                          <span className="font-bold text-[#00DC82] text-right">{formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal)}</span>
+                          <span className="text-[#7A7A7A]">{t.indicativeRange}:</span>
+                          <span className="font-bold text-[#00DC82] text-right">{formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal, { currency, language })}</span>
                         </div>
                         <div className="mt-1 flex justify-between gap-3">
-                          <span className="text-[#7A7A7A]">Confianza:</span>
+                          <span className="text-[#7A7A7A]">{t.confidence}:</span>
                           <span className="font-bold text-[#FFB020]">{s.costEstimate.confidence}</span>
                         </div>
                         <p className="mt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.costEstimate.sourceSummary}</p>
                       </div>
                     )}
-                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">Ahorro:</span><span className="font-bold text-[#00DC82] text-right">{s.estimatedSavingsRange}</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">Salto:</span><span className="font-bold text-[#FFB020]">{s.expectedLetterImpact}</span></div>
+                    <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">{t.savings}:</span><span className="font-bold text-[#00DC82] text-right">{s.estimatedSavingsRange}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-[#7A7A7A]">{t.jump}:</span><span className="font-bold text-[#FFB020]">{s.expectedLetterImpact}</span></div>
                     {s.rationale && <p className="pt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.rationale}</p>}
                   </div>
                 </div>
@@ -339,8 +345,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           {/* SUBSIDIES */}
           <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
             <div>
-              <h2 className="font-heading font-bold text-2xl text-premium">Ayudas y subvenciones potencialmente relevantes</h2>
-              <p className="mt-2 text-xs leading-relaxed text-muted">{SUBSIDY_DISCLAIMER}</p>
+              <h2 className="font-heading font-bold text-2xl text-premium">{t.subsidiesTitle}</h2>
+              <p className="mt-2 text-xs leading-relaxed text-muted">{getLegalDisclaimer(language)}</p>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {subsidies.map((item) => (

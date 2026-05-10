@@ -263,7 +263,7 @@ export default function AssessmentWizard() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">Paso {step} de 5</p>
+          <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map(s => (
               <div key={s} className={`h-1 w-8 rounded-full ${step >= s ? 'bg-[#00DC82]' : 'bg-[#262626]'}`} />
@@ -285,9 +285,9 @@ export default function AssessmentWizard() {
             <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardTitle}</h2>
             <div className="grid gap-4">
               {[
-                { id: 'current_state', title: 'Conocer situación actual', desc: 'Descubre tu clasificación orientativa.', icon: Target },
-                { id: 'target_letter', title: 'Alcanzar una letra concreta', desc: 'Define tu meta y obtén un plan.', icon: Bolt },
-                { id: 'sale_rent', title: 'Preparar venta o alquiler', desc: 'Incrementa el valor de tu inmueble.', icon: Building },
+                { id: 'current_state', title: t.wizardObjectiveCurrent, desc: t.wizardObjectiveCurrentDesc, icon: Target },
+                { id: 'target_letter', title: t.wizardObjectiveTarget, desc: t.wizardObjectiveTargetDesc, icon: Bolt },
+                { id: 'sale_rent', title: t.wizardObjectiveSale, desc: t.wizardObjectiveSaleDesc, icon: Building },
               ].map(opt => (
                 <button
                   key={opt.id}
@@ -311,7 +311,7 @@ export default function AssessmentWizard() {
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-premium">Datos de la vivienda</h2>
+            <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de inmueble</label>
@@ -357,8 +357,8 @@ export default function AssessmentWizard() {
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -366,7 +366,7 @@ export default function AssessmentWizard() {
         {/* STEP 3: ENVELOPE & WINDOWS */}
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Envolvente</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardEnvelope}</h2>
             <div className="grid gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de ventanas</label>
@@ -406,8 +406,8 @@ export default function AssessmentWizard() {
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -415,7 +415,7 @@ export default function AssessmentWizard() {
         {/* STEP 4: SYSTEMS */}
         {step === 4 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Instalaciones</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardSystems}</h2>
             <div className="grid gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Sistema de calefacción</label>
@@ -460,8 +460,8 @@ export default function AssessmentWizard() {
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -469,7 +469,7 @@ export default function AssessmentWizard() {
         {/* STEP 5: ATTACHMENTS & SUBMIT */}
         {step === 5 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Presupuesto y Confirmación</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardBudgetConfirm}</h2>
             
             <div className="space-y-2">
               <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Presupuesto estimado para mejoras</label>
@@ -501,8 +501,8 @@ export default function AssessmentWizard() {
             >
               <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
                 <UploadCloud className="h-8 w-8 text-[#00DC82]" />
-                <span className="font-heading text-sm font-bold text-premium">Adjunta fotos, PDF, DOCX o Markdown</span>
-                <span className="text-xs text-muted">Arrastra archivos o selecciona hasta {MAX_ATTACHMENTS}. Máximo {formatFileSize(MAX_ATTACHMENT_SIZE)} por archivo.</span>
+                <span className="font-heading text-sm font-bold text-premium">{t.attachmentsHelp}</span>
+                <span className="text-xs text-muted">{t.attachmentsLimit}</span>
                 <input
                   type="file"
                   multiple
@@ -517,7 +517,7 @@ export default function AssessmentWizard() {
                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-[#00DC82]" style={{ width: `${uploadProgress}%` }} />
                   </div>
-                  <p className="text-xs text-muted">Subiendo adjuntos a almacenamiento seguro: {uploadProgress}%</p>
+                  <p className="text-xs text-muted">{t.processing} {uploadProgress}%</p>
                 </div>
               )}
               {files.length > 0 && (
@@ -538,7 +538,7 @@ export default function AssessmentWizard() {
               <div className="flex items-start gap-3">
                 <input type="checkbox" id="acceptTerms" {...register('acceptTerms')} className="mt-1 accent-[#00DC82]" />
                 <label htmlFor="acceptTerms" className="text-sm text-[#7A7A7A] leading-tight cursor-pointer">
-                  Acepto que Anclora EnergyScan realice una estimación orientativa. {getLegalDisclaimer(language)}
+                  {t.submitLegal} {getLegalDisclaimer(language)}
                 </label>
               </div>
               {errors.acceptTerms && <p className="text-red-500 text-xs">{errors.acceptTerms.message}</p>}
@@ -547,21 +547,21 @@ export default function AssessmentWizard() {
             <div className="p-4 rounded-xl bg-[#FFB020]/5 border border-[#FFB020]/20 space-y-3">
               <div className="flex items-center gap-2 text-[#FFB020]">
                 <ShieldCheck className="w-5 h-5" />
-                <p className="font-heading font-bold text-sm">Información legal importante</p>
+                <p className="font-heading font-bold text-sm">{t.importantLegal}</p>
               </div>
               <p className="text-xs text-[#7A7A7A] leading-relaxed">
-                Este diagnóstico no sustituye la inspección de un técnico competente. Las letras generadas son una aproximación basada en el año de construcción y los sistemas declarados.
+                {t.importantLegalCopy}
               </p>
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
               <button 
                 type="submit" 
                 disabled={isSubmitting}
                 className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition disabled:opacity-50"
               >
-                {isSubmitting ? 'Procesando...' : 'Obtener resultado'}
+                {isSubmitting ? t.processing : t.getResult}
               </button>
             </div>
           </div>

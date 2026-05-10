@@ -8,6 +8,8 @@ import {
   PropertyDataV2,
   ScoreResultV2,
 } from "./domain/energy-assessment";
+import type { AppCurrency, AppLanguage, MeasurementSystem } from "./preferences";
+import { getPreferencesForLanguage } from "./preferences";
 
 type StatelessAssessmentPayload = {
   propertyData: PropertyDataV2;
@@ -64,7 +66,14 @@ export function createStatelessPayload(
   };
 }
 
-export function createReportDataFromPayload(id: string, payload: StatelessAssessmentPayload, language: "es" | "en" | "de" = "es"): PremiumReportData {
+export function createReportDataFromPayload(
+  id: string,
+  payload: StatelessAssessmentPayload,
+  language: AppLanguage = "es",
+  currency?: AppCurrency,
+  measurementSystem?: MeasurementSystem
+): PremiumReportData {
+  const defaults = getPreferencesForLanguage(language);
   return {
     id,
     publicRef: payload.publicRef,
@@ -77,6 +86,8 @@ export function createReportDataFromPayload(id: string, payload: StatelessAssess
     providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
     attachments: payload.attachments || [],
     language,
+    currency: currency || defaults.currency,
+    measurementSystem: measurementSystem || defaults.measurementSystem,
     isDemo: payload.isDemo,
   };
 }

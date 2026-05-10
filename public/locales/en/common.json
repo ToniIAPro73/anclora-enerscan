@@ -1,5 +1,14 @@
 {
   "start": "Start assessment",
+  "startFree": "Start free assessment",
   "demo": "View sample assessment",
+  "language": "Language",
+  "currency": "Currency",
+  "measurement": "Measurement",
+  "theme": "Theme",
+  "downloadPdf": "Download PDF",
+  "privacy": "Privacy policy",
+  "terms": "Terms of service",
+  "legal": "Legal notice",
   "legalDisclaimer": "Anclora EnergyScan is an indicative pre-assessment. It does not replace the official Energy Performance Certificate or an inspection by a qualified technician. Savings, costs and ratings are estimates."
 }

@@ -1,5 +1,14 @@
 {
   "start": "Iniciar análisis",
+  "startFree": "Iniciar análisis gratuito",
   "demo": "Ver ejemplo de valoración",
+  "language": "Idioma",
+  "currency": "Moneda",
+  "measurement": "Medición",
+  "theme": "Tema",
+  "downloadPdf": "Descargar PDF",
+  "privacy": "Política de privacidad",
+  "terms": "Términos del servicio",
+  "legal": "Aviso legal",
   "legalDisclaimer": "Anclora EnergyScan es un prediagnóstico orientativo. No sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente. Ahorros, costes y clasificaciones son estimaciones."
 }

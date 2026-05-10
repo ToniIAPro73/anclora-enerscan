@@ -9,21 +9,25 @@ export function getOAuthEnv() {
   const googleClientId =
     process.env.AUTH_GOOGLE_ID ||
     process.env.AUTH_GOOGLE_CLIENT_ID ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID ||
     process.env.GOOGLE_CLIENT_ID ||
     process.env.GOOGLE_ID;
   const googleClientSecret =
     process.env.AUTH_GOOGLE_SECRET ||
     process.env.AUTH_GOOGLE_CLIENT_SECRET ||
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET ||
     process.env.GOOGLE_CLIENT_SECRET ||
     process.env.GOOGLE_SECRET;
   const githubClientId =
     process.env.AUTH_GITHUB_ID ||
     process.env.AUTH_GITHUB_CLIENT_ID ||
+    process.env.GITHUB_OAUTH_CLIENT_ID ||
     process.env.GITHUB_CLIENT_ID ||
     process.env.GITHUB_ID;
   const githubClientSecret =
     process.env.AUTH_GITHUB_SECRET ||
     process.env.AUTH_GITHUB_CLIENT_SECRET ||
+    process.env.GITHUB_OAUTH_CLIENT_SECRET ||
     process.env.GITHUB_CLIENT_SECRET ||
     process.env.GITHUB_SECRET;
 

@@ -9,6 +9,37 @@ import { getLegalDisclaimer } from '@/lib/i18n';
 
 export default function LandingPage() {
   const { dictionary: t, language } = usePreferences();
+  const timeline = {
+    es: [
+      { year: 'Hoy', title: 'R.D. 390/2021', desc: 'CEE obligatorio para venta/alquiler.', status: 'Vigente', color: 'bg-[#00DC82]' },
+      { year: '2030', title: 'Reducción 16%', desc: 'Meta de ahorro en energía primaria.', status: 'Objetivo UE', color: 'bg-[#FFB020]' },
+      { year: '2033', title: 'Clase E', desc: 'Objetivo residencial obligatorio.', status: 'Regulación', color: 'bg-[#EF4444]' },
+    ],
+    en: [
+      { year: 'Today', title: 'R.D. 390/2021', desc: 'EPC required for sale or rental where applicable.', status: 'Current', color: 'bg-[#00DC82]' },
+      { year: '2030', title: '16% reduction', desc: 'Primary energy savings target.', status: 'EU target', color: 'bg-[#FFB020]' },
+      { year: '2033', title: 'Class E', desc: 'Residential target under regulatory development.', status: 'Regulation', color: 'bg-[#EF4444]' },
+    ],
+    de: [
+      { year: 'Heute', title: 'R.D. 390/2021', desc: 'Energieausweis für Verkauf oder Vermietung, sofern anwendbar.', status: 'Gültig', color: 'bg-[#00DC82]' },
+      { year: '2030', title: '16% Reduktion', desc: 'Ziel zur Senkung der Primärenergie.', status: 'EU-Ziel', color: 'bg-[#FFB020]' },
+      { year: '2033', title: 'Klasse E', desc: 'Wohngebäudeziel in regulatorischer Entwicklung.', status: 'Regulierung', color: 'bg-[#EF4444]' },
+    ],
+  }[language];
+  const pricingItems = {
+    es: {
+      free: ['Wizard energético completo', 'Letra orientativa y confianza', 'Penalizaciones y fortalezas', 'Contexto normativo básico'],
+      premium: ['PDF premium de ejemplo', 'Escenarios de mejora', 'Documentación aportada', 'Categorías de proveedores sugeridas'],
+    },
+    en: {
+      free: ['Complete energy wizard', 'Indicative rating and confidence', 'Penalties and strengths', 'Basic regulatory context'],
+      premium: ['Sample premium PDF', 'Improvement scenarios', 'Submitted documentation', 'Suggested provider categories'],
+    },
+    de: {
+      free: ['Vollständiger Energie-Wizard', 'Orientierende Klasse und Sicherheit', 'Abzüge und Stärken', 'Grundlegender regulatorischer Kontext'],
+      premium: ['Beispiel-Premium-PDF', 'Verbesserungsszenarien', 'Eingereichte Dokumentation', 'Vorgeschlagene Anbieterkategorien'],
+    },
+  }[language];
 
   return (
     <div className="min-h-screen app-shell overflow-x-hidden">
@@ -56,7 +87,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="text-center mt-4">
-                    <p className="text-xs text-muted">Confianza media</p>
+                    <p className="text-xs text-muted">{t.confidenceMedium}</p>
                     <div className="flex gap-1 justify-center mt-2">
                        {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(l => (
                          <span key={l} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${l === 'E' ? 'bg-[#FF9800] text-white' : 'bg-[#262626] text-[#7A7A7A]'}`}>{l}</span>
@@ -70,10 +101,10 @@ export default function LandingPage() {
             {/* STATS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 lg:mt-20">
               {[
-                { label: '% del parque deficiente', val: '80%', color: 'text-premium' },
-                { label: 'Primera fecha clave', val: '2030', color: 'text-[#FFB020]' },
-                { label: 'Objetivo Clase E', val: '2033', color: 'text-[#EF4444]' },
-                { label: 'Pasos del análisis', val: '7', color: 'text-[#00DC82]' },
+                { label: t.statsDeficient, val: '80%', color: 'text-premium' },
+                { label: t.statsDate, val: '2030', color: 'text-[#FFB020]' },
+                { label: t.statsTarget, val: '2033', color: 'text-[#EF4444]' },
+                { label: t.statsSteps, val: '7', color: 'text-[#00DC82]' },
               ].map((s, i) => (
                 <div key={i} className="p-4 rounded-xl surface-2 border text-center">
                   <p className={`font-heading font-bold text-2xl sm:text-3xl ${s.color}`}>{s.val}</p>
@@ -95,10 +126,10 @@ export default function LandingPage() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { title: 'Describe tu vivienda', desc: 'Tipo, año, superficie, sistemas. Adjunta fotos y CEE.', icon: Home, step: '01', color: 'text-[#00DC82]' },
-                { title: 'Obtén tu calificación', desc: 'Motor de reglas que estima tu letra orientativa.', icon: Gauge, step: '02', color: 'text-[#FFB020]' },
-                { title: 'Explora mejoras', desc: 'Tres escenarios según presupuesto: básico a profundo.', icon: Zap, step: '03', color: 'text-[#00DC82]' },
-                { title: 'Descarga tu informe', desc: 'PDF premium con normativa y conexión con proveedores.', icon: FileText, step: '04', color: 'text-[#FFB020]' },
+                { title: t.stepDescribeTitle, desc: t.stepDescribeDesc, icon: Home, step: '01', color: 'text-[#00DC82]' },
+                { title: t.stepRatingTitle, desc: t.stepRatingDesc, icon: Gauge, step: '02', color: 'text-[#FFB020]' },
+                { title: t.stepImproveTitle, desc: t.stepImproveDesc, icon: Zap, step: '03', color: 'text-[#00DC82]' },
+                { title: t.stepPdfTitle, desc: t.stepPdfDesc, icon: FileText, step: '04', color: 'text-[#FFB020]' },
               ].map((s, i) => (
                 <div key={i} className="group p-6 rounded-2xl surface-2 border hover:border-[#00DC82]/30 transition">
                   <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-5 group-hover:scale-110 transition`}>
@@ -121,19 +152,15 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <p className="text-xs text-[#EF4444] font-heading font-semibold tracking-wider uppercase mb-3">Contexto regulatorio</p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">La hoja de ruta que marca la UE</h2>
-              <p className="text-muted max-w-2xl mx-auto">Información basada en normativa vigente y objetivos EPBD 2024.</p>
+              <p className="text-xs text-[#EF4444] font-heading font-semibold tracking-wider uppercase mb-3">{t.regulatoryContext}</p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">{t.regulatoryTitle}</h2>
+              <p className="text-muted max-w-2xl mx-auto">{t.regulatoryCopy}</p>
             </div>
             
             <div className="relative">
               <div className="absolute left-6 sm:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-[#00DC82] via-[#FFB020] to-[#EF4444]" />
               <div className="space-y-12">
-                {[
-                  { year: 'Hoy', title: 'R.D. 390/2021', desc: 'CEE obligatorio para venta/alquiler.', status: 'Vigente', color: 'bg-[#00DC82]' },
-                  { year: '2030', title: 'Reducción 16%', desc: 'Meta de ahorro en energía primaria.', status: 'Objetivo UE', color: 'bg-[#FFB020]' },
-                  { year: '2033', title: 'Clase E', desc: 'Objetivo residencial obligatorio.', status: 'Regulación', color: 'bg-[#EF4444]' }
-                ].map((n, i) => (
+                {timeline.map((n, i) => (
                   <div key={i} className={`relative flex flex-col sm:flex-row items-start gap-6 sm:gap-0 ${i % 2 === 0 ? '' : 'sm:flex-row-reverse'}`}>
                     <div className={`sm:w-1/2 ${i % 2 === 0 ? 'sm:pr-12 sm:text-right' : 'sm:pl-12'} pl-16`}>
                       <h3 className="font-heading font-bold text-xl text-premium mb-1">{n.year}</h3>
@@ -158,18 +185,18 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
-              <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">De la estimación a la acción</p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">Identifica qué profesional necesitas</h2>
+              <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">{t.partnersBadge}</p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">{t.partnersTitle}</h2>
               <p className="text-muted max-w-3xl leading-relaxed">
-                Además del prediagnóstico orientativo, EnergyScan puede ayudarte a identificar qué tipo de profesional necesitas: certificador energético, técnico, ventanas, aislamiento, climatización, renovables o reforma. La conexión con proveedores se realiza siempre como solicitud de contacto y presupuesto, no como garantía de resultado.
+                {t.partnersCopy}
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { title: 'Certificación energética', desc: 'Solicitud de contacto con técnicos para revisar documentación y próximos pasos.', icon: FileText },
-                { title: 'Ventanas y aislamiento', desc: 'Actuaciones sobre envolvente para reducir pérdidas y mejorar confort.', icon: Home },
-                { title: 'Climatización / aerotermia', desc: 'Sistemas más eficientes para calefacción, refrigeración y ACS.', icon: Gauge },
-                { title: 'Fotovoltaica / renovables', desc: 'Evaluación orientativa de autoconsumo y apoyo renovable.', icon: Zap },
+                { title: t.providerCee, desc: t.providerCeeDesc, icon: FileText },
+                { title: t.providerEnvelope, desc: t.providerEnvelopeDesc, icon: Home },
+                { title: t.providerHvac, desc: t.providerHvacDesc, icon: Gauge },
+                { title: t.providerSolar, desc: t.providerSolarDesc, icon: Zap },
               ].map((item) => (
                 <div key={item.title} className="surface-2 border rounded-2xl p-5">
                   <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#00DC82]/10 text-[#00DC82]">
@@ -189,29 +216,29 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <p className="text-xs text-[#00DC82] font-heading font-semibold tracking-wider uppercase mb-3">{t.navPricing}</p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">Prediagnóstico claro antes de invertir</h2>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-premium mb-4">{t.pricingTitle}</h2>
               <p className="text-muted max-w-2xl mx-auto">
-                Anclora EnergyScan separa la valoración orientativa gratuita del informe premium demo. No hay pasarela de pago activa en esta versión.
+                {t.pricingCopy}
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
-                  name: 'Prediagnóstico',
-                  price: '0€',
-                  badge: 'Disponible',
+                  name: t.freePlan,
+                  price: t.priceFree,
+                  badge: t.freePlanBadge,
                   cta: t.startFree,
                   href: '/wizard',
-                  items: ['Wizard energético completo', 'Letra orientativa y confianza', 'Penalizaciones y fortalezas', 'Contexto normativo básico'],
+                  items: pricingItems.free,
                 },
                 {
-                  name: 'Informe Premium',
-                  price: 'Demo',
-                  badge: 'Sin pago real',
+                  name: t.premiumPlan,
+                  price: t.priceDemo,
+                  badge: t.premiumPlanBadge,
                   cta: t.demo,
                   href: '/api/assessment/demo',
-                  items: ['PDF premium de ejemplo', 'Escenarios de mejora', 'Documentación aportada', 'Categorías de proveedores sugeridas'],
+                  items: pricingItems.premium,
                 },
               ].map((plan) => (
                 <div key={plan.name} className="surface-2 border rounded-2xl p-6 sm:p-8">
@@ -247,10 +274,10 @@ export default function LandingPage() {
         <section className="py-24 sm:py-32 relative overflow-hidden text-center">
           <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-premium mb-6">
-              Tu vivienda merece un prediagnóstico<br /><span className="text-[#00DC82]">antes de la obligación</span>
+              {t.finalCtaTitle}<br /><span className="text-[#00DC82]">{t.finalCtaAccent}</span>
             </h2>
             <p className="text-muted text-lg mb-8 max-w-xl mx-auto">
-              En menos de 10 minutos obtendrás una primera estimación de tu situación energética y rutas de mejora.
+              {t.finalCtaCopy}
             </p>
             <Link href="/wizard" className="inline-flex items-center gap-2 px-10 py-4 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-base hover:brightness-110 transition pulse-glow">
               {t.startFree} <ArrowRight className="w-5 h-5" />

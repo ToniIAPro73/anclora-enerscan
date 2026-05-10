@@ -28,18 +28,21 @@ export default function Navbar() {
           <Link href="/#mejoras" className="hover:text-premium transition">{t.navImprovements}</Link>
           <Link href="/#precios" className="hover:text-premium transition">{t.navPricing}</Link>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:block">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden md:block">
             <PreferenceToggles compact />
           </div>
-          <Link href="/auth" className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-heading font-semibold text-premium transition hover:border-[#00DC82]/40 sm:inline-flex">
-            Acceso
+          <Link href="/auth" className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-heading font-semibold text-premium transition hover:border-[#00DC82]/40 lg:inline-flex">
+            {t.access}
           </Link>
           <Link href="/wizard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-semibold text-sm hover:brightness-110 transition">
             {t.start}
           </Link>
         </div>
       </nav>
+      <div className="flex justify-center border-t border-white/5 px-3 py-2 md:hidden">
+        <PreferenceToggles compact />
+      </div>
     </header>
   );
 }

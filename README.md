@@ -25,7 +25,7 @@ La aplicación sigue un flujo Wizard -> API -> Resultados:
 
 ## Experiencia v0.3
 - **Tema:** selector premium Luna/Sol/Ordenador. La preferencia se guarda en `localStorage` y cookie para evitar flashes visuales.
-- **Idioma:** selector ES/EN/DE. Los textos principales se sirven desde diccionarios locales y se persisten igual que el tema.
+- **Idioma, moneda y unidades:** selector ES/EN/DE, EUR/GBP y m²/sq ft. ES y DE activan EUR + m²; EN activa GBP + sq ft. Las preferencias se persisten en `localStorage` y cookies para que el PDF use el mismo contexto.
 - **Demo:** el botón "Ver ejemplo de valoración" crea una valoración ficticia marcada como demo, sin datos personales.
 - **Adjuntos:** el wizard permite arrastrar o seleccionar PDF, JPG, PNG y WEBP. Límite: 6 archivos, 10 MB por archivo y 50 MB acumulados por valoración.
 - **Normativa:** el contexto distingue Real Decreto 390/2021, Directiva (UE) 2024/1275, PNIEC y horizontes europeos sin convertirlos en obligaciones individuales directas.
@@ -37,6 +37,8 @@ Anclora EnergyScan prepara una red de proveedores y partners para conectar diagn
 ## Demo enriquecida
 
 La demo incluye una vivienda unifamiliar ficticia, documentación aportada de ejemplo, imágenes interiores/exteriores y un supuesto CEE demo sin validez oficial. Estos assets se usan para mostrar el anexo documental del PDF premium.
+
+El informe premium puede generarse en español, inglés o alemán con moneda y unidades acordes a la preferencia activa. El CEE aportado por el usuario se conserva como documento español: su contenido no se traduce y mantiene euros/m² cuando se anexan sus páginas originales.
 
 ## Neon, Blob y autenticación
 
@@ -112,11 +114,13 @@ AUTH_GOOGLE_ID=""
 AUTH_GOOGLE_SECRET=""
 AUTH_GITHUB_ID=""
 AUTH_GITHUB_SECRET=""
+EUR_GBP_RATE="0.86"
+NEXT_PUBLIC_EUR_GBP_RATE="0.86"
 PASSWORD_RESET_WEBHOOK_URL=""
 SQLITE_DATABASE_URL="file:./dev.db"
 ```
 
-`NEXT_PUBLIC_APP_URL` y `AUTH_URL` se usan para construir enlaces absolutos. `PASSWORD_RESET_WEBHOOK_URL` es opcional: si no existe, el enlace de recuperación solo se muestra en local y se registra en logs de desarrollo.
+`NEXT_PUBLIC_APP_URL` y `AUTH_URL` se usan para construir enlaces absolutos. `EUR_GBP_RATE`/`NEXT_PUBLIC_EUR_GBP_RATE` fijan el cambio orientativo EUR -> GBP usado en UI/PDF. `PASSWORD_RESET_WEBHOOK_URL` es opcional: si no existe, el enlace de recuperación solo se muestra en local y se registra en logs de desarrollo.
 
 ## Limitaciones Legales
 - **Orientativo:** Anclora EnergyScan solo emite valoraciones automáticas en base a la información declarada.
