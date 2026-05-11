@@ -31,6 +31,7 @@ describe('Catastro Autofill Mapping', () => {
     expect(autofill.lat).toBe(39.57);
     expect(autofill.lng).toBe(2.65);
     expect(autofill.propertyType).toBe('flat');
+    expect(autofill.areaRequiresReview).toBe(true);
   });
 
   it('should handle missing fields gracefully', () => {
@@ -47,5 +48,6 @@ describe('Catastro Autofill Mapping', () => {
     expect(autofill.cadastralReference).toBe('REF123');
     expect(autofill.year).toBeUndefined();
     expect(autofill.area).toBeUndefined();
+    expect(autofill.areaRequiresReview).toBe(false);
   });
 });
