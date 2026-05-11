@@ -8,7 +8,7 @@ import { getRelevantSubsidies } from '@/lib/subsidies';
 import { renderToStream } from '@react-pdf/renderer';
 import { EnerScanReport } from '@/lib/pdf/EnerScanReport';
 import { AssessmentAttachment, PremiumReportData, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
-import { normalizeLanguage } from '@/lib/preferences';
+import { getPreferencesForLanguage, normalizeCurrency, normalizeLanguage, normalizeMeasurementSystem } from '@/lib/preferences';
 import { createReportDataFromPayload, getPublicAssessmentRef, parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import React from 'react';
@@ -119,14 +119,21 @@ async function getAttachmentBytes(attachment: AssessmentAttachment): Promise<Buf
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const cookieLanguage = req.headers.get('cookie')?.match(/enerscan-language=(es|en|de)/)?.[1];
-    const language = normalizeLanguage(new URL(req.url).searchParams.get('lang') || cookieLanguage);
+    const cookieHeader = req.headers.get('cookie') || '';
+    const cookieLanguage = cookieHeader.match(/enerscan-language=(es|en|de)/)?.[1];
+    const cookieCurrency = cookieHeader.match(/enerscan-currency=(EUR|GBP)/)?.[1];
+    const cookieUnits = cookieHeader.match(/enerscan-measurement-system=(metric|imperial)/)?.[1];
+    const url = new URL(req.url);
+    const language = normalizeLanguage(url.searchParams.get('lang') || cookieLanguage);
+    const languageDefaults = getPreferencesForLanguage(language);
+    const currency = normalizeCurrency(url.searchParams.get('currency') || cookieCurrency || languageDefaults.currency);
+    const measurementSystem = normalizeMeasurementSystem(url.searchParams.get('units') || cookieUnits || languageDefaults.measurementSystem);
     const statelessPayload = parseStatelessAssessmentId(params.id);
     let reportData: PremiumReportData;
     let rawAttachments: AssessmentAttachment[] = [];
 
     if (statelessPayload) {
-      reportData = createReportDataFromPayload(params.id, statelessPayload, language);
+      reportData = createReportDataFromPayload(params.id, statelessPayload, language, currency, measurementSystem);
       rawAttachments = statelessPayload.attachments || [];
     } else {
       const assessment = await prisma.assessment.findUnique({
@@ -197,6 +204,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
         attachments: rawAttachments,
         language,
+        currency,
+        measurementSystem,
         isDemo: assessment.isDemo,
       };
     }

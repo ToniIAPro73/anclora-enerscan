@@ -29,7 +29,7 @@ export default function Footer() {
             </p>
           </div>
           <div>
-            <h4 className="font-heading font-semibold text-sm text-premium mb-3">Producto</h4>
+            <h4 className="font-heading font-semibold text-sm text-premium mb-3">{t.footerProduct}</h4>
             <ul className="space-y-2 text-xs text-muted">
               <li><a href="/#como-funciona" className="hover:text-premium transition">{t.navHow}</a></li>
               <li><a href="/#normativa" className="hover:text-premium transition">{t.navRegulation}</a></li>
@@ -38,15 +38,15 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-heading font-semibold text-sm text-premium mb-3">Legal</h4>
+            <h4 className="font-heading font-semibold text-sm text-premium mb-3">{t.footerLegal}</h4>
             <ul className="space-y-2 text-xs text-muted">
-              <li><Link href="/terms" className="hover:text-premium transition">Términos del servicio</Link></li>
-              <li><Link href="/privacy" className="hover:text-premium transition">Política de privacidad</Link></li>
-              <li><Link href="/legal" className="hover:text-premium transition">Aviso legal</Link></li>
+              <li><Link href="/terms" className="hover:text-premium transition">{t.terms}</Link></li>
+              <li><Link href="/privacy" className="hover:text-premium transition">{t.privacy}</Link></li>
+              <li><Link href="/legal" className="hover:text-premium transition">{t.legal}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-heading font-semibold text-sm text-premium mb-3">Contacto</h4>
+            <h4 className="font-heading font-semibold text-sm text-premium mb-3">{t.footerContact}</h4>
             <ul className="space-y-2 text-xs text-muted">
               <li className="flex items-center gap-2"><Mail className="w-3 h-3 text-[#00DC82]/60" /> hola@enerscan.app</li>
             </ul>

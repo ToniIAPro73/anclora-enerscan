@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import { getDictionary } from '@/lib/i18n';
 
 type LegalSection = {
   title: string;
@@ -13,26 +14,28 @@ type LegalDocumentLayoutProps = {
   description: string;
   updatedAt: string;
   sections: LegalSection[];
+  language?: 'es' | 'en' | 'de';
 };
 
-export default function LegalDocumentLayout({ title, description, updatedAt, sections }: LegalDocumentLayoutProps) {
+export default function LegalDocumentLayout({ title, description, updatedAt, sections, language = 'es' }: LegalDocumentLayoutProps) {
+  const t = getDictionary(language);
   return (
     <div className="min-h-screen app-shell overflow-x-hidden">
       <Navbar />
       <main className="mx-auto max-w-4xl px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="mb-8">
           <Link href="/" className="text-sm font-semibold text-[#00DC82] hover:brightness-110">
-            Volver a Anclora EnergyScan
+            {t.backHome}
           </Link>
         </div>
 
         <article className="surface border rounded-3xl p-6 sm:p-10">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#00DC82]">
-            Documento legal
+            {t.legalDocument}
           </p>
           <h1 className="font-heading text-3xl font-bold text-premium sm:text-5xl">{title}</h1>
           <p className="mt-4 text-base leading-relaxed text-muted">{description}</p>
-          <p className="mt-3 text-xs text-muted">Última actualización: {updatedAt}</p>
+          <p className="mt-3 text-xs text-muted">{t.updatedAt}: {updatedAt}</p>
 
           <div className="mt-10 space-y-9">
             {sections.map((section) => (

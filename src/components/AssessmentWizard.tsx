@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,43 +12,9 @@ import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachme
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 
-const assessmentSchema = z.object({
-  objective: z.string().min(1, "Selecciona un objetivo"),
-  propertyType: z.string().min(1, "Selecciona el tipo de inmueble"),
-  year: z.number().min(1800).max(new Date().getFullYear()),
-  area: z.number().min(1),
-  zipcode: z.string().min(5),
-  orientation: z.string().min(1),
-  roofType: z.string().min(1),
-  heating: z.string().min(1),
-  cooling: z.string().min(1),
-  waterHeating: z.string().min(1),
-  ventilation: z.string().min(1),
-  windows: z.string().min(1),
-  renewables: z.string().min(1),
-  facadeInsulation: z.string().optional(),
-  roofInsulation: z.string().optional(),
-  budgetRange: z.string().optional(),
-  timelineHorizon: z.string().optional(),
-  targetLetter: z.string().optional(),
-  acceptTerms: z.literal(true, {
-    error: "Debes aceptar el carácter orientativo"
-  }),
-});
-
-type AssessmentFormValues = z.infer<typeof assessmentSchema>;
-
-type UploadedAttachment = {
-  name: string;
-  type: string;
-  size: number;
-  pathname: string;
-  url: string;
-};
-
 const DIRECT_UPLOAD_FALLBACK_LIMIT = 4 * 1024 * 1024;
 
-const fieldSteps: Partial<Record<keyof AssessmentFormValues, number>> = {
+const fieldSteps: Partial<Record<string, number>> = {
   objective: 1,
   propertyType: 2,
   year: 2,
@@ -70,6 +36,14 @@ const fieldSteps: Partial<Record<keyof AssessmentFormValues, number>> = {
   acceptTerms: 5,
 };
 
+type UploadedAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  pathname: string;
+  url: string;
+};
+
 export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
@@ -78,7 +52,33 @@ export default function AssessmentWizard() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const { dictionary: t, language } = usePreferences();
+  const { dictionary: t, language, formatCurrency } = usePreferences();
+
+  const assessmentSchema = useMemo(() => z.object({
+    objective: z.string().min(1, t.wizardSelectObjective),
+    propertyType: z.string().min(1, t.wizardSelectPropertyType),
+    year: z.number().min(1800).max(new Date().getFullYear()),
+    area: z.number().min(1),
+    zipcode: z.string().min(5),
+    orientation: z.string().min(1),
+    roofType: z.string().min(1),
+    heating: z.string().min(1),
+    cooling: z.string().min(1),
+    waterHeating: z.string().min(1),
+    ventilation: z.string().min(1),
+    windows: z.string().min(1),
+    renewables: z.string().min(1),
+    facadeInsulation: z.string().optional(),
+    roofInsulation: z.string().optional(),
+    budgetRange: z.string().optional(),
+    timelineHorizon: z.string().optional(),
+    targetLetter: z.string().optional(),
+    acceptTerms: z.literal(true, {
+      error: t.wizardAcceptTermsError
+    }),
+  }), [t]);
+
+  type AssessmentFormValues = z.infer<typeof assessmentSchema>;
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AssessmentFormValues>({
     resolver: zodResolver(assessmentSchema),
@@ -255,7 +255,7 @@ export default function AssessmentWizard() {
     setFormError(
       typeof firstError?.message === 'string'
         ? firstError.message
-        : 'Revisa los campos obligatorios antes de obtener el resultado.'
+        : t.wizardValidationSummary
     );
   };
 
@@ -263,7 +263,7 @@ export default function AssessmentWizard() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">Paso {step} de 5</p>
+          <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map(s => (
               <div key={s} className={`h-1 w-8 rounded-full ${step >= s ? 'bg-[#00DC82]' : 'bg-[#262626]'}`} />
@@ -285,9 +285,9 @@ export default function AssessmentWizard() {
             <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardTitle}</h2>
             <div className="grid gap-4">
               {[
-                { id: 'current_state', title: 'Conocer situación actual', desc: 'Descubre tu clasificación orientativa.', icon: Target },
-                { id: 'target_letter', title: 'Alcanzar una letra concreta', desc: 'Define tu meta y obtén un plan.', icon: Bolt },
-                { id: 'sale_rent', title: 'Preparar venta o alquiler', desc: 'Incrementa el valor de tu inmueble.', icon: Building },
+                { id: 'current_state', title: t.wizardObjectiveCurrent, desc: t.wizardObjectiveCurrentDesc, icon: Target },
+                { id: 'target_letter', title: t.wizardObjectiveTarget, desc: t.wizardObjectiveTargetDesc, icon: Bolt },
+                { id: 'sale_rent', title: t.wizardObjectiveSale, desc: t.wizardObjectiveSaleDesc, icon: Building },
               ].map(opt => (
                 <button
                   key={opt.id}
@@ -311,54 +311,54 @@ export default function AssessmentWizard() {
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-premium">Datos de la vivienda</h2>
+            <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de inmueble</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardPropertyType}</label>
                 <select {...register('propertyType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="flat">Piso / Apartamento</option>
-                  <option value="house">Casa unifamiliar</option>
-                  <option value="terraced">Adosado</option>
-                  <option value="penthouse">Ático</option>
-                  <option value="ground_floor">Planta baja</option>
+                  <option value="flat">{t.wizardPropertyTypeFlat}</option>
+                  <option value="house">{t.wizardPropertyTypeHouse}</option>
+                  <option value="terraced">{t.wizardPropertyTypeTerraced}</option>
+                  <option value="penthouse">{t.wizardPropertyTypePenthouse}</option>
+                  <option value="ground_floor">{t.wizardPropertyTypeGroundFloor}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Año de construcción</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardConstructionYear}</label>
                 <input type="number" {...register('year', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Superficie útil (m²)</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardAreaLabel} ({t.unitArea})</label>
                 <input type="number" {...register('area', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Código Postal</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardZipcode}</label>
                 <input type="text" {...register('zipcode')} placeholder="28001" className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Orientación principal</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardOrientationLabel}</label>
                 <select {...register('orientation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="north">Norte</option>
-                  <option value="south">Sur</option>
-                  <option value="east">Este</option>
-                  <option value="west">Oeste</option>
-                  <option value="mixed">Mixta</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="north">{t.wizardOrientationNorth}</option>
+                  <option value="south">{t.wizardOrientationSouth}</option>
+                  <option value="east">{t.wizardOrientationEast}</option>
+                  <option value="west">{t.wizardOrientationWest}</option>
+                  <option value="mixed">{t.wizardOrientationMixed}</option>
+                  <option value="unknown">{t.wizardOrientationUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de cubierta</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardRoofTypeLabel}</label>
                 <select {...register('roofType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="flat">Plana</option>
-                  <option value="pitched">Inclinada</option>
-                  <option value="shared">Comunitaria / compartida</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="flat">{t.wizardRoofTypeFlat}</option>
+                  <option value="pitched">{t.wizardRoofTypePitched}</option>
+                  <option value="shared">{t.wizardRoofTypeShared}</option>
+                  <option value="unknown">{t.wizardRoofTypeUnknown}</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -366,48 +366,48 @@ export default function AssessmentWizard() {
         {/* STEP 3: ENVELOPE & WINDOWS */}
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Envolvente</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardEnvelope}</h2>
             <div className="grid gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Tipo de ventanas</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardWindowsLabel}</label>
                 <select {...register('windows')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="single">Cristal Simple</option>
-                  <option value="double">Doble Cristal</option>
-                  <option value="triple">Triple / Bajo emisivo</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="single">{t.wizardWindowsSingle}</option>
+                  <option value="double">{t.wizardWindowsDouble}</option>
+                  <option value="triple">{t.wizardWindowsTriple}</option>
+                  <option value="unknown">{t.wizardWindowsUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Aislamiento de Fachada</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardFacadeInsulationLabel}</label>
                 <select {...register('facadeInsulation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="none">Ninguno</option>
-                  <option value="partial">Parcial / Básico</option>
-                  <option value="good">Bueno (SATE / Inyección)</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="none">{t.wizardInsulationNone}</option>
+                  <option value="partial">{t.wizardInsulationPartial}</option>
+                  <option value="good">{t.wizardInsulationGood}</option>
+                  <option value="unknown">{t.wizardInsulationUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Aislamiento de Cubierta</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardRoofInsulationLabel}</label>
                 <select {...register('roofInsulation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="none">Ninguno</option>
-                  <option value="partial">Parcial</option>
-                  <option value="good">Bueno</option>
-                  <option value="unknown">No lo sé / No aplica</option>
+                  <option value="none">{t.wizardInsulationNone}</option>
+                  <option value="partial">{t.wizardInsulationPartial}</option>
+                  <option value="good">{t.wizardInsulationGood}</option>
+                  <option value="unknown">{t.wizardInsulationUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Ventilación</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardVentilationLabel}</label>
                 <select {...register('ventilation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="natural">Natural</option>
-                  <option value="mechanical">Mecánica</option>
-                  <option value="heat_recovery">Mecánica con recuperador de calor</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="natural">{t.wizardVentilationNatural}</option>
+                  <option value="mechanical">{t.wizardVentilationMechanical}</option>
+                  <option value="heat_recovery">{t.wizardVentilationHeatRecovery}</option>
+                  <option value="unknown">{t.wizardVentilationUnknown}</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -415,53 +415,53 @@ export default function AssessmentWizard() {
         {/* STEP 4: SYSTEMS */}
         {step === 4 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Instalaciones</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardSystems}</h2>
             <div className="grid gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Sistema de calefacción</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardHeatingLabel}</label>
                 <select {...register('heating')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="gas">Caldera de Gas</option>
-                  <option value="electric">Radiadores Eléctricos</option>
-                  <option value="heat_pump">Aerotermia / Bomba de calor</option>
-                  <option value="biomass">Biomasa / Pellets</option>
-                  <option value="none">Ninguno</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="gas">{t.wizardHeatingGas}</option>
+                  <option value="electric">{t.wizardHeatingElectric}</option>
+                  <option value="heat_pump">{t.wizardHeatingHeatPump}</option>
+                  <option value="biomass">{t.wizardHeatingBiomass}</option>
+                  <option value="none">{t.wizardHeatingNone}</option>
+                  <option value="unknown">{t.wizardHeatingUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Aire Acondicionado</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardCoolingLabel}</label>
                 <select {...register('cooling')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="none">Ninguno</option>
-                  <option value="split">Split</option>
-                  <option value="central">Centralizado por conductos</option>
-                  <option value="heat_pump">Aerotermia</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="none">{t.wizardCoolingNone}</option>
+                  <option value="split">{t.wizardCoolingSplit}</option>
+                  <option value="central">{t.wizardCoolingCentral}</option>
+                  <option value="heat_pump">{t.wizardCoolingHeatPump}</option>
+                  <option value="unknown">{t.wizardCoolingUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Agua Caliente Sanitaria (ACS)</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardWaterHeatingLabel}</label>
                 <select {...register('waterHeating')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="gas">Calentador/Caldera de Gas</option>
-                  <option value="electric">Termo Eléctrico</option>
-                  <option value="heat_pump">Aerotermia</option>
-                  <option value="solar">Apoyo Solar Térmico</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="gas">{t.wizardWaterHeatingGas}</option>
+                  <option value="electric">{t.wizardWaterHeatingElectric}</option>
+                  <option value="heat_pump">{t.wizardWaterHeatingHeatPump}</option>
+                  <option value="solar">{t.wizardWaterHeatingSolar}</option>
+                  <option value="unknown">{t.wizardWaterHeatingUnknown}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Renovables</label>
+                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardRenewablesLabel}</label>
                 <select {...register('renewables')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="none">Ninguna</option>
-                  <option value="photovoltaic">Paneles Solares (Fotovoltaica)</option>
-                  <option value="solar_thermal">Solar Térmica</option>
-                  <option value="both">Ambas</option>
-                  <option value="unknown">No lo sé</option>
+                  <option value="none">{t.wizardRenewablesNone}</option>
+                  <option value="photovoltaic">{t.wizardRenewablesPhotovoltaic}</option>
+                  <option value="solar_thermal">{t.wizardRenewablesSolarThermal}</option>
+                  <option value="both">{t.wizardRenewablesBoth}</option>
+                  <option value="unknown">{t.wizardRenewablesUnknown}</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
-              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">Siguiente</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+              <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>
           </div>
         )}
@@ -469,25 +469,25 @@ export default function AssessmentWizard() {
         {/* STEP 5: ATTACHMENTS & SUBMIT */}
         {step === 5 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">Presupuesto y Confirmación</h2>
+            <h2 className="font-heading font-bold text-2xl text-[#F0EDE8]">{t.wizardBudgetConfirm}</h2>
             
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Presupuesto estimado para mejoras</label>
+              <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardBudgetLabel}</label>
               <select {...register('budgetRange')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                <option value="low">Bajo ({"<"} 3.000€)</option>
-                <option value="medium">Medio (3.000€ - 10.000€)</option>
-                <option value="high">Alto ({">"} 10.000€)</option>
-                <option value="unknown">No lo tengo claro</option>
+                <option value="low">{t.wizardBudgetLow} ({"<"} {formatCurrency(3000, { maximumFractionDigits: 0 })})</option>
+                <option value="medium">{t.wizardBudgetMedium} ({formatCurrency(3000, { maximumFractionDigits: 0 })} - {formatCurrency(10000, { maximumFractionDigits: 0 })})</option>
+                <option value="high">{t.wizardBudgetHigh} ({">"} {formatCurrency(10000, { maximumFractionDigits: 0 })})</option>
+                <option value="unknown">{t.wizardBudgetUnknown}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-[#7A7A7A] uppercase">Horizonte temporal deseado</label>
+              <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardTimelineLabel}</label>
               <select {...register('timelineHorizon')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                <option value="immediate">Inmediato</option>
-                <option value="six_months">Próximos 6 meses</option>
-                <option value="one_year">Antes de 12 meses</option>
-                <option value="three_years">1-3 años</option>
-                <option value="unknown">No definido</option>
+                <option value="immediate">{t.wizardTimelineImmediate}</option>
+                <option value="six_months">{t.wizardTimelineSixMonths}</option>
+                <option value="one_year">{t.wizardTimelineOneYear}</option>
+                <option value="three_years">{t.wizardTimelineThreeYears}</option>
+                <option value="unknown">{t.wizardTimelineUnknown}</option>
               </select>
             </div>
 
@@ -501,8 +501,8 @@ export default function AssessmentWizard() {
             >
               <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
                 <UploadCloud className="h-8 w-8 text-[#00DC82]" />
-                <span className="font-heading text-sm font-bold text-premium">Adjunta fotos, PDF, DOCX o Markdown</span>
-                <span className="text-xs text-muted">Arrastra archivos o selecciona hasta {MAX_ATTACHMENTS}. Máximo {formatFileSize(MAX_ATTACHMENT_SIZE)} por archivo.</span>
+                <span className="font-heading text-sm font-bold text-premium">{t.attachmentsHelp}</span>
+                <span className="text-xs text-muted">{t.attachmentsLimit}</span>
                 <input
                   type="file"
                   multiple
@@ -517,7 +517,7 @@ export default function AssessmentWizard() {
                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-[#00DC82]" style={{ width: `${uploadProgress}%` }} />
                   </div>
-                  <p className="text-xs text-muted">Subiendo adjuntos a almacenamiento seguro: {uploadProgress}%</p>
+                  <p className="text-xs text-muted">{t.processing} {uploadProgress}%</p>
                 </div>
               )}
               {files.length > 0 && (
@@ -538,7 +538,7 @@ export default function AssessmentWizard() {
               <div className="flex items-start gap-3">
                 <input type="checkbox" id="acceptTerms" {...register('acceptTerms')} className="mt-1 accent-[#00DC82]" />
                 <label htmlFor="acceptTerms" className="text-sm text-[#7A7A7A] leading-tight cursor-pointer">
-                  Acepto que Anclora EnergyScan realice una estimación orientativa. {getLegalDisclaimer(language)}
+                  {t.submitLegal} {getLegalDisclaimer(language)}
                 </label>
               </div>
               {errors.acceptTerms && <p className="text-red-500 text-xs">{errors.acceptTerms.message}</p>}
@@ -547,21 +547,21 @@ export default function AssessmentWizard() {
             <div className="p-4 rounded-xl bg-[#FFB020]/5 border border-[#FFB020]/20 space-y-3">
               <div className="flex items-center gap-2 text-[#FFB020]">
                 <ShieldCheck className="w-5 h-5" />
-                <p className="font-heading font-bold text-sm">Información legal importante</p>
+                <p className="font-heading font-bold text-sm">{t.importantLegal}</p>
               </div>
               <p className="text-xs text-[#7A7A7A] leading-relaxed">
-                Este diagnóstico no sustituye la inspección de un técnico competente. Las letras generadas son una aproximación basada en el año de construcción y los sistemas declarados.
+                {t.importantLegalCopy}
               </p>
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">Anterior</button>
+              <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
               <button 
                 type="submit" 
                 disabled={isSubmitting}
                 className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition disabled:opacity-50"
               >
-                {isSubmitting ? 'Procesando...' : 'Obtener resultado'}
+                {isSubmitting ? t.processing : t.getResult}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import type { ScenarioCostEstimate } from '../costs/types';
+import type { AppCurrency, AppLanguage, MeasurementSystem } from '../preferences';
 
 export type EnergyLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type ConfidenceLevel = "Alta" | "Media" | "Baja";
@@ -215,6 +216,8 @@ export interface PremiumReportData {
   providerCategories: string[];
   attachments?: AssessmentAttachment[];
   logoDataUri?: string;
-  language?: "es" | "en" | "de";
+  language?: AppLanguage;
+  currency?: AppCurrency;
+  measurementSystem?: MeasurementSystem;
   isDemo?: boolean;
 }

@@ -5,8 +5,11 @@ import { AssessmentAttachment, PremiumReportData } from '../domain/energy-assess
 import { getLegalDisclaimer } from '../i18n';
 import { formatFileSize } from '../attachments';
 import { getPublicAssessmentRef } from '../stateless-assessment';
-import { formatEuroRange, formatUnitPrice } from '../costs/format';
+import { formatCostQuantity, formatEuroRange, formatUnitPrice } from '../costs/format';
 import { COST_LEGAL_DISCLAIMER, FUTURE_PRICE_SOURCE_NOTE, PRICE_TRACEABILITY_NOTE } from '../costs/cost-disclaimers';
+import { formatArea } from '../formatters';
+import { getPreferencesForLanguage } from '../preferences';
+import { localizeScenarios, localizeSubsidies } from '../scenario-i18n';
 
 const labels = {
   es: {
@@ -22,6 +25,7 @@ const labels = {
     orientation: 'Orientación / Cubierta',
     systems: 'Sistemas',
     envelope: 'Envolvente',
+    renewables: 'Renovables',
     findings: 'Resumen de hallazgos',
     penalties: 'Penalizaciones principales:',
     strengths: 'Fortalezas principales:',
@@ -40,6 +44,37 @@ const labels = {
     fileType: 'Tipo',
     fileSize: 'Tamaño',
     previewUnavailable: 'El contenido de este formato queda registrado como documento aportado, pero no se convierte automáticamente dentro del informe.',
+    scenarioRouteSubtitle: 'Rutas orientativas de mejora',
+    objective: 'Objetivo',
+    expectedImpact: 'Impacto esperado',
+    investment: 'Inversión',
+    savings: 'Ahorro',
+    jump: 'Salto estimado',
+    indicativeRange: 'Rango orientativo',
+    economicTitle: 'Estimación económica orientativa',
+    economicSubtitle: 'Rangos por escenario y trazabilidad de fuentes',
+    economicSummary: 'Resumen económico por escenario',
+    economicDetail: 'Detalle de actuaciones estimadas',
+    conservativeRecommendedPremium: 'Conservador / recomendado / premium',
+    interventionLevel: 'Nivel de intervención',
+    heatPumpTitle: 'Bomba de calor y aerotermia',
+    technicalNote: 'Nota técnica',
+    regulationSubtitle: 'Marco regulatorio aplicable',
+    subsidiesSubtitle: 'Ayudas, cautelas y categorías profesionales',
+    scope: 'Ámbito',
+    appliesTo: 'Aplica a',
+    providerCategoriesTitle: 'Categorías de partners y proveedores',
+    ceeAnnexNote: 'Las páginas siguientes reproducen el PDF original aportado.',
+    exterior: 'Imagen exterior',
+    interior: 'Imagen interior',
+    id: 'ID',
+    date: 'Fecha',
+    ceeSubmitted: 'CEE aportado',
+    userDocument: 'Documento aportado por el usuario',
+    documentSummary: 'Resumen del documento',
+    collectedLetter: 'Letra recogida',
+    ceeAnnexNoteShort: 'Documento PDF aportado por el usuario.',
+    ceeDisclaimer: 'Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.',
   },
   en: {
     title: 'Anclora EnergyScan Premium Report',
@@ -54,6 +89,7 @@ const labels = {
     orientation: 'Orientation / Roof',
     systems: 'Systems',
     envelope: 'Envelope',
+    renewables: 'Renewables',
     findings: 'Findings Summary',
     penalties: 'Main penalties:',
     strengths: 'Main strengths:',
@@ -72,6 +108,37 @@ const labels = {
     fileType: 'Type',
     fileSize: 'Size',
     previewUnavailable: 'The content of this format is registered as a submitted document, but is not automatically converted inside the report.',
+    scenarioRouteSubtitle: 'Indicative improvement routes',
+    objective: 'Objective',
+    expectedImpact: 'Expected impact',
+    investment: 'Investment',
+    savings: 'Savings',
+    jump: 'Estimated jump',
+    indicativeRange: 'Indicative range',
+    economicTitle: 'Indicative economic estimate',
+    economicSubtitle: 'Ranges by scenario and source traceability',
+    economicSummary: 'Economic summary by scenario',
+    economicDetail: 'Estimated action detail',
+    conservativeRecommendedPremium: 'Conservative / recommended / premium',
+    interventionLevel: 'Intervention level',
+    heatPumpTitle: 'Heat pump and aerothermal systems',
+    technicalNote: 'Technical note',
+    regulationSubtitle: 'Applicable regulatory framework',
+    subsidiesSubtitle: 'Grants, cautions and professional categories',
+    scope: 'Scope',
+    appliesTo: 'Applies to',
+    providerCategoriesTitle: 'Partner and provider categories',
+    ceeAnnexNote: 'The following pages reproduce the original PDF provided by the user.',
+    exterior: 'Exterior image',
+    interior: 'Interior image',
+    id: 'ID',
+    date: 'Date',
+    ceeSubmitted: 'Submitted EPC',
+    userDocument: 'Document provided by user',
+    documentSummary: 'Document summary',
+    collectedLetter: 'Collected rating',
+    ceeAnnexNoteShort: 'PDF document provided by user.',
+    ceeDisclaimer: 'Document provided by user. EnergyScan does not replace the official Energy Performance Certificate or an inspection by a qualified technician.',
   },
   de: {
     title: 'Anclora EnergyScan Premium Report',
@@ -86,6 +153,7 @@ const labels = {
     orientation: 'Ausrichtung / Dach',
     systems: 'Systeme',
     envelope: 'Gebäudehülle',
+    renewables: 'Erneuerbare',
     findings: 'Zusammenfassung',
     penalties: 'Wesentliche Abzüge:',
     strengths: 'Wesentliche Stärken:',
@@ -104,6 +172,37 @@ const labels = {
     fileType: 'Typ',
     fileSize: 'Grösse',
     previewUnavailable: 'Der Inhalt dieses Formats wird als eingereichtes Dokument registriert, aber nicht automatisch in den Bericht konvertiert.',
+    scenarioRouteSubtitle: 'Orientierende Verbesserungsrouten',
+    objective: 'Ziel',
+    expectedImpact: 'Erwartete Wirkung',
+    investment: 'Investition',
+    savings: 'Einsparung',
+    jump: 'Geschätzter Sprung',
+    indicativeRange: 'Orientierungsrahmen',
+    economicTitle: 'Orientierende Kostenschätzung',
+    economicSubtitle: 'Spannen je Szenario und Nachvollziehbarkeit der Quellen',
+    economicSummary: 'Kostenzusammenfassung je Szenario',
+    economicDetail: 'Geschätzte Maßnahmen im Detail',
+    conservativeRecommendedPremium: 'Konservativ / empfohlen / Premium',
+    interventionLevel: 'Interventionsniveau',
+    heatPumpTitle: 'Wärmepumpe und Aerothermie',
+    technicalNote: 'Technische Notiz',
+    regulationSubtitle: 'Anwendbarer regulatorischer Rahmen',
+    subsidiesSubtitle: 'Förderungen, Hinweise und professionelle Kategorien',
+    scope: 'Bereich',
+    appliesTo: 'Gilt für',
+    providerCategoriesTitle: 'Partner- und Anbieterkategorien',
+    ceeAnnexNote: 'Die folgenden Seiten reproduzieren das vom Nutzer bereitgestellte Original-PDF.',
+    exterior: 'Außenbild',
+    interior: 'Innenbild',
+    id: 'ID',
+    date: 'Datum',
+    ceeSubmitted: 'Eingereichter Energieausweis',
+    userDocument: 'Vom Nutzer bereitgestelltes Dokument',
+    documentSummary: 'Dokumentenzusammenfassung',
+    collectedLetter: 'Erfasste Klasse',
+    ceeAnnexNoteShort: 'Vom Nutzer bereitgestelltes PDF-Dokument.',
+    ceeDisclaimer: 'Vom Nutzer bereitgestelltes Dokument. EnergyScan ersetzt keinen offiziellen Energieausweis oder eine Prüfung durch einen qualifizierten Techniker.',
   },
 } as const;
 
@@ -325,11 +424,12 @@ function labelPropertyType(value: string | undefined, language: 'es' | 'en' | 'd
 function buildUserDataRows(data: PremiumReportData, language: 'es' | 'en' | 'de') {
   const p = data.propertyData;
   const fields = annexFieldLabels[language];
+  const measurementSystem = data.measurementSystem || getPreferencesForLanguage(language).measurementSystem;
   return [
     [fields.objective, labelValue(p.objective, language)],
     [fields.propertyType, labelPropertyType(p.propertyType, language)],
     [fields.year, String(p.year)],
-    [fields.area, `${p.area} m²`],
+    [fields.area, formatArea(p.area, measurementSystem, language)],
     [fields.zipcode, p.zipcode],
     [fields.orientation, labelValue(p.orientation, language)],
     [fields.roofType, labelValue(p.roofType, language)],
@@ -369,10 +469,21 @@ function chunkPairs<T>(items: T[]): T[][] {
   return chunks;
 }
 
+function costSourceSummary(language: 'es' | 'en' | 'de', sourceSummary?: string) {
+  if (language === 'es') return sourceSummary || '';
+  if (language === 'en') return 'Indicative cost range based on the internal demo price catalogue. Final prices require a professional quote.';
+  return 'Orientierende Kostenspanne aus dem internen Demo-Preiskatalog. Endpreise erfordern ein professionelles Angebot.';
+}
+
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
+  const defaults = getPreferencesForLanguage(language);
+  const currency = data.currency || defaults.currency;
+  const measurementSystem = data.measurementSystem || defaults.measurementSystem;
   const t = labels[language];
   const reportRef = data.publicRef || getPublicAssessmentRef(data.id);
+  const scenarios = localizeScenarios(data.scenarios, language);
+  const subsidies = localizeSubsidies(data.subsidies || [], language);
   const attachments = data.attachments || [];
   const imageAttachments = attachments.filter((attachment) => attachment.previewDataUri);
   const isPdfAttachment = (attachment: AssessmentAttachment) => attachment.type === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf');
@@ -394,7 +505,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.title}</Text>
             <Text style={styles.subtitle}>{t.subtitle}</Text>
-            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>{t.id}: {reportRef} | {t.date}: {data.date}</Text>
             {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
           </View>
         </View>
@@ -409,12 +520,12 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.data}</Text>
-        <View style={styles.row}><Text style={styles.colLeft}>{t.yearArea}</Text><Text style={styles.colRight}>{data.propertyData.year} / {data.propertyData.area} m²</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>{t.yearArea}</Text><Text style={styles.colRight}>{data.propertyData.year} / {formatArea(data.propertyData.area, measurementSystem, language)}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.zipcode}</Text><Text style={styles.colRight}>{data.propertyData.zipcode}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.orientation}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.orientation, language)} / {labelValue(data.propertyData.roofType, language)}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.systems}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.heating, language)} / {labelValue(data.propertyData.cooling, language)} / {labelValue(data.propertyData.waterHeating, language)}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.envelope}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.windows, language)} / {labelValue(data.propertyData.facadeInsulation, language)} / {labelValue(data.propertyData.roofInsulation, language)}</Text></View>
-        <View style={styles.row}><Text style={styles.colLeft}>Renovables</Text><Text style={styles.colRight}>{labelValue(data.propertyData.renewables, language)}</Text></View>
+        <View style={styles.row}><Text style={styles.colLeft}>{t.renewables}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.renewables, language)}</Text></View>
       </View>
 
       <View style={styles.section}>
@@ -460,29 +571,29 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.scenarios}</Text>
-            <Text style={styles.subtitle}>Rutas orientativas de mejora</Text>
+            <Text style={styles.subtitle}>{t.scenarioRouteSubtitle}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.scenarios}</Text>
-        {data.scenarios.map((s, i) => (
+        {scenarios.map((s, i) => (
           <View key={i} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{s.title}</Text>
-            <Text style={styles.text}>Objetivo: {s.objective}</Text>
+            <Text style={styles.text}>{t.objective}: {s.objective}</Text>
             {s.description && <Text style={styles.text}>{s.description}</Text>}
-            <Text style={styles.text}>Impacto esperado: {s.expectedLetterImpact}</Text>
-            <Text style={styles.text}>Inversión: {s.estimatedCostRange} | Ahorro: {s.estimatedSavingsRange}</Text>
+            <Text style={styles.text}>{t.expectedImpact}: {s.expectedLetterImpact}</Text>
+            <Text style={styles.text}>{t.investment}: {s.estimatedCostRange} | {t.savings}: {s.estimatedSavingsRange}</Text>
             {s.costEstimate && (
               <View style={{ marginTop: 6 }}>
                 <Text style={{ ...styles.text, fontWeight: 'bold', color: '#008F5A' }}>
-                  Rango orientativo: {formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal)} · Confianza: {s.costEstimate.confidence}
+                  {t.indicativeRange}: {formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal, { currency, language })} · {t.confidence}: {s.costEstimate.confidence}
                 </Text>
-                <Text style={{ ...styles.text, fontSize: 8 }}>{s.costEstimate.sourceSummary}</Text>
+                <Text style={{ ...styles.text, fontSize: 8 }}>{costSourceSummary(language, s.costEstimate.sourceSummary)}</Text>
               </View>
             )}
-            {s.rationale && <Text style={styles.text}>Racional: {s.rationale}</Text>}
+            {s.rationale && <Text style={styles.text}>{s.rationale}</Text>}
             <View style={{ marginTop: 5 }}>
               {s.measures.map((m, j) => (
                 <View key={j} style={styles.bullet}>
@@ -507,36 +618,36 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             <Image src={data.logoDataUri} style={styles.logo} />
           )}
           <View style={styles.headerText}>
-            <Text style={styles.title}>Estimación económica orientativa</Text>
-            <Text style={styles.subtitle}>Rangos por escenario y trazabilidad de fuentes</Text>
+            <Text style={styles.title}>{t.economicTitle}</Text>
+            <Text style={styles.subtitle}>{t.economicSubtitle}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumen económico por escenario</Text>
-        {data.scenarios.filter((scenario) => scenario.costEstimate).map((scenario) => (
+        <Text style={styles.sectionTitle}>{t.economicSummary}</Text>
+        {scenarios.filter((scenario) => scenario.costEstimate).map((scenario) => (
           <View key={scenario.id} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{scenario.title}</Text>
-            <Text style={styles.text}>Salto estimado: {scenario.expectedLetterImpact}</Text>
-            <Text style={styles.text}>Nivel de intervención: {scenario.costEstimate?.interventionLevel || scenario.complexity || 'Orientativo'}</Text>
+            <Text style={styles.text}>{t.jump}: {scenario.expectedLetterImpact}</Text>
+            <Text style={styles.text}>{t.interventionLevel}: {scenario.costEstimate?.interventionLevel || scenario.complexity || 'Orientativo'}</Text>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>
-              Conservador / recomendado / premium: {formatEuroRange(scenario.costEstimate!.minTotal, scenario.costEstimate!.maxTotal, scenario.costEstimate!.midTotal)}
+              {t.conservativeRecommendedPremium}: {formatEuroRange(scenario.costEstimate!.minTotal, scenario.costEstimate!.maxTotal, scenario.costEstimate!.midTotal, { currency, language })}
             </Text>
-            <Text style={styles.text}>Confianza: {scenario.costEstimate!.confidence}</Text>
-            <Text style={{ ...styles.text, fontSize: 8 }}>{scenario.costEstimate!.sourceSummary}</Text>
+            <Text style={styles.text}>{t.confidence}: {scenario.costEstimate!.confidence}</Text>
+            <Text style={{ ...styles.text, fontSize: 8 }}>{costSourceSummary(language, scenario.costEstimate!.sourceSummary)}</Text>
           </View>
         ))}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalle de actuaciones estimadas</Text>
-        {data.scenarios.filter((scenario) => scenario.costEstimate).slice(0, 2).map((scenario) => (
+        <Text style={styles.sectionTitle}>{t.economicDetail}</Text>
+        {scenarios.filter((scenario) => scenario.costEstimate).slice(0, 2).map((scenario) => (
           <View key={`${scenario.id}-cost-lines`} style={{ marginBottom: 8 }} wrap={false}>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>{scenario.title}</Text>
             {scenario.costEstimate!.lines.slice(0, 5).map((line) => (
               <Text key={`${scenario.id}-${line.priceItemCode}`} style={{ ...styles.text, fontSize: 8 }}>
-                {line.title} · {line.quantity} {line.unit} · {formatUnitPrice(line.minUnitPrice, line.unit)} - {formatUnitPrice(line.maxUnitPrice, line.unit)} · {formatEuroRange(line.minSubtotal, line.maxSubtotal, line.midSubtotal)} · {line.confidence}
+                {language === 'es' ? line.title : line.priceItemCode} · {formatCostQuantity(line.quantity, line.unit, { language, measurementSystem })} · {formatUnitPrice(line.minUnitPrice, line.unit, { currency, language, measurementSystem })} - {formatUnitPrice(line.maxUnitPrice, line.unit, { currency, language, measurementSystem })} · {formatEuroRange(line.minSubtotal, line.maxSubtotal, line.midSubtotal, { currency, language })} · {line.confidence}
               </Text>
             ))}
           </View>
@@ -550,7 +661,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </View>
     </Page>
 
-    {data.scenarios.some((scenario) => scenario.costEstimate?.heatPumpTechnicalNote) && (
+    {scenarios.some((scenario) => scenario.costEstimate?.heatPumpTechnicalNote) && (
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.brandHeader}>
@@ -559,15 +670,15 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <Image src={data.logoDataUri} style={styles.logo} />
             )}
             <View style={styles.headerText}>
-              <Text style={styles.title}>Bomba de calor y aerotermia</Text>
-              <Text style={styles.subtitle}>Dependencias técnicas y cautelas</Text>
+              <Text style={styles.title}>{t.heatPumpTitle}</Text>
+              <Text style={styles.subtitle}>{language === 'en' ? 'Technical dependencies and cautions' : language === 'de' ? 'Technische Abhängigkeiten und Hinweise' : 'Dependencias técnicas y cautelas'}</Text>
             </View>
           </View>
         </View>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nota técnica</Text>
-          <Text style={styles.text}>{data.scenarios.find((scenario) => scenario.costEstimate?.heatPumpTechnicalNote)?.costEstimate?.heatPumpTechnicalNote}</Text>
-          <Text style={styles.text}>Antes de presupuestar debe revisarse aislamiento, espacio para equipos, emisores, instalación eléctrica, acústica, normativa local y consumos reales.</Text>
+          <Text style={styles.sectionTitle}>{t.technicalNote}</Text>
+          <Text style={styles.text}>{scenarios.find((scenario) => scenario.costEstimate?.heatPumpTechnicalNote)?.costEstimate?.heatPumpTechnicalNote}</Text>
+          <Text style={styles.text}>{language === 'en' ? 'Before quoting, insulation, equipment space, emitters, electrical installation, acoustics, local rules and real consumption should be reviewed.' : language === 'de' ? 'Vor Angebotsabgabe sollten Dämmung, Platz für Geräte, Heizflächen, Elektroinstallation, Akustik, lokale Vorschriften und reale Verbräuche geprüft werden.' : 'Antes de presupuestar debe revisarse aislamiento, espacio para equipos, emisores, instalación eléctrica, acústica, normativa local y consumos reales.'}</Text>
         </View>
         <View style={styles.disclaimer}>
           <Text>{COST_LEGAL_DISCLAIMER}</Text>
@@ -584,7 +695,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.regulation}</Text>
-            <Text style={styles.subtitle}>Marco regulatorio aplicable</Text>
+            <Text style={styles.subtitle}>{t.regulationSubtitle}</Text>
           </View>
         </View>
       </View>
@@ -595,7 +706,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View key={i} style={{ marginBottom: 10 }} wrap={false}>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>{r.year} - {r.title} ({r.dateLabel})</Text>
             <Text style={styles.text}>{r.description}</Text>
-            <Text style={styles.text}>Impacto para el usuario: {r.impactOnUser}</Text>
+            <Text style={styles.text}>{language === 'en' ? 'User impact' : language === 'de' ? 'Auswirkung für Nutzer' : 'Impacto para el usuario'}: {language === 'es' ? r.impactOnUser : getLegalDisclaimer(language)}</Text>
             <Text style={{ ...styles.text, fontSize: 8 }}>{r.legalReference}{r.disclaimer ? ` · ${r.disclaimer}` : ''}</Text>
           </View>
         ))}
@@ -611,30 +722,30 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.subsidies}</Text>
-            <Text style={styles.subtitle}>Ayudas, cautelas y categorías profesionales</Text>
+            <Text style={styles.subtitle}>{t.subsidiesSubtitle}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.subsidies}</Text>
-        {(data.subsidies || []).map((item) => (
+        {subsidies.map((item) => (
           <View key={item.id} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{item.title}</Text>
-            <Text style={styles.text}>Ámbito: {item.scope} | Aplica a: {item.appliesTo.join(', ')}</Text>
+            <Text style={styles.text}>{t.scope}: {item.scope} | {t.appliesTo}: {item.appliesTo.join(', ')}</Text>
             <Text style={styles.text}>{item.description}</Text>
             <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>{item.eligibilityDisclaimer}</Text>
           </View>
         ))}
         <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>
-          EnergyScan no verifica convocatorias en tiempo real, no garantiza elegibilidad ni importes y recomienda consultar fuentes oficiales.
+          {language === 'en' ? 'EnergyScan does not verify calls in real time, does not guarantee eligibility or amounts, and recommends checking official sources.' : language === 'de' ? 'EnergyScan prüft Ausschreibungen nicht in Echtzeit, garantiert weder Förderfähigkeit noch Beträge und empfiehlt die Prüfung offizieller Quellen.' : 'EnergyScan no verifica convocatorias en tiempo real, no garantiza elegibilidad ni importes y recomienda consultar fuentes oficiales.'}
         </Text>
       </View>
 
       <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>Categorías de partners y proveedores</Text>
-        <Text style={styles.text}>Categorías orientativas sugeridas para estudiar las mejoras: {data.providerCategories.join(', ')}.</Text>
-        <Text style={styles.text}>Los proveedores o categorías sugeridas son orientativos. Cualquier presupuesto, visita técnica o actuación deberá ser confirmado directamente por profesionales cualificados. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial.</Text>
+        <Text style={styles.sectionTitle}>{t.providerCategoriesTitle}</Text>
+        <Text style={styles.text}>{language === 'en' ? 'Indicative categories suggested to study the improvements' : language === 'de' ? 'Orientierende Kategorien zur Prüfung der Maßnahmen' : 'Categorías orientativas sugeridas para estudiar las mejoras'}: {data.providerCategories.join(', ')}.</Text>
+        <Text style={styles.text}>{getLegalDisclaimer(language)}</Text>
       </View>
     </Page>
 
@@ -648,7 +759,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.annexTitle}</Text>
             <Text style={styles.subtitle}>{t.userInfoAnnex}</Text>
-            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>{t.id}: {reportRef} | {t.date}: {data.date}</Text>
           </View>
         </View>
       </View>
@@ -666,11 +777,11 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.documentsAnnex}</Text>
         <Text style={styles.text}>{attachments.length > 0 ? formatDocumentsCount(attachments.length, language) : t.noDocuments}</Text>
-        <Text style={styles.text}>Anexo - Documentación aportada por el usuario. Las evidencias mostradas forman parte de una demo y, en un caso real, serían documentación aportada por el usuario.</Text>
+        <Text style={styles.text}>{language === 'en' ? 'Appendix - Submitted documentation. The evidence shown is part of a demo and, in a real case, would be documentation supplied by the user.' : language === 'de' ? 'Anhang - Eingereichte Dokumentation. Die gezeigten Nachweise sind Teil einer Demo und wären in einem realen Fall vom Nutzer bereitgestellte Dokumentation.' : 'Anexo - Documentación aportada por el usuario. Las evidencias mostradas forman parte de una demo y, en un caso real, serían documentación aportada por el usuario.'}</Text>
       </View>
 
       <View style={styles.disclaimer}>
-        <Text>Los documentos e imágenes mostrados en este anexo forman parte de una demo. En un caso real, serían documentación aportada por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
+        <Text>{getLegalDisclaimer(language)}</Text>
       </View>
     </Page>
 
@@ -683,8 +794,8 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <Image src={data.logoDataUri} style={styles.logo} />
             )}
             <View style={styles.headerText}>
-              <Text style={styles.title}>Anexo - Documentación aportada por el usuario</Text>
-              <Text style={styles.subtitle}>Imágenes aportadas {index + 1} / {imagePages.length}</Text>
+              <Text style={styles.title}>{t.annexTitle} - {t.documentsAnnex}</Text>
+              <Text style={styles.subtitle}>{language === 'en' ? 'Submitted images' : language === 'de' ? 'Eingereichte Bilder' : 'Imágenes aportadas'} {index + 1} / {imagePages.length}</Text>
             </View>
           </View>
         </View>
@@ -699,13 +810,13 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <Text style={styles.imageCaption}>{attachment.caption || attachment.name}</Text>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not expose an alt prop in its typed API. */}
               <Image src={attachment.previewDataUri!} style={styles.annexImage} />
-              <Text style={styles.imageMeta}>{attachment.category === 'EXTERIOR' ? 'Imagen exterior' : 'Imagen interior'} · {attachment.name}</Text>
+              <Text style={styles.imageMeta}>{attachment.category === 'EXTERIOR' ? t.exterior : t.interior} · {attachment.name}</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.disclaimer}>
-          <Text>Imágenes demo sin validez pericial. En un caso real, su interpretación exigiría revisión técnica presencial y documentación verificable.</Text>
+          <Text>{language === 'en' ? 'Demo images with no expert validity. In a real case, interpretation would require on-site technical review and verifiable documentation.' : language === 'de' ? 'Demobilder ohne Gutachtenwert. In einem realen Fall erfordert die Interpretation eine technische Vor-Ort-Prüfung und prüfbare Dokumentation.' : 'Imágenes demo sin validez pericial. En un caso real, su interpretación exigiría revisión técnica presencial y documentación verificable.'}</Text>
         </View>
       </Page>
     ))}
@@ -757,30 +868,30 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <Image src={data.logoDataUri} style={styles.logo} />
             )}
             <View style={styles.headerText}>
-              <Text style={styles.title}>CEE aportado</Text>
-              <Text style={styles.subtitle}>Documento aportado por el usuario</Text>
+              <Text style={styles.title}>{t.ceeSubmitted}</Text>
+              <Text style={styles.subtitle}>{t.userDocument}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen del documento</Text>
+          <Text style={styles.sectionTitle}>{t.documentSummary}</Text>
           {ceeAttachments.map((attachment) => (
             <View key={attachment.id} style={styles.annexMetaBox} wrap={false}>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type}</Text></View>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
-              <View style={styles.row}><Text style={styles.colLeft}>Letra recogida</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
-              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || 'Documento PDF aportado por el usuario.'}</Text>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.collectedLetter}</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
+              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || t.ceeAnnexNoteShort}</Text>
               <Text style={{ ...styles.text, color: '#008F5A', fontWeight: 'bold', marginTop: 6 }}>
-                Las páginas siguientes reproducen el PDF original aportado, sin rasterizar ni resumir su contenido.
+                {t.ceeAnnexNote} CEE en español, con importes en euros y superficies en m².
               </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.disclaimer}>
-          <Text>Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
+          <Text>{t.ceeDisclaimer}</Text>
         </View>
       </Page>
     )}

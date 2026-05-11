@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { GitBranch, Mail } from 'lucide-react';
 import { requestPasswordReset, signInWithEmail, signInWithProvider, signUpWithEmail } from './actions';
+import { usePreferences } from '@/components/AppPreferencesProvider';
 
 type AuthFormProps = {
   googleEnabled: boolean;
@@ -15,6 +16,7 @@ type AuthFormProps = {
 export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [providerStatus, setProviderStatus] = useState({ googleEnabled, githubEnabled });
+  const { dictionary: t } = usePreferences();
   const [signInState, signInAction] = useFormState(signInWithEmail, {});
   const [signUpState, signUpAction] = useFormState(signUpWithEmail, {});
   const [resetState, resetAction] = useFormState(requestPasswordReset, {});
@@ -46,50 +48,50 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
           onClick={() => setMode('signin')}
           className={`h-11 rounded-xl text-sm font-bold transition ${mode === 'signin' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
         >
-          Entrar
+          {t.signIn}
         </button>
         <button
           type="button"
           onClick={() => setMode('signup')}
           className={`h-11 rounded-xl text-sm font-bold transition ${mode === 'signup' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
         >
-          Crear cuenta
+          {t.signUp}
         </button>
       </div>
 
       {mode === 'forgot' ? (
         <form action={resetAction} className="space-y-4">
           <div>
-            <h1 className="font-heading text-2xl font-bold text-premium">Recuperar contraseña</h1>
-            <p className="mt-2 text-sm text-muted">Te enviaremos un enlace para restablecer el acceso.</p>
+            <h1 className="font-heading text-2xl font-bold text-premium">{t.recoverPassword}</h1>
+            <p className="mt-2 text-sm text-muted">{t.recoverCopy}</p>
           </div>
-          <input name="email" type="email" required placeholder="tu@email.com" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
-          <SubmitButton label="Enviar enlace" pendingLabel="Enviando..." />
-          {resetState.ok && <p className="text-sm text-[#00DC82]">Si el email existe, recibirás instrucciones.</p>}
+          <input name="email" type="email" required placeholder={t.authEmailPlaceholder} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <SubmitButton label={t.sendLink} pendingLabel={t.sending} />
+          {resetState.ok && <p className="text-sm text-[#00DC82]">{t.authResetOk}</p>}
           {resetState.resetUrl && (
             <p className="break-words rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
-              En local: {resetState.resetUrl}
+              {t.authLocalReset}: {resetState.resetUrl}
             </p>
           )}
-          <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-muted hover:text-premium">Volver al acceso</button>
+          <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-muted hover:text-premium">{t.backToAccess}</button>
         </form>
       ) : (
         <form action={mode === 'signin' ? signInAction : signUpAction} className="space-y-4">
           <div>
-            <h1 className="font-heading text-2xl font-bold text-premium">{mode === 'signin' ? 'Accede a EnergyScan' : 'Crea tu cuenta'}</h1>
-            <p className="mt-2 text-sm text-muted">Guarda valoraciones, adjuntos y solicitudes de contacto en tu espacio privado.</p>
+            <h1 className="font-heading text-2xl font-bold text-premium">{mode === 'signin' ? t.accountTitleSignIn : t.accountTitleSignUp}</h1>
+            <p className="mt-2 text-sm text-muted">{t.accountCopy}</p>
           </div>
 
           {mode === 'signup' && (
-            <input name="name" type="text" required placeholder="Nombre" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+            <input name="name" type="text" required placeholder={t.authFieldName} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
           )}
-          <input name="email" type="email" required placeholder="Email" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
-          <input name="password" type="password" required minLength={8} placeholder="Contraseña" className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <input name="email" type="email" required placeholder={t.authFieldEmail} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <input name="password" type="password" required minLength={8} placeholder={t.authFieldPassword} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
 
-          <SubmitButton label={mode === 'signin' ? 'Entrar' : 'Crear cuenta'} pendingLabel="Procesando..." />
+          <SubmitButton label={mode === 'signin' ? t.signIn : t.signUp} pendingLabel={t.processing} />
 
           <button type="button" onClick={() => setMode('forgot')} className="text-sm font-semibold text-muted hover:text-premium">
-            ¿Olvidó su contraseña?
+            {t.forgotPassword}
           </button>
         </form>
       )}
@@ -98,7 +100,7 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs font-bold uppercase text-muted">Acceso social</span>
+        <span className="text-xs font-bold uppercase text-muted">{t.socialAccess}</span>
         <div className="h-px flex-1 bg-white/10" />
       </div>
 
@@ -108,13 +110,13 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
       </div>
 
       <p className="mt-5 text-xs leading-relaxed text-muted">
-        Al continuar aceptas los{' '}
+        {t.acceptTermsPrefix}{' '}
         <Link href="/terms" className="font-semibold text-premium hover:text-[#00DC82]">
-          términos del servicio
+          {t.terms}
         </Link>{' '}
-        y la{' '}
+        {t.andPrivacy}{' '}
         <Link href="/privacy" className="font-semibold text-premium hover:text-[#00DC82]">
-          política de privacidad
+          {t.privacy}
         </Link>
         .
       </p>

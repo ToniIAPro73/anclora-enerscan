@@ -1,5 +1,5 @@
 import { isAllowedAttachment, MAX_ATTACHMENT_SIZE, MAX_TOTAL_ATTACHMENT_SIZE_BYTES, validateAttachments } from '../src/lib/attachments';
-import { normalizeLanguage, normalizeTheme } from '../src/lib/preferences';
+import { getPreferencesForLanguage, normalizeLanguage, normalizeTheme } from '../src/lib/preferences';
 
 describe('attachment validation', () => {
   it('accepts supported document and image formats under the limit', () => {
@@ -26,10 +26,17 @@ describe('attachment validation', () => {
 });
 
 describe('preference normalization', () => {
-  it('keeps the public app in Spanish until full translations are complete', () => {
-    expect(normalizeLanguage('en')).toBe('es');
-    expect(normalizeLanguage('de')).toBe('es');
+  it('accepts supported public languages and falls back to Spanish', () => {
+    expect(normalizeLanguage('en')).toBe('en');
+    expect(normalizeLanguage('de')).toBe('de');
+    expect(normalizeLanguage('es')).toBe('es');
     expect(normalizeLanguage('fr')).toBe('es');
+  });
+
+  it('applies language presets for currency and measurement', () => {
+    expect(getPreferencesForLanguage('en')).toEqual({ currency: 'GBP', measurementSystem: 'imperial' });
+    expect(getPreferencesForLanguage('es')).toEqual({ currency: 'EUR', measurementSystem: 'metric' });
+    expect(getPreferencesForLanguage('de')).toEqual({ currency: 'EUR', measurementSystem: 'metric' });
   });
 
   it('persists only supported theme values', () => {

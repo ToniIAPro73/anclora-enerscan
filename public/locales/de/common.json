@@ -1,5 +1,14 @@
 {
   "start": "Analyse starten",
+  "startFree": "Kostenlose Analyse starten",
   "demo": "Beispielbewertung ansehen",
+  "language": "Sprache",
+  "currency": "Währung",
+  "measurement": "Maßeinheit",
+  "theme": "Design",
+  "downloadPdf": "PDF herunterladen",
+  "privacy": "Datenschutzerklärung",
+  "terms": "Nutzungsbedingungen",
+  "legal": "Impressum",
   "legalDisclaimer": "Anclora EnergyScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen."
 }
