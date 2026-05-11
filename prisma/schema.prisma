@@ -38,6 +38,11 @@ model Assessment {
   targetLetter     String?
   isDemo           Boolean @default(false)
 
+  // Location
+  latitude       Float?
+  longitude      Float?
+  locationSource String? // "catastro", "manual", "none"
+
   // Scoring Results
   score           Float?
   estimatedLetter String

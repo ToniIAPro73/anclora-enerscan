@@ -114,6 +114,10 @@ export interface PropertyDataV2 {
   timelineHorizon?: TimelineHorizon;
   targetLetter?: EnergyLetter;
   objective?: AssessmentObjective;
+  // Location
+  latitude?: number;
+  longitude?: number;
+  locationSource?: "catastro" | "manual" | "none";
 }
 
 export interface AssessmentAttachment {

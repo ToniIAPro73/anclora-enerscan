@@ -48,6 +48,10 @@ const assessmentSchema = z.object({
   targetLetter: z.any().transform(normalizeEnergyLetter).optional(),
   objective: z.any().transform(normalizeAssessmentObjective).optional(),
   isDemo: z.boolean().optional(),
+  // Location
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  locationSource: z.enum(['catastro', 'manual', 'none']).optional(),
 });
 
 const uploadedAttachmentSchema = z.object({
@@ -232,6 +236,9 @@ export async function POST(req: Request) {
         timelineHorizon: data.timelineHorizon,
         targetLetter: data.targetLetter,
         isDemo: parseResult.data.isDemo || false,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        locationSource: data.locationSource,
 
         score: result.score,
         estimatedLetter: result.estimatedLetter,
