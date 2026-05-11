@@ -36,6 +36,39 @@ export async function getMunicipalities(province: string): Promise<Municipality[
   }));
 }
 
+export type CatastroStreetSuggestion = {
+  id: string;
+  name: string;
+  type: string;
+  province: string;
+  municipality: string;
+};
+
+export async function getStreets(params: {
+  province: string;
+  municipality: string;
+  query: string;
+}): Promise<CatastroStreetSuggestion[]> {
+  const { province, municipality, query } = params;
+  const url = `${BASE_URL}/ConsultaVia?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&TipoVia=&NombreVia=${encodeURIComponent(query)}`;
+  
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Failed to fetch streets');
+  
+  const xml = await response.text();
+  
+  // Extract street data using a more specific regex since they are inside <calle>
+  const streetBlocks = xml.match(/<calle>[\s\S]*?<\/calle>/gi) || [];
+  
+  return streetBlocks.map(block => ({
+    id: extractTagValue(block, 'cv'),
+    name: extractTagValue(block, 'nv'),
+    type: extractTagValue(block, 'tv'),
+    province,
+    municipality
+  }));
+}
+
 export async function resolveByCadastralReference(rc: string): Promise<CadastralMatch[]> {
   // Catastro Resolve RC
   const url = `${BASE_URL}/Consulta_DNPRC?RC=${encodeURIComponent(rc)}&Provincia=&Municipio=`;
@@ -62,10 +95,11 @@ export async function resolveByAddress(params: {
   municipality: string;
   street: string;
   number?: string;
+  sigla?: string;
 }): Promise<CadastralMatch[]> {
-  const { province, municipality, street, number } = params;
+  const { province, municipality, street, number, sigla } = params;
   
-  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=&Escalera=&Planta=&Puerta=`;
+  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=&Escalera=&Planta=&Puerta=`;
   
   const response = await fetch(url, { cache: 'no-store' });
   
