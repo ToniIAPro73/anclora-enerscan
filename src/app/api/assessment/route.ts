@@ -254,6 +254,16 @@ export async function POST(req: Request) {
             surfaceBuiltM2: cadastralData.surfaceBuiltM2,
             surfacePlotM2: cadastralData.surfacePlotM2,
             yearBuilt: cadastralData.yearBuilt,
+            
+            // New fields
+            parcelReference: cadastralData.parcelReference,
+            internalBlock: cadastralData.block,
+            internalStaircase: cadastralData.staircase,
+            internalFloor: cadastralData.floor,
+            internalDoor: cadastralData.door,
+            propertyUse: cadastralData.propertyUse,
+            participationPct: cadastralData.participationCoefficient,
+
             sourceMode: rawCadastralData.sourceMode || 'rc',
             retrievedAt: new Date(),
           }

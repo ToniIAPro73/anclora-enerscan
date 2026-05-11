@@ -96,10 +96,14 @@ export async function resolveByAddress(params: {
   street: string;
   number?: string;
   sigla?: string;
+  block?: string;
+  staircase?: string;
+  floor?: string;
+  door?: string;
 }): Promise<CadastralMatch[]> {
-  const { province, municipality, street, number, sigla } = params;
+  const { province, municipality, street, number, sigla, block, staircase, floor, door } = params;
   
-  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=&Escalera=&Planta=&Puerta=`;
+  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=${encodeURIComponent(block || '')}&Escalera=${encodeURIComponent(staircase || '')}&Planta=${encodeURIComponent(floor || '')}&Puerta=${encodeURIComponent(door || '')}`;
   
   const response = await fetch(url, { cache: 'no-store' });
   

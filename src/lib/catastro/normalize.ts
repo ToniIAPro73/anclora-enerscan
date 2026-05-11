@@ -2,7 +2,6 @@ import type { CadastralMatch } from './types';
 
 /**
  * Basic XML parser for Catastro responses using Regex.
- * This avoids adding external dependencies like fast-xml-parser.
  */
 export function extractTagValue(xml: string, tag: string): string {
   const regex = new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, 'i');
@@ -20,26 +19,76 @@ export function extractTagsValues(xml: string, tag: string): string[] {
   return values;
 }
 
+/**
+ * Normalizes a cadastral record from XML fragments.
+ * Handles both Consulta_DNPRC and Consulta_DNPLOC structures.
+ */
 export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
-  // This is a simplified version. The actual structure depends on the endpoint.
-  const cadastralReference = extractTagValue(xmlFragment, 'pc1') + extractTagValue(xmlFragment, 'pc2');
-  const province = extractTagValue(xmlFragment, 'pv');
+  // 1. Extract Full Cadastral Reference (20 chars)
+  // Try finding concatenated parts first (most common in list views)
+  const pc1 = extractTagValue(xmlFragment, 'pc1');
+  const pc2 = extractTagValue(xmlFragment, 'pc2');
+  const car = extractTagValue(xmlFragment, 'car');
+  const cc1 = extractTagValue(xmlFragment, 'cc1');
+  const cc2 = extractTagValue(xmlFragment, 'cc2');
+  
+  let fullRC = '';
+  if (pc1 && pc2 && car && cc1 && cc2) {
+    fullRC = `${pc1}${pc2}${car}${cc1}${cc2}`;
+  } else {
+    // Fallback to single RC tag if parts not found
+    fullRC = extractTagValue(xmlFragment, 'rc');
+  }
+
+  // 2. Extract Parcel Reference (first 14 chars)
+  const parcelRC = pc1 && pc2 ? `${pc1}${pc2}` : fullRC.slice(0, 14);
+
+  // 3. Extract Location Info
+  const province = extractTagValue(xmlFragment, 'pv') || extractTagValue(xmlFragment, 'np');
   const municipality = extractTagValue(xmlFragment, 'nm');
-  const street = extractTagValue(xmlFragment, 'nv');
-  const number = extractTagValue(xmlFragment, 'pnum');
+  const streetType = extractTagValue(xmlFragment, 'tv');
+  const streetName = extractTagValue(xmlFragment, 'nv');
+  const number = extractTagValue(xmlFragment, 'pnum') || extractTagValue(xmlFragment, 'pnp');
   
-  // Format address
-  const address = `${street}${number ? `, ${number}` : ''}`;
+  // Format address string
+  const address = `${streetType ? streetType + ' ' : ''}${streetName}${number ? ', ' + number : ''}`;
+
+  // 4. Extract Internal Address
+  const block = extractTagValue(xmlFragment, 'bq');
+  const staircase = extractTagValue(xmlFragment, 'es');
+  const floor = extractTagValue(xmlFragment, 'pt'); // 'pt' in <loint> is Floor (Planta)
+  const door = extractTagValue(xmlFragment, 'pu');  // 'pu' in <loint> is Door (Puerta)
+
+  // 5. Extract Physical Data
+  const surfaceBuiltM2 = parseFloat(extractTagValue(xmlFragment, 'scons')) || undefined;
+  const surfacePlotM2 = parseFloat(extractTagValue(xmlFragment, 'ssuelo')) || undefined;
+  const yearBuilt = parseInt(extractTagValue(xmlFragment, 'ant'), 10) || undefined;
   
+  // Property use usually in <ldbi>
+  const propertyUse = extractTagValue(xmlFragment, 'ldbi');
+  
+  // Participation coefficient in horizontal division
+  const coefficient = parseFloat(extractTagValue(xmlFragment, 'cpt')) || undefined;
+
   return {
-    cadastralReference: cadastralReference || extractTagValue(xmlFragment, 'rc'),
+    cadastralReference: fullRC,
+    parcelReference: parcelRC,
     province,
     municipality,
     address,
-    postalCode: extractTagValue(xmlFragment, 'cp'),
-    surfaceBuiltM2: parseFloat(extractTagValue(xmlFragment, 'scons')) || undefined,
-    surfacePlotM2: parseFloat(extractTagValue(xmlFragment, 'ssuelo')) || undefined,
-    yearBuilt: parseInt(extractTagValue(xmlFragment, 'ant'), 10) || undefined,
+    postalCode: extractTagValue(xmlFragment, 'cp') || extractTagValue(xmlFragment, 'dp'),
+    
+    block: block || undefined,
+    staircase: staircase || undefined,
+    floor: floor || undefined,
+    door: door || undefined,
+
+    propertyUse: propertyUse || undefined,
+    surfaceBuiltM2,
+    surfacePlotM2,
+    participationCoefficient: coefficient,
+    yearBuilt,
+    
     lat: parseFloat(extractTagValue(xmlFragment, 'lat')) || undefined,
     lng: parseFloat(extractTagValue(xmlFragment, 'lon')) || undefined,
     source: 'catastro',
@@ -48,11 +97,9 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
 }
 
 export function parseCadastralList(xml: string): CadastralMatch[] {
-  // RC resolve usually returns one 'bico' or 'lpar'
-  // Address resolve returns 'rcdnp' list
   const matches: CadastralMatch[] = [];
   
-  // Try to find blocks of data
+  // Try to find blocks of data for multiple results (Consulta_DNPLOC)
   const rcBlocks = xml.match(/<rcdnp>[\s\S]*?<\/rcdnp>/gi);
   if (rcBlocks) {
     for (const block of rcBlocks) {
@@ -63,6 +110,12 @@ export function parseCadastralList(xml: string): CadastralMatch[] {
     const singleBlock = xml.match(/<bico>[\s\S]*?<\/bico>/i);
     if (singleBlock) {
       matches.push(normalizeCadastralMatch(singleBlock[0]));
+    } else {
+      // Last resort: try any tag that looks like a record
+      const lparBlock = xml.match(/<lpar>[\s\S]*?<\/lpar>/i);
+      if (lparBlock) {
+        matches.push(normalizeCadastralMatch(lparBlock[0]));
+      }
     }
   }
   

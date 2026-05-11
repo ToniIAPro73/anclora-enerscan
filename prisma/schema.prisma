@@ -61,6 +61,7 @@ model CadastralRecord {
   assessmentId       String     @unique
   assessment         Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   cadastralReference String?
+  parcelReference    String?
   province           String?
   municipality       String?
   address            String?
@@ -70,6 +71,16 @@ model CadastralRecord {
   surfaceBuiltM2     Float?
   surfacePlotM2      Float?
   yearBuilt          Int?
+  
+  // Internal address
+  internalBlock      String?
+  internalStaircase  String?
+  internalFloor      String?
+  internalDoor       String?
+
+  propertyUse        String?
+  participationPct   Float?
+
   sourceSystem       String     @default("catastro")
   sourceMode         String?    // rc, address, coords
   confidence         Float?     @default(1)

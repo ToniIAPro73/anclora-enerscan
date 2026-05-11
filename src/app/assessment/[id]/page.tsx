@@ -36,7 +36,23 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
   if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
 
-  const cadastralRecord = statelessPayload?.cadastralRecord || assessment?.cadastralRecord;
+  const cadastralRecordRaw = statelessPayload?.cadastralRecord || assessment?.cadastralRecord;
+  const cadastralRecord = cadastralRecordRaw ? {
+    cadastralReference: cadastralRecordRaw.cadastralReference,
+    address: cadastralRecordRaw.address,
+    municipality: cadastralRecordRaw.municipality,
+    province: cadastralRecordRaw.province,
+    propertyUse: cadastralRecordRaw.propertyUse,
+    surfaceBuiltM2: cadastralRecordRaw.surfaceBuiltM2,
+    yearBuilt: cadastralRecordRaw.yearBuilt,
+    parcelReference: cadastralRecordRaw.parcelReference,
+    // Map Prisma internal fields to unified UI names if coming from DB
+    floor: 'internalFloor' in cadastralRecordRaw ? cadastralRecordRaw.internalFloor : cadastralRecordRaw.floor,
+    door: 'internalDoor' in cadastralRecordRaw ? cadastralRecordRaw.internalDoor : cadastralRecordRaw.door,
+    block: 'internalBlock' in cadastralRecordRaw ? cadastralRecordRaw.internalBlock : cadastralRecordRaw.block,
+    staircase: 'internalStaircase' in cadastralRecordRaw ? cadastralRecordRaw.internalStaircase : cadastralRecordRaw.staircase,
+    participationPct: 'participationPct' in cadastralRecordRaw ? cadastralRecordRaw.participationPct : cadastralRecordRaw.participationCoefficient,
+  } : null;
 
   const propertyData: PropertyDataV2 = statelessPayload ? statelessPayload.propertyData : {
     year: assessment!.year,
@@ -160,18 +176,49 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
 
             {cadastralRecord && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 grid sm:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralReference}</p>
-                  <p className="text-sm font-mono font-bold text-[#00DC82]">{cadastralRecord.cadastralReference}</p>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-muted tracking-wider">{t.cadastralReference}</p>
+                    <p className="text-sm font-mono font-bold text-[#00DC82] break-all">{cadastralRecord.cadastralReference}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-muted tracking-wider">{t.cadastralOfficialAddress}</p>
+                    <p className="text-sm font-semibold text-premium">{cadastralRecord.address}</p>
+                    {(cadastralRecord.floor || cadastralRecord.door) && (
+                      <p className="text-[10px] font-bold text-[#00DC82] uppercase">
+                        {cadastralRecord.floor && `${t.cadastralResultsFloor} ${cadastralRecord.floor}`}
+                        {cadastralRecord.door && ` · ${t.cadastralResultsDoor} ${cadastralRecord.door}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-muted tracking-wider">{t.cadastralMunicipality}</p>
+                    <p className="text-sm font-semibold text-premium">{cadastralRecord.municipality}, {cadastralRecord.province}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-muted tracking-wider">{t.cadastralDetailPropertyUse}</p>
+                    <p className="text-sm font-semibold text-premium uppercase">{cadastralRecord.propertyUse || '---'}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralOfficialAddress}</p>
-                  <p className="text-sm font-semibold text-premium">{cadastralRecord.address}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralMunicipality}</p>
-                  <p className="text-sm font-semibold text-premium">{cadastralRecord.municipality}, {cadastralRecord.province}</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/5">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase text-muted">{t.cadastralResultsBuiltArea}</p>
+                    <p className="text-sm font-bold text-premium">{cadastralRecord.surfaceBuiltM2 ? formatArea(cadastralRecord.surfaceBuiltM2, measurementSystem, language) : '---'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase text-muted">{t.wizardCatastroDetailYear}</p>
+                    <p className="text-sm font-bold text-premium">{cadastralRecord.yearBuilt || '---'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase text-muted">{t.cadastralDetailParticipationCoefficient}</p>
+                    <p className="text-sm font-bold text-premium">{cadastralRecord.participationPct ? `${cadastralRecord.participationPct}%` : '---'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase text-muted">{t.cadastralDetailParcelReference}</p>
+                    <p className="text-sm font-mono text-muted">{cadastralRecord.parcelReference || '---'}</p>
+                  </div>
                 </div>
               </div>
             )}
