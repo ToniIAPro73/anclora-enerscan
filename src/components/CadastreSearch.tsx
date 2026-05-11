@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, MapPin, Check, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, MapPin, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
 import { usePreferences } from './AppPreferencesProvider';
 import type { CadastralMatch, CatastroResolveResponse, Province, Municipality } from '@/lib/catastro/types';
 
@@ -25,21 +25,7 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
   const [street, setStreet] = useState('');
   const [number, setNumber] = useState('');
 
-  useEffect(() => {
-    if (mode === 'address' && provinces.length === 0) {
-      fetchProvinces();
-    }
-  }, [mode]);
-
-  useEffect(() => {
-    if (selectedProvince) {
-      fetchMunicipalities(selectedProvince);
-    } else {
-      setMunicipalities([]);
-    }
-  }, [selectedProvince]);
-
-  async function fetchProvinces() {
+  const fetchProvinces = useCallback(async () => {
     try {
       const res = await fetch('/api/catastro/provinces');
       if (res.ok) {
@@ -49,7 +35,21 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
     } catch (err) {
       console.error('Failed to fetch provinces', err);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'address' && provinces.length === 0) {
+      fetchProvinces();
+    }
+  }, [mode, provinces.length, fetchProvinces]);
+
+  useEffect(() => {
+    if (selectedProvince) {
+      fetchMunicipalities(selectedProvince);
+    } else {
+      setMunicipalities([]);
+    }
+  }, [selectedProvince]);
 
   async function fetchMunicipalities(province: string) {
     try {
@@ -90,6 +90,7 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
         setError(data.error?.message || t.wizardCatastroErrorService);
       }
     } catch (err) {
+      console.error('Catastro search failed:', err);
       setError(t.wizardCatastroErrorService);
     } finally {
       setLoading(false);

@@ -12,7 +12,6 @@ export async function getProvinces(): Promise<Province[]> {
   
   const xml = await response.text();
   const names = extractTagsValues(xml, 'np');
-  const ids = extractTagsValues(xml, 'np'); // In Catastro NP is name, but they don't always have ID separate in this simple view
   
   return names.map((name) => ({
     id: name, // Catastro often uses the name as ID in these queries
@@ -50,7 +49,6 @@ export async function resolveByCadastralReference(rc: string): Promise<Cadastral
   
   // Check for errors in XML
   const errCode = extractTagValue(xml, 'cod');
-  const errDesc = extractTagValue(xml, 'des');
   if (errCode && parseInt(errCode) > 0) {
     // If it's not found or multiple, it might not be a "hard" error but business logic
     if (errCode === '1') return []; // Not found
