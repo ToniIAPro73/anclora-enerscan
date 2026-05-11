@@ -8,7 +8,7 @@ import { usePreferences } from '@/components/AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 
 export default function LandingPage() {
-  const { dictionary: t, language } = usePreferences();
+  const { dictionary: t, language, formatCurrency } = usePreferences();
   const timeline = {
     es: [
       { year: 'Hoy', title: 'R.D. 390/2021', desc: 'CEE obligatorio para venta/alquiler.', status: 'Vigente', color: 'bg-[#00DC82]' },
@@ -226,7 +226,7 @@ export default function LandingPage() {
               {[
                 {
                   name: t.freePlan,
-                  price: t.priceFree,
+                  price: formatCurrency(0, { maximumFractionDigits: 0 }),
                   badge: t.freePlanBadge,
                   cta: t.startFree,
                   href: '/wizard',

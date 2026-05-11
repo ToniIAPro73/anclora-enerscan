@@ -24,14 +24,14 @@ export function AttachmentList({
   initialAttachments: AssessmentAttachment[];
   canDelete?: boolean;
 }) {
-  const { dictionary: t, language } = usePreferences();
+  const { dictionary: t } = usePreferences();
   const [attachments, setAttachments] = useState(initialAttachments);
   const labels = {
     cee: t.cee,
-    exterior: language === 'en' ? 'Exterior image' : language === 'de' ? 'Außenbild' : 'Imagen exterior',
-    interior: language === 'en' ? 'Interior image' : language === 'de' ? 'Innenbild' : 'Imagen interior',
+    exterior: t.exteriorLabel,
+    interior: t.interiorLabel,
     image: t.images,
-    document: language === 'en' ? 'Document' : language === 'de' ? 'Dokument' : 'Documento',
+    document: t.document,
   };
 
   async function removeAttachment(id: string) {
@@ -77,7 +77,7 @@ export function AttachmentList({
               <span className="ml-2 sm:hidden">{t.download}</span>
             </a>
             {canDelete && (
-              <button type="button" onClick={() => removeAttachment(attachment.id)} className="inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-white/10 px-3 text-xs font-bold text-muted hover:text-[#EF4444]" aria-label="Eliminar">
+              <button type="button" onClick={() => removeAttachment(attachment.id)} className="inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-white/10 px-3 text-xs font-bold text-muted hover:text-[#EF4444]" aria-label={t.delete}>
                 <Trash2 className="h-4 w-4" />
               </button>
             )}

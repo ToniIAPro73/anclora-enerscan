@@ -1,7 +1,8 @@
 'use client';
 
 import type React from 'react';
-import { Coins, Languages, Monitor, Moon, Ruler, Sun } from 'lucide-react';
+import { Coins, Languages, Monitor, Moon, Ruler, Settings2, Sun } from 'lucide-react';
+import { useState } from 'react';
 import {
   AppCurrency,
   AppLanguage,
@@ -36,7 +37,7 @@ const measurementLabels: Record<MeasurementSystem, string> = {
   imperial: 'sq ft',
 };
 
-export function PreferenceToggles({ compact = false }: { compact?: boolean }) {
+export function PreferenceToggles({ compact = false, variant = 'inline' }: { compact?: boolean; variant?: 'inline' | 'popover' }) {
   const {
     theme,
     language,
@@ -47,8 +48,9 @@ export function PreferenceToggles({ compact = false }: { compact?: boolean }) {
     setCurrency,
     setMeasurementSystem,
   } = usePreferences();
+  const [open, setOpen] = useState(false);
 
-  return (
+  const groups = (
     <div className={`flex ${compact ? 'items-center gap-1.5' : 'flex-wrap items-center gap-3'}`}>
       <div className="premium-toggle" role="group" aria-label="Theme selector">
         {themeModes.map((mode) => {
@@ -115,6 +117,30 @@ export function PreferenceToggles({ compact = false }: { compact?: boolean }) {
       </PreferenceGroup>
     </div>
   );
+
+  if (variant === 'popover') {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-premium transition hover:border-[#00DC82]/40"
+          aria-expanded={open}
+          aria-haspopup="menu"
+        >
+          <Settings2 className="h-4 w-4 text-[#00DC82]" />
+          <span>{languageLabels[language]} · {currencyLabels[currency]} · {measurementLabels[measurementSystem]}</span>
+        </button>
+        {open && (
+          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[8600] rounded-3xl border border-white/10 bg-[#101010]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+            {groups}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return groups;
 }
 
 function PreferenceGroup({

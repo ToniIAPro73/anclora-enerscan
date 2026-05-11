@@ -15,7 +15,7 @@ import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { cookies } from 'next/headers';
 import { getPreferencesForLanguage, normalizeCurrency, normalizeLanguage, normalizeMeasurementSystem } from '@/lib/preferences';
 import { formatArea } from '@/lib/formatters';
-import { getDictionary, getLegalDisclaimer } from '@/lib/i18n';
+import { getDictionary, getLegalDisclaimer, formatValueLabel } from '@/lib/i18n';
 import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
 
 export const dynamic = 'force-dynamic';
@@ -150,14 +150,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             <h2 className="mb-5 font-heading text-2xl font-bold text-premium">{t.capturedData}</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['Tipo', propertyData.propertyType],
-                ['Orientación', propertyData.orientation],
-                ['Cubierta', propertyData.roofType],
-                ['Ventilación', propertyData.ventilation],
-                ['Calefacción', propertyData.heating],
-                ['Refrigeración', propertyData.cooling],
-                ['ACS', propertyData.waterHeating],
-                ['Horizonte', propertyData.timelineHorizon],
+                [t.wizardSummaryType, formatValueLabel('propertyType', propertyData.propertyType, language)],
+                [t.wizardSummaryOrientation, formatValueLabel('orientation', propertyData.orientation || 'unknown', language)],
+                [t.wizardSummaryRoof, formatValueLabel('roofType', propertyData.roofType || 'unknown', language)],
+                [t.wizardSummaryVentilation, formatValueLabel('ventilation', propertyData.ventilation || 'unknown', language)],
+                [t.wizardSummaryHeating, formatValueLabel('heating', propertyData.heating || 'unknown', language)],
+                [t.wizardSummaryCooling, formatValueLabel('cooling', propertyData.cooling || 'unknown', language)],
+                [t.wizardSummaryAcs, formatValueLabel('waterHeating', propertyData.waterHeating || 'unknown', language)],
+                [t.wizardSummaryHorizon, formatValueLabel('timeline', propertyData.timelineHorizon || 'unknown', language)],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-[10px] font-bold uppercase text-muted">{label}</p>

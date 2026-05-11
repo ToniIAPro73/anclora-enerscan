@@ -16,12 +16,7 @@ type AuthFormProps = {
 export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [providerStatus, setProviderStatus] = useState({ googleEnabled, githubEnabled });
-  const { dictionary: t, language } = usePreferences();
-  const authFields = {
-    es: { name: 'Nombre', email: 'Email', password: 'Contraseña', emailPlaceholder: 'tu@email.com', resetOk: 'Si el email existe, recibirás instrucciones.', localReset: 'En local' },
-    en: { name: 'Name', email: 'Email', password: 'Password', emailPlaceholder: 'you@email.com', resetOk: 'If the email exists, you will receive instructions.', localReset: 'Local' },
-    de: { name: 'Name', email: 'E-Mail', password: 'Passwort', emailPlaceholder: 'du@email.com', resetOk: 'Falls die E-Mail existiert, erhalten Sie Anweisungen.', localReset: 'Lokal' },
-  }[language];
+  const { dictionary: t } = usePreferences();
   const [signInState, signInAction] = useFormState(signInWithEmail, {});
   const [signUpState, signUpAction] = useFormState(signUpWithEmail, {});
   const [resetState, resetAction] = useFormState(requestPasswordReset, {});
@@ -70,12 +65,12 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
             <h1 className="font-heading text-2xl font-bold text-premium">{t.recoverPassword}</h1>
             <p className="mt-2 text-sm text-muted">{t.recoverCopy}</p>
           </div>
-          <input name="email" type="email" required placeholder={authFields.emailPlaceholder} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <input name="email" type="email" required placeholder={t.authEmailPlaceholder} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
           <SubmitButton label={t.sendLink} pendingLabel={t.sending} />
-          {resetState.ok && <p className="text-sm text-[#00DC82]">{authFields.resetOk}</p>}
+          {resetState.ok && <p className="text-sm text-[#00DC82]">{t.authResetOk}</p>}
           {resetState.resetUrl && (
             <p className="break-words rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
-              {authFields.localReset}: {resetState.resetUrl}
+              {t.authLocalReset}: {resetState.resetUrl}
             </p>
           )}
           <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-muted hover:text-premium">{t.backToAccess}</button>
@@ -88,10 +83,10 @@ export function AuthForm({ googleEnabled, githubEnabled }: AuthFormProps) {
           </div>
 
           {mode === 'signup' && (
-            <input name="name" type="text" required placeholder={authFields.name} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+            <input name="name" type="text" required placeholder={t.authFieldName} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
           )}
-          <input name="email" type="email" required placeholder={authFields.email} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
-          <input name="password" type="password" required minLength={8} placeholder={authFields.password} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <input name="email" type="email" required placeholder={t.authFieldEmail} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
+          <input name="password" type="password" required minLength={8} placeholder={t.authFieldPassword} className="w-full rounded-xl border border-[#262626] bg-[#131313] p-3 text-sm outline-none focus:border-[#00DC82]" />
 
           <SubmitButton label={mode === 'signin' ? t.signIn : t.signUp} pendingLabel={t.processing} />
 

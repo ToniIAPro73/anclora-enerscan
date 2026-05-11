@@ -50,21 +50,21 @@ const serviceOptions = {
 } as const;
 
 export function ProviderLeadSection({ assessmentId, zone }: { assessmentId: string; zone?: string }) {
-  const { language } = usePreferences();
+  const { language, formatCurrency } = usePreferences();
   const formCopy = {
     es: {
       request: 'Solicitud de contacto', name: 'Nombre', phone: 'Teléfono', service: 'Servicio interesado', urgency: 'Urgencia', budget: 'Presupuesto estimado', notes: 'Notas', send: 'Enviar solicitud',
-      low: 'Baja', medium: 'Media', high: 'Alta', immediate: 'Inmediata', budgetPlaceholder: 'Ej. 5.000 - 15.000 EUR',
+      low: 'Baja', medium: 'Media', high: 'Alta', immediate: 'Inmediata', budgetPlaceholder: `Ej. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
       consent: 'Acepto que Anclora EnergyScan registre esta solicitud de contacto y la comparta con proveedores demo/verificados para preparar un presupuesto orientativo. No implica contratación ni resultado garantizado.',
     },
     en: {
       request: 'Contact request', name: 'Name', phone: 'Phone', service: 'Interested service', urgency: 'Urgency', budget: 'Estimated budget', notes: 'Notes', send: 'Send request',
-      low: 'Low', medium: 'Medium', high: 'High', immediate: 'Immediate', budgetPlaceholder: 'E.g. £5,000 - £15,000',
+      low: 'Low', medium: 'Medium', high: 'High', immediate: 'Immediate', budgetPlaceholder: `E.g. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
       consent: 'I accept that Anclora EnergyScan registers this contact request and shares it with demo/verified providers to prepare an indicative quote. It does not imply hiring or guaranteed results.',
     },
     de: {
       request: 'Kontaktanfrage', name: 'Name', phone: 'Telefon', service: 'Gewünschte Leistung', urgency: 'Dringlichkeit', budget: 'Geschätztes Budget', notes: 'Notizen', send: 'Anfrage senden',
-      low: 'Niedrig', medium: 'Mittel', high: 'Hoch', immediate: 'Sofort', budgetPlaceholder: 'z. B. 5.000 - 15.000 EUR',
+      low: 'Niedrig', medium: 'Mittel', high: 'Hoch', immediate: 'Sofort', budgetPlaceholder: `z. B. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
       consent: 'Ich akzeptiere, dass Anclora EnergyScan diese Kontaktanfrage speichert und mit Demo-/geprüften Anbietern teilt, um ein orientierendes Angebot vorzubereiten. Dies bedeutet keine Beauftragung und kein garantiertes Ergebnis.',
     },
   }[language];

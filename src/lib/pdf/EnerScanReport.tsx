@@ -67,6 +67,14 @@ const labels = {
     ceeAnnexNote: 'Las páginas siguientes reproducen el PDF original aportado.',
     exterior: 'Imagen exterior',
     interior: 'Imagen interior',
+    id: 'ID',
+    date: 'Fecha',
+    ceeSubmitted: 'CEE aportado',
+    userDocument: 'Documento aportado por el usuario',
+    documentSummary: 'Resumen del documento',
+    collectedLetter: 'Letra recogida',
+    ceeAnnexNoteShort: 'Documento PDF aportado por el usuario.',
+    ceeDisclaimer: 'Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.',
   },
   en: {
     title: 'Anclora EnergyScan Premium Report',
@@ -123,6 +131,14 @@ const labels = {
     ceeAnnexNote: 'The following pages reproduce the original PDF provided by the user.',
     exterior: 'Exterior image',
     interior: 'Interior image',
+    id: 'ID',
+    date: 'Date',
+    ceeSubmitted: 'Submitted EPC',
+    userDocument: 'Document provided by user',
+    documentSummary: 'Document summary',
+    collectedLetter: 'Collected rating',
+    ceeAnnexNoteShort: 'PDF document provided by user.',
+    ceeDisclaimer: 'Document provided by user. EnergyScan does not replace the official Energy Performance Certificate or an inspection by a qualified technician.',
   },
   de: {
     title: 'Anclora EnergyScan Premium Report',
@@ -179,6 +195,14 @@ const labels = {
     ceeAnnexNote: 'Die folgenden Seiten reproduzieren das vom Nutzer bereitgestellte Original-PDF.',
     exterior: 'Außenbild',
     interior: 'Innenbild',
+    id: 'ID',
+    date: 'Datum',
+    ceeSubmitted: 'Eingereichter Energieausweis',
+    userDocument: 'Vom Nutzer bereitgestelltes Dokument',
+    documentSummary: 'Dokumentenzusammenfassung',
+    collectedLetter: 'Erfasste Klasse',
+    ceeAnnexNoteShort: 'Vom Nutzer bereitgestelltes PDF-Dokument.',
+    ceeDisclaimer: 'Vom Nutzer bereitgestelltes Dokument. EnergyScan ersetzt keinen offiziellen Energieausweis oder eine Prüfung durch einen qualifizierten Techniker.',
   },
 } as const;
 
@@ -481,7 +505,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.title}</Text>
             <Text style={styles.subtitle}>{t.subtitle}</Text>
-            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>{t.id}: {reportRef} | {t.date}: {data.date}</Text>
             {data.isDemo && <Text style={{ ...styles.text, color: '#B96F00' }}>{t.demo}</Text>}
           </View>
         </View>
@@ -735,7 +759,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View style={styles.headerText}>
             <Text style={styles.title}>{t.annexTitle}</Text>
             <Text style={styles.subtitle}>{t.userInfoAnnex}</Text>
-            <Text style={{ ...styles.text, marginTop: 5 }}>ID: {reportRef} | Fecha: {data.date}</Text>
+            <Text style={{ ...styles.text, marginTop: 5 }}>{t.id}: {reportRef} | {t.date}: {data.date}</Text>
           </View>
         </View>
       </View>
@@ -844,21 +868,21 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <Image src={data.logoDataUri} style={styles.logo} />
             )}
             <View style={styles.headerText}>
-              <Text style={styles.title}>CEE aportado</Text>
-              <Text style={styles.subtitle}>Documento aportado por el usuario</Text>
+              <Text style={styles.title}>{t.ceeSubmitted}</Text>
+              <Text style={styles.subtitle}>{t.userDocument}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen del documento</Text>
+          <Text style={styles.sectionTitle}>{t.documentSummary}</Text>
           {ceeAttachments.map((attachment) => (
             <View key={attachment.id} style={styles.annexMetaBox} wrap={false}>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileName}</Text><Text style={styles.colRight}>{attachment.name}</Text></View>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileType}</Text><Text style={styles.colRight}>{attachment.type}</Text></View>
               <View style={styles.row}><Text style={styles.colLeft}>{t.fileSize}</Text><Text style={styles.colRight}>{formatFileSize(attachment.size)}</Text></View>
-              <View style={styles.row}><Text style={styles.colLeft}>Letra recogida</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
-              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || 'Documento PDF aportado por el usuario.'}</Text>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.collectedLetter}</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
+              <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || t.ceeAnnexNoteShort}</Text>
               <Text style={{ ...styles.text, color: '#008F5A', fontWeight: 'bold', marginTop: 6 }}>
                 {t.ceeAnnexNote} CEE en español, con importes en euros y superficies en m².
               </Text>
@@ -867,7 +891,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         </View>
 
         <View style={styles.disclaimer}>
-          <Text>Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.</Text>
+          <Text>{t.ceeDisclaimer}</Text>
         </View>
       </Page>
     )}
