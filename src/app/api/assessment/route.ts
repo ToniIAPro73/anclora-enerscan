@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { calculateScoreV2 } from '@/lib/scoring';
 import { z } from 'zod';
 import { PropertyDataV2 } from '@/lib/domain/energy-assessment';
+import { CadastralMatchSchema } from '@/lib/catastro/types';
 import { isAllowedAttachment, validateAttachments } from '@/lib/attachments';
 import { deleteStoredAttachment, saveAssessmentAttachment } from '@/lib/blob-storage';
 import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
@@ -83,6 +84,7 @@ async function readRequest(req: Request) {
       rawData,
       files: [] as File[],
       uploadedAttachments: Array.isArray(rawData.uploadedAttachments) ? rawData.uploadedAttachments : [],
+      cadastralData: rawData.cadastralData,
     };
   }
 
@@ -91,7 +93,16 @@ async function readRequest(req: Request) {
     Array.from(formData.entries()).filter(([, value]) => typeof value === 'string')
   );
   const files = formData.getAll('attachments').filter((value): value is File => value instanceof File && value.size > 0);
-  return { rawData, files, uploadedAttachments: [] };
+  const cadastralDataRaw = formData.get('cadastralData');
+  let cadastralData = null;
+  if (typeof cadastralDataRaw === 'string') {
+    try {
+      cadastralData = JSON.parse(cadastralDataRaw);
+    } catch (e) {
+      console.warn('Failed to parse cadastralData from multipart', e);
+    }
+  }
+  return { rawData, files, uploadedAttachments: [], cadastralData };
 }
 
 function validateAttachmentMetadata(files: File[]) {
@@ -166,7 +177,7 @@ function serializeAttachment(file: { name: string; type: string; size: number })
 export async function POST(req: Request) {
   try {
     const session = await auth().catch(() => null);
-    const { rawData, files, uploadedAttachments: rawUploadedAttachments } = await readRequest(req);
+    const { rawData, files, uploadedAttachments: rawUploadedAttachments, cadastralData: rawCadastralData } = await readRequest(req);
 
     const parseResult = assessmentSchema.safeParse(rawData);
     if (!parseResult.success) {
@@ -187,6 +198,14 @@ export async function POST(req: Request) {
       uploadedAttachments = validateUploadedAttachments(rawUploadedAttachments);
     } catch (attachmentError) {
       return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
+    }
+
+    let cadastralData = null;
+    if (rawCadastralData) {
+      const cadParse = CadastralMatchSchema.safeParse(rawCadastralData);
+      if (cadParse.success) {
+        cadastralData = cadParse.data;
+      }
     }
 
     let assessment;
@@ -221,7 +240,24 @@ export async function POST(req: Request) {
         penalties: JSON.stringify(result.penalties),
         strengths: JSON.stringify(result.strengths),
         missingData: JSON.stringify(result.missingData),
-        explanation: result.explanation
+        explanation: result.explanation,
+        
+        cadastralRecord: cadastralData ? {
+          create: {
+            cadastralReference: cadastralData.cadastralReference,
+            province: cadastralData.province,
+            municipality: cadastralData.municipality,
+            address: cadastralData.address,
+            postalCode: cadastralData.postalCode,
+            lat: cadastralData.lat,
+            lng: cadastralData.lng,
+            surfaceBuiltM2: cadastralData.surfaceBuiltM2,
+            surfacePlotM2: cadastralData.surfacePlotM2,
+            yearBuilt: cadastralData.yearBuilt,
+            sourceMode: rawCadastralData.sourceMode || 'rc',
+            retrievedAt: new Date(),
+          }
+        } : undefined
       }
       });
     } catch (databaseError) {
@@ -238,6 +274,7 @@ export async function POST(req: Request) {
           type: attachment.type,
           size: attachment.size,
         }))],
+        cadastralRecord: cadastralData || undefined,
       });
       return NextResponse.json({
         id: createStatelessAssessmentId(payload),

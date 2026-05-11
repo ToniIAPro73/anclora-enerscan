@@ -31,10 +31,12 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },
-    include: { attachments: true }
+    include: { attachments: true, cadastralRecord: true }
   });
 
   if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
+
+  const cadastralRecord = statelessPayload?.cadastralRecord || assessment?.cadastralRecord;
 
   const propertyData: PropertyDataV2 = statelessPayload ? statelessPayload.propertyData : {
     year: assessment!.year,
@@ -146,8 +148,34 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           </div>
 
           {/* CAPTURED DATA */}
-          <section className="surface border rounded-3xl p-6 lg:p-8">
-            <h2 className="mb-5 font-heading text-2xl font-bold text-premium">{t.capturedData}</h2>
+          <section className="surface border rounded-3xl p-6 lg:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="font-heading text-2xl font-bold text-premium">{t.capturedData}</h2>
+              {cadastralRecord && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00DC82]/10 border border-[#00DC82]/20 text-[#00DC82] text-[10px] font-bold uppercase tracking-wider">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t.cadastralVerified}
+                </div>
+              )}
+            </div>
+
+            {cadastralRecord && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 grid sm:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralReference}</p>
+                  <p className="text-sm font-mono font-bold text-[#00DC82]">{cadastralRecord.cadastralReference}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralOfficialAddress}</p>
+                  <p className="text-sm font-semibold text-premium">{cadastralRecord.address}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase text-muted">{t.cadastralMunicipality}</p>
+                  <p className="text-sm font-semibold text-premium">{cadastralRecord.municipality}, {cadastralRecord.province}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 [t.wizardSummaryType, formatValueLabel('propertyType', propertyData.propertyType, language)],

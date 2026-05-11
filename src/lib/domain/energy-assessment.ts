@@ -1,5 +1,6 @@
 import type { ScenarioCostEstimate } from '../costs/types';
 import type { AppCurrency, AppLanguage, MeasurementSystem } from '../preferences';
+import type { CadastralMatch } from '../catastro/types';
 
 export type EnergyLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type ConfidenceLevel = "Alta" | "Media" | "Baja";
@@ -215,6 +216,7 @@ export interface PremiumReportData {
   subsidies?: SubsidyInfoItem[];
   providerCategories: string[];
   attachments?: AssessmentAttachment[];
+  cadastralRecord?: CadastralMatch;
   logoDataUri?: string;
   language?: AppLanguage;
   currency?: AppCurrency;
