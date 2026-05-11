@@ -1,18 +1,31 @@
 import { z } from 'zod';
 
 export const CadastralMatchSchema = z.object({
-  cadastralReference: z.string(),
+  id: z.string().optional(),
+  cadastralReference: z.string(),       // Full 20-char reference
+  parcelReference: z.string().optional(), // 14-char parcel reference
   province: z.string(),
   municipality: z.string(),
   address: z.string(),
   postalCode: z.string().optional(),
+  
+  // Internal address
+  block: z.string().optional(),
+  staircase: z.string().optional(),
+  floor: z.string().optional(),
+  door: z.string().optional(),
+
+  propertyUse: z.string().optional(),
   surfaceBuiltM2: z.number().optional(),
   surfacePlotM2: z.number().optional(),
+  participationCoefficient: z.number().optional(),
   yearBuilt: z.number().optional(),
+  
   lat: z.number().optional(),
   lng: z.number().optional(),
   source: z.string().default('catastro'),
   confidence: z.number().default(1),
+  raw: z.any().optional(),
 });
 
 export type CadastralMatch = z.infer<typeof CadastralMatchSchema>;

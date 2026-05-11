@@ -30,6 +30,12 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [number, setNumber] = useState('');
 
+  // Internal address state
+  const [block, setBlock] = useState('');
+  const [staircase, setStaircase] = useState('');
+  const [floor, setFloor] = useState('');
+  const [door, setDoor] = useState('');
+
   // Detail view state
   const [detailMatch, setDetailMatch] = useState<CadastralMatch | null>(null);
 
@@ -120,7 +126,11 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
             municipality: selectedMunicipality, 
             street: selectedStreet ? selectedStreet.name : streetQuery,
             sigla: selectedStreet ? selectedStreet.type : '',
-            number 
+            number,
+            block,
+            staircase,
+            floor,
+            door
           };
         
       const res = await fetch('/api/catastro/resolve', {
@@ -299,6 +309,58 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
                   className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none disabled:opacity-50"
                 />
               </div>
+
+              {/* Internal Address Section */}
+              <div className="sm:col-span-2 space-y-3 pt-2">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.cadastralInternalAddressTitle}</span>
+                  <div className="h-px flex-1 bg-white/5" />
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold uppercase text-[#555] ml-1">{t.cadastralInternalAddressBlock}</label>
+                    <input
+                      type="text"
+                      value={block}
+                      onChange={(e) => setBlock(e.target.value.toUpperCase())}
+                      placeholder="---"
+                      className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-2.5 text-xs focus:border-[#00DC82] outline-none uppercase"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold uppercase text-[#555] ml-1">{t.cadastralInternalAddressStaircase}</label>
+                    <input
+                      type="text"
+                      value={staircase}
+                      onChange={(e) => setStaircase(e.target.value.toUpperCase())}
+                      placeholder="---"
+                      className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-2.5 text-xs focus:border-[#00DC82] outline-none uppercase"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold uppercase text-[#555] ml-1">{t.cadastralInternalAddressFloor}</label>
+                    <input
+                      type="text"
+                      value={floor}
+                      onChange={(e) => setFloor(e.target.value.toUpperCase())}
+                      placeholder="---"
+                      className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-2.5 text-xs focus:border-[#00DC82] outline-none uppercase"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold uppercase text-[#555] ml-1">{t.cadastralInternalAddressDoor}</label>
+                    <input
+                      type="text"
+                      value={door}
+                      onChange={(e) => setDoor(e.target.value.toUpperCase())}
+                      placeholder="---"
+                      className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-2.5 text-xs focus:border-[#00DC82] outline-none uppercase"
+                    />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted italic ml-1">{t.cadastralInternalAddressHelp}</p>
+              </div>
             </div>
           )}
 
@@ -330,7 +392,7 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
 
           {results.length > 1 && (
             <div className="space-y-2 pt-2 border-t border-white/10">
-              <p className="text-[10px] font-bold text-muted uppercase px-1">Resultados encontrados ({results.length})</p>
+              <p className="text-[10px] font-bold text-muted uppercase px-1">{t.cadastralResultsCount} ({results.length})</p>
               {results.map((match) => (
                 <button
                   key={match.cadastralReference}
@@ -341,7 +403,26 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
                   <div className="flex justify-between items-start gap-4">
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[#00DC82]">{match.cadastralReference}</p>
-                      <p className="text-sm font-bold text-premium mt-1 line-clamp-1">{match.address}</p>
+                      <p className="text-sm font-bold text-premium mt-1 line-clamp-1">
+                        {match.address}
+                        {(match.floor || match.door) && (
+                          <span className="text-muted font-normal ml-2">
+                            {match.floor && `${t.cadastralResultsFloor} ${match.floor}`}
+                            {match.door && ` · ${t.cadastralResultsDoor} ${match.door}`}
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                        {match.surfaceBuiltM2 && (
+                          <span className="text-[10px] text-muted font-semibold">🏠 {match.surfaceBuiltM2} m²</span>
+                        )}
+                        {match.yearBuilt && (
+                          <span className="text-[10px] text-muted font-semibold">📅 {match.yearBuilt}</span>
+                        )}
+                        {match.propertyUse && (
+                          <span className="text-[10px] text-muted font-semibold uppercase">🏢 {match.propertyUse}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-[#00DC82] group-hover:border-[#00DC82] transition">
                       <ChevronRight className="w-4 h-4 text-muted group-hover:text-[#0A0A0A]" />
@@ -358,11 +439,18 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-[#00DC82] uppercase tracking-wider">{t.wizardCatastroDetailTitle}</p>
-                <h4 className="font-heading font-bold text-xl text-premium">{detailMatch.address}</h4>
+                <h4 className="font-heading font-bold text-xl text-premium">
+                  {detailMatch.address}
+                  {(detailMatch.floor || detailMatch.door) && (
+                    <span className="text-[#00DC82] block text-sm mt-1">
+                      {detailMatch.floor && `${t.cadastralInternalAddressFloor} ${detailMatch.floor}`}
+                      {detailMatch.door && ` · ${t.cadastralInternalAddressDoor} ${detailMatch.door}`}
+                      {detailMatch.block && ` · ${t.cadastralInternalAddressBlock} ${detailMatch.block}`}
+                      {detailMatch.staircase && ` · ${t.cadastralInternalAddressStaircase} ${detailMatch.staircase}`}
+                    </span>
+                  )}
+                </h4>
                 <p className="text-xs text-muted uppercase">{detailMatch.municipality}, {detailMatch.province}</p>
-              </div>
-              <div className="px-2 py-1 rounded bg-[#00DC82]/10 border border-[#00DC82]/20 text-[#00DC82] text-[10px] font-bold">
-                {detailMatch.cadastralReference.slice(0, 14)}
               </div>
             </div>
 
@@ -377,6 +465,18 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
                 <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailYear}</p>
                 <p className="text-sm font-bold text-premium">{detailMatch.yearBuilt || '---'}</p>
               </div>
+              {detailMatch.propertyUse && (
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
+                  <p className="text-[9px] font-bold text-muted uppercase">{t.cadastralDetailPropertyUse}</p>
+                  <p className="text-sm font-bold text-premium uppercase">{detailMatch.propertyUse}</p>
+                </div>
+              )}
+              {detailMatch.participationCoefficient && (
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
+                  <p className="text-[9px] font-bold text-muted uppercase">% {t.cadastralDetailParticipationCoefficient}</p>
+                  <p className="text-sm font-bold text-premium">{detailMatch.participationCoefficient} %</p>
+                </div>
+              )}
               {detailMatch.surfacePlotM2 && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1 col-span-2">
                   <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailPlotArea}</p>
@@ -385,9 +485,17 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-[10px] text-muted bg-white/5 p-2 rounded-lg">
-              <Info className="w-3 h-3 text-[#00DC82]" />
-              <p>Referencia completa: <span className="font-mono text-premium">{detailMatch.cadastralReference}</span></p>
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <div className="flex items-center gap-2 text-[10px] text-muted">
+                <Info className="w-3 h-3 text-[#00DC82]" />
+                <p>{t.cadastralDetailFullReference}: <span className="font-mono text-premium">{detailMatch.cadastralReference}</span></p>
+              </div>
+              {detailMatch.parcelReference && (
+                <div className="flex items-center gap-2 text-[10px] text-muted">
+                  <div className="w-3 h-3" />
+                  <p>{t.cadastralDetailParcelReference}: <span className="font-mono text-premium">{detailMatch.parcelReference}</span></p>
+                </div>
+              )}
             </div>
           </div>
 

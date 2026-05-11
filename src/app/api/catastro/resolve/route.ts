@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mode, rc, province, municipality, street, number, sigla } = body;
+    const { mode, rc, province, municipality, street, number, sigla, block, staircase, floor, door } = body;
 
     let matches = [];
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       if (!province || !municipality || !street) {
         return NextResponse.json({ ok: false, error: { code: 'MISSING_FIELDS', message: 'Province, municipality and street are required' } }, { status: 400 });
       }
-      matches = await resolveByAddress({ province, municipality, street, number, sigla });
+      matches = await resolveByAddress({ province, municipality, street, number, sigla, block, staircase, floor, door });
     } else {
       return NextResponse.json({ ok: false, error: { code: 'INVALID_MODE', message: 'Invalid resolution mode' } }, { status: 400 });
     }

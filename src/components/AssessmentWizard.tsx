@@ -115,7 +115,9 @@ export default function AssessmentWizard() {
   const handleCadastreConfirm = (match: CadastralMatch) => {
     setConfirmedMatch(match);
     if (match.yearBuilt) setValue('year', match.yearBuilt);
-    if (match.surfaceBuiltM2) setValue('area', match.surfaceBuiltM2);
+    // Use surfaceBuiltM2 if area is missing, as it's the most common reliable data from Catastro for houses/flats
+    const areaToUse = match.surfaceBuiltM2 || match.surfacePlotM2;
+    if (areaToUse) setValue('area', Math.round(areaToUse));
     if (match.postalCode) setValue('zipcode', match.postalCode);
   };
 
