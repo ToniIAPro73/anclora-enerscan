@@ -75,6 +75,9 @@ const labels = {
     collectedLetter: 'Letra recogida',
     ceeAnnexNoteShort: 'Documento PDF aportado por el usuario.',
     ceeDisclaimer: 'Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.',
+    cadastralReference: 'Referencia catastral',
+    cadastralSource: 'Fuente catastral',
+    cadastralVerified: 'Datos verificados mediante fuente oficial',
   },
   en: {
     title: 'Anclora EnergyScan Premium Report',
@@ -139,6 +142,9 @@ const labels = {
     collectedLetter: 'Collected rating',
     ceeAnnexNoteShort: 'PDF document provided by user.',
     ceeDisclaimer: 'Document provided by user. EnergyScan does not replace the official Energy Performance Certificate or an inspection by a qualified technician.',
+    cadastralReference: 'Cadastral reference',
+    cadastralSource: 'Cadastral source',
+    cadastralVerified: 'Verified data from official source',
   },
   de: {
     title: 'Anclora EnergyScan Premium Report',
@@ -203,6 +209,9 @@ const labels = {
     collectedLetter: 'Erfasste Klasse',
     ceeAnnexNoteShort: 'Vom Nutzer bereitgestelltes PDF-Dokument.',
     ceeDisclaimer: 'Vom Nutzer bereitgestelltes Dokument. EnergyScan ersetzt keinen offiziellen Energieausweis oder eine Prüfung durch einen qualifizierten Techniker.',
+    cadastralReference: 'Katasternummer',
+    cadastralSource: 'Katasterquelle',
+    cadastralVerified: 'Verifizierte Daten aus offizieller Quelle',
   },
 } as const;
 
@@ -526,6 +535,14 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         <View style={styles.row}><Text style={styles.colLeft}>{t.systems}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.heating, language)} / {labelValue(data.propertyData.cooling, language)} / {labelValue(data.propertyData.waterHeating, language)}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.envelope}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.windows, language)} / {labelValue(data.propertyData.facadeInsulation, language)} / {labelValue(data.propertyData.roofInsulation, language)}</Text></View>
         <View style={styles.row}><Text style={styles.colLeft}>{t.renewables}</Text><Text style={styles.colRight}>{labelValue(data.propertyData.renewables, language)}</Text></View>
+        
+        {data.cadastralRecord && (
+          <View style={{ marginTop: 10, padding: 8, backgroundColor: '#f0fff4', borderRadius: 4, border: '0.5pt solid #c6f6d5' }}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#22543d', marginBottom: 4 }}>✓ {t.cadastralVerified}</Text>
+            <View style={styles.row}><Text style={{ ...styles.colLeft, fontSize: 8 }}>{t.cadastralReference}</Text><Text style={{ ...styles.colRight, fontSize: 8, fontWeight: 'bold' }}>{data.cadastralRecord.cadastralReference}</Text></View>
+            <View style={styles.row}><Text style={{ ...styles.colLeft, fontSize: 8 }}>{t.cadastralSource}</Text><Text style={{ ...styles.colRight, fontSize: 8 }}>{data.cadastralRecord.source.toUpperCase()} ({data.date})</Text></View>
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>

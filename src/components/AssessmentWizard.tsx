@@ -8,6 +8,8 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { upload } from '@vercel/blob/client';
 import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText } from 'lucide-react';
+import { CadastreSearch } from './CadastreSearch';
+import type { CadastralMatch } from '@/lib/catastro/types';
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
@@ -52,6 +54,7 @@ export default function AssessmentWizard() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [confirmedMatch, setConfirmedMatch] = useState<CadastralMatch | null>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -108,6 +111,13 @@ export default function AssessmentWizard() {
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
+
+  const handleCadastreConfirm = (match: CadastralMatch) => {
+    setConfirmedMatch(match);
+    if (match.yearBuilt) setValue('year', match.yearBuilt);
+    if (match.surfaceBuiltM2) setValue('area', match.surfaceBuiltM2);
+    if (match.postalCode) setValue('zipcode', match.postalCode);
+  };
 
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);
@@ -183,6 +193,7 @@ export default function AssessmentWizard() {
       body: JSON.stringify({
         ...data,
         uploadedAttachments,
+        cadastralData: confirmedMatch,
       }),
     });
   };
@@ -195,6 +206,9 @@ export default function AssessmentWizard() {
       }
     });
     files.forEach((file) => formData.append('attachments', file));
+    if (confirmedMatch) {
+      formData.append('cadastralData', JSON.stringify(confirmedMatch));
+    }
 
     return fetch('/api/assessment', {
       method: 'POST',
@@ -312,6 +326,9 @@ export default function AssessmentWizard() {
         {step === 2 && (
           <div className="space-y-6">
             <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
+            
+            <CadastreSearch onConfirm={handleCadastreConfirm} />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardPropertyType}</label>

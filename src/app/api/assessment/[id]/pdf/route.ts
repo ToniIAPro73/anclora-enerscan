@@ -138,7 +138,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     } else {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.id },
-        include: { attachments: true }
+        include: { attachments: true, cadastralRecord: true }
       });
 
       if (!assessment) {
@@ -203,6 +203,20 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         subsidies: getRelevantSubsidies(propertyData),
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
         attachments: rawAttachments,
+        cadastralRecord: assessment.cadastralRecord ? {
+          cadastralReference: assessment.cadastralRecord.cadastralReference || '',
+          province: assessment.cadastralRecord.province || '',
+          municipality: assessment.cadastralRecord.municipality || '',
+          address: assessment.cadastralRecord.address || '',
+          postalCode: assessment.cadastralRecord.postalCode || '',
+          surfaceBuiltM2: assessment.cadastralRecord.surfaceBuiltM2 || undefined,
+          surfacePlotM2: assessment.cadastralRecord.surfacePlotM2 || undefined,
+          yearBuilt: assessment.cadastralRecord.yearBuilt || undefined,
+          lat: assessment.cadastralRecord.lat || undefined,
+          lng: assessment.cadastralRecord.lng || undefined,
+          source: assessment.cadastralRecord.sourceSystem,
+          confidence: assessment.cadastralRecord.confidence || 1,
+        } : undefined,
         language,
         currency,
         measurementSystem,

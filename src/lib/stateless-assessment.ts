@@ -10,12 +10,14 @@ import {
 } from "./domain/energy-assessment";
 import type { AppCurrency, AppLanguage, MeasurementSystem } from "./preferences";
 import { getPreferencesForLanguage } from "./preferences";
+import type { CadastralMatch } from "./catastro/types";
 
 type StatelessAssessmentPayload = {
   propertyData: PropertyDataV2;
   scoreResult: ScoreResultV2;
   publicRef?: string;
   attachments?: AssessmentAttachment[];
+  cadastralRecord?: CadastralMatch;
   isDemo?: boolean;
   createdAt?: string;
 };
@@ -54,13 +56,14 @@ export function getPublicAssessmentRef(id: string): string {
 
 export function createStatelessPayload(
   propertyData: PropertyDataV2,
-  options: { attachments?: AssessmentAttachment[]; isDemo?: boolean; publicRef?: string } = {}
+  options: { attachments?: AssessmentAttachment[]; isDemo?: boolean; publicRef?: string; cadastralRecord?: CadastralMatch } = {}
 ): StatelessAssessmentPayload {
   return {
     propertyData,
     scoreResult: calculateScoreV2(propertyData),
     publicRef: options.publicRef,
     attachments: options.attachments || [],
+    cadastralRecord: options.cadastralRecord,
     isDemo: options.isDemo || false,
     createdAt: new Date().toISOString(),
   };
@@ -85,6 +88,7 @@ export function createReportDataFromPayload(
     subsidies: getRelevantSubsidies(payload.propertyData),
     providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
     attachments: payload.attachments || [],
+    cadastralRecord: payload.cadastralRecord,
     language,
     currency: currency || defaults.currency,
     measurementSystem: measurementSystem || defaults.measurementSystem,

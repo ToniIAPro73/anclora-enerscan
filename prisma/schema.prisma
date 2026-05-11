@@ -53,6 +53,29 @@ model Assessment {
   attachments      AssessmentAttachment[]
   leads            Lead[]
   costEstimateRuns EstimateRun[]
+  cadastralRecord  CadastralRecord?
+}
+
+model CadastralRecord {
+  id                 String     @id @default(cuid())
+  assessmentId       String     @unique
+  assessment         Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  cadastralReference String?
+  province           String?
+  municipality       String?
+  address            String?
+  postalCode         String?
+  lat                Float?
+  lng                Float?
+  surfaceBuiltM2     Float?
+  surfacePlotM2      Float?
+  yearBuilt          Int?
+  sourceSystem       String     @default("catastro")
+  sourceMode         String?    // rc, address, coords
+  confidence         Float?     @default(1)
+  retrievedAt        DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 }
 
 model AssessmentAttachment {
