@@ -1,0 +1,82 @@
+'use client';
+
+import { useEffect } from 'react';
+import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapPin } from 'lucide-react';
+
+// Fix for default marker icon in Leaflet + Next.js
+const DefaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
+interface PropertyMapProps {
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+  onPositionChange?: (pos: { lat: number; lng: number }) => void;
+  readOnly?: boolean;
+}
+
+function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
+
+function LocationPicker({ onPositionChange }: { onPositionChange: (pos: { lat: number; lng: number }) => void }) {
+  useMapEvents({
+    click(e) {
+      onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
+
+export default function PropertyMap({ 
+  lat, 
+  lng, 
+  zoom = 16, 
+  onPositionChange, 
+  readOnly = false 
+}: PropertyMapProps) {
+  // Default to Spain (Madrid) if no coordinates
+  const defaultPos: [number, number] = [40.4168, -3.7038];
+  const position: [number, number] = lat && lng ? [lat, lng] : defaultPos;
+
+  return (
+    <div className="relative w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-white/10 bg-black/20">
+      <MapContainer 
+        center={position} 
+        zoom={zoom} 
+        scrollWheelZoom={false}
+        style={{ height: '100%', width: '100%', zIndex: 0 }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {lat && lng && <Marker position={[lat, lng]} />}
+        <MapUpdater center={position} zoom={zoom} />
+        {!readOnly && onPositionChange && <LocationPicker onPositionChange={onPositionChange} />}
+      </MapContainer>
+      
+      {!lat && !lng && (
+        <div className="absolute inset-0 z-[10] flex items-center justify-center bg-black/40 pointer-events-none">
+          <div className="bg-[#131313] border border-white/10 p-4 rounded-xl shadow-2xl flex flex-col items-center gap-2 text-center max-w-[200px]">
+            <MapPin className="w-6 h-6 text-[#00DC82]" />
+            <p className="text-[10px] font-bold text-premium uppercase">Selecciona ubicación en el mapa</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

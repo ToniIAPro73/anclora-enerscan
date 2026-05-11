@@ -6,13 +6,17 @@ import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { upload } from '@vercel/blob/client';
-import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText } from 'lucide-react';
+import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2 } from 'lucide-react';
 import { CadastreSearch } from './CadastreSearch';
 import type { CadastralMatch } from '@/lib/catastro/types';
+import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
+
+const PropertyMap = dynamic(() => import('./PropertyMap'), { ssr: false, loading: () => <div className="w-full h-full min-h-[300px] bg-white/5 animate-pulse rounded-2xl" /> });
 
 const DIRECT_UPLOAD_FALLBACK_LIMIT = 4 * 1024 * 1024;
 
@@ -55,6 +59,7 @@ export default function AssessmentWizard() {
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [confirmedMatch, setConfirmedMatch] = useState<CadastralMatch | null>(null);
+  const [autofillNotice, setAutofillNotice] = useState<boolean>(false);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -79,6 +84,10 @@ export default function AssessmentWizard() {
     acceptTerms: z.literal(true, {
       error: t.wizardAcceptTermsError
     }),
+    // Location fields
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    locationSource: z.enum(['catastro', 'manual', 'none']),
   }), [t]);
 
   type AssessmentFormValues = z.infer<typeof assessmentSchema>;
@@ -104,21 +113,41 @@ export default function AssessmentWizard() {
       budgetRange: 'medium',
       timelineHorizon: 'one_year',
       targetLetter: 'A',
+      locationSource: 'none',
     }
   });
 
   const objective = watch('objective');
+  const lat = watch('latitude');
+  const lng = watch('longitude');
+  const locationSource = watch('locationSource');
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
   const handleCadastreConfirm = (match: CadastralMatch) => {
     setConfirmedMatch(match);
-    if (match.yearBuilt) setValue('year', match.yearBuilt);
-    // Use surfaceBuiltM2 if area is missing, as it's the most common reliable data from Catastro for houses/flats
-    const areaToUse = match.surfaceBuiltM2 || match.surfacePlotM2;
-    if (areaToUse) setValue('area', Math.round(areaToUse));
-    if (match.postalCode) setValue('zipcode', match.postalCode);
+    const autofill = mapCadastralMatchToWizardFields(match);
+    
+    if (autofill.year) setValue('year', autofill.year);
+    if (autofill.area) setValue('area', autofill.area);
+    if (autofill.zipcode) setValue('zipcode', autofill.zipcode);
+    if (autofill.propertyType) setValue('propertyType', autofill.propertyType);
+    
+    if (autofill.lat && autofill.lng) {
+      setValue('latitude', autofill.lat);
+      setValue('longitude', autofill.lng);
+      setValue('locationSource', 'catastro');
+    }
+
+    setAutofillNotice(true);
+    setTimeout(() => setAutofillNotice(false), 5000);
+  };
+
+  const handleMapClick = (pos: { lat: number; lng: number }) => {
+    setValue('latitude', pos.lat);
+    setValue('longitude', pos.lng);
+    setValue('locationSource', 'manual');
   };
 
   const addFiles = (incoming: FileList | File[]) => {
@@ -196,6 +225,7 @@ export default function AssessmentWizard() {
         ...data,
         uploadedAttachments,
         cadastralData: confirmedMatch,
+        // The latitude/longitude/locationSource are already in 'data' because they are in the schema
       }),
     });
   };
@@ -327,54 +357,87 @@ export default function AssessmentWizard() {
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
+              {autofillNotice && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00DC82]/10 border border-[#00DC82]/20 text-[#00DC82] text-[10px] font-bold uppercase animate-in fade-in zoom-in duration-300">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t.wizardCatastroAutofillApplied}
+                </div>
+              )}
+            </div>
             
-            <CadastreSearch onConfirm={handleCadastreConfirm} />
+            <div className="grid lg:grid-cols-5 gap-8">
+              <div className="lg:col-span-3 space-y-6">
+                <CadastreSearch onConfirm={handleCadastreConfirm} />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardPropertyType}</label>
-                <select {...register('propertyType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="flat">{t.wizardPropertyTypeFlat}</option>
-                  <option value="house">{t.wizardPropertyTypeHouse}</option>
-                  <option value="terraced">{t.wizardPropertyTypeTerraced}</option>
-                  <option value="penthouse">{t.wizardPropertyTypePenthouse}</option>
-                  <option value="ground_floor">{t.wizardPropertyTypeGroundFloor}</option>
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardPropertyType}</label>
+                    <select {...register('propertyType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                      <option value="flat">{t.wizardPropertyTypeFlat}</option>
+                      <option value="house">{t.wizardPropertyTypeHouse}</option>
+                      <option value="terraced">{t.wizardPropertyTypeTerraced}</option>
+                      <option value="penthouse">{t.wizardPropertyTypePenthouse}</option>
+                      <option value="ground_floor">{t.wizardPropertyTypeGroundFloor}</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardConstructionYear}</label>
+                    <input type="number" {...register('year', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardAreaLabel} ({t.unitArea})</label>
+                    <input type="number" {...register('area', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardZipcode}</label>
+                    <input type="text" {...register('zipcode')} placeholder="28001" className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardOrientationLabel}</label>
+                    <select {...register('orientation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                      <option value="north">{t.wizardOrientationNorth}</option>
+                      <option value="south">{t.wizardOrientationSouth}</option>
+                      <option value="east">{t.wizardOrientationEast}</option>
+                      <option value="west">{t.wizardOrientationWest}</option>
+                      <option value="mixed">{t.wizardOrientationMixed}</option>
+                      <option value="unknown">{t.wizardOrientationUnknown}</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardRoofTypeLabel}</label>
+                    <select {...register('roofType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
+                      <option value="flat">{t.wizardRoofTypeFlat}</option>
+                      <option value="pitched">{t.wizardRoofTypePitched}</option>
+                      <option value="shared">{t.wizardRoofTypeShared}</option>
+                      <option value="unknown">{t.wizardRoofTypeUnknown}</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardConstructionYear}</label>
-                <input type="number" {...register('year', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardAreaLabel} ({t.unitArea})</label>
-                <input type="number" {...register('area', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardZipcode}</label>
-                <input type="text" {...register('zipcode')} placeholder="28001" className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardOrientationLabel}</label>
-                <select {...register('orientation')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="north">{t.wizardOrientationNorth}</option>
-                  <option value="south">{t.wizardOrientationSouth}</option>
-                  <option value="east">{t.wizardOrientationEast}</option>
-                  <option value="west">{t.wizardOrientationWest}</option>
-                  <option value="mixed">{t.wizardOrientationMixed}</option>
-                  <option value="unknown">{t.wizardOrientationUnknown}</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardRoofTypeLabel}</label>
-                <select {...register('roofType')} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none">
-                  <option value="flat">{t.wizardRoofTypeFlat}</option>
-                  <option value="pitched">{t.wizardRoofTypePitched}</option>
-                  <option value="shared">{t.wizardRoofTypeShared}</option>
-                  <option value="unknown">{t.wizardRoofTypeUnknown}</option>
-                </select>
+
+              <div className="lg:col-span-2 space-y-4">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
+                    {locationSource !== 'none' && (
+                      <span className="text-[9px] font-bold text-[#00DC82] uppercase px-2 py-0.5 rounded bg-[#00DC82]/10 border border-[#00DC82]/20">
+                        {locationSource === 'catastro' ? t.wizardMapDesc : t.wizardMapManual}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-h-[400px] lg:min-h-0">
+                    <PropertyMap 
+                      lat={lat} 
+                      lng={lng} 
+                      onPositionChange={handleMapClick}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
+            
             <div className="flex gap-4 pt-4">
               <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
               <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
