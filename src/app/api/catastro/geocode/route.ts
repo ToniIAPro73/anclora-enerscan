@@ -14,6 +14,8 @@ function normalizeCatastroString(str: string | null): string {
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.,]/g, ' ') // Remove dots and commas
+    .replace(/\s+/g, ' ') // Consolidate spaces
     .trim();
 }
 
@@ -38,20 +40,38 @@ export async function GET(request: NextRequest) {
     // 1. Prepare variations of the street name
     const streetVariations = [rawStreet];
     
-    // Add I/Y variation for Catalan/Spanish names
+    // Variation: Replace I/Y
     if (rawStreet.includes(' I ')) streetVariations.push(rawStreet.replace(/ I /g, ' Y '));
     if (rawStreet.includes(' Y ')) streetVariations.push(rawStreet.replace(/ Y /g, ' I '));
     
-    // Try removing common "DE", "DEL", "LA" etc. if fails
-    if (rawStreet.includes(' DE ')) streetVariations.push(rawStreet.replace(/ DE /g, ' '));
+    // Variation: Handle common Catalan/Spanish names
+    if (rawStreet.startsWith('MIQUEL ')) streetVariations.push(rawStreet.replace('MIQUEL ', 'M '));
+    if (rawStreet.startsWith('JUAN ')) streetVariations.push(rawStreet.replace('JUAN ', 'J '));
+    if (rawStreet.startsWith('ANTONIO ')) streetVariations.push(rawStreet.replace('ANTONIO ', 'A '));
+    if (rawStreet.startsWith('JOSE ')) streetVariations.push(rawStreet.replace('JOSE ', 'J '));
 
-    // Remove first word if it's a type (sometimes included in the name field)
+    // Variation: Remove common connectors
+    if (rawStreet.includes(' DE ')) streetVariations.push(rawStreet.replace(/ DE /g, ' '));
+    if (rawStreet.includes(' DEL ')) streetVariations.push(rawStreet.replace(/ DEL /g, ' '));
+
     const words = rawStreet.split(' ');
-    if (words.length > 1 && ['CALLE', 'AVENIDA', 'PLAZA', 'VIA', 'PASEO', 'CARRER'].includes(words[0])) {
+    if (words.length > 1) {
+      // Variation: Surname first (common in Catastro)
+      // e.g. "MIQUEL ROSSELLO" -> "ROSSELLO MIQUEL"
+      streetVariations.push([...words.slice(1), words[0]].join(' '));
+      
+      // Variation: Significant part only (skip first name)
+      // e.g. "MIQUEL ROSSELLO I ALEMANY" -> "ROSSELLO I ALEMANY"
       streetVariations.push(words.slice(1).join(' '));
+      
+      // Variation: If ends with a name, try moving it to front
+      // Some records have "CALLE ROSSELLO, MIQUEL"
+      if (words.length > 2) {
+        streetVariations.push(words.slice(-2).join(' '));
+      }
     }
 
-    // Deduplicate variations
+    // Deduplicate and filter variations
     const uniqueVariations = Array.from(new Set(streetVariations)).filter(s => s.length > 2);
 
     // 2. Main Search Loop
@@ -78,46 +98,53 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // 2c. Fallback: try with sigla in the street name
-      if (matches.length === 0 && sigla) {
+      // 2c. Fallback: try without number (street level)
+      if (matches.length === 0 && number) {
         matches = await resolveByAddress({
           province,
           municipality,
-          street: `${sigla} ${streetVar}`,
-          number,
+          street: streetVar,
+          number: '',
           sigla: '',
         });
+        if (matches.length > 0) accuracy = 'street';
       }
 
       if (matches.length > 0) {
         finalMatches = matches;
-        accuracy = 'exact';
+        if (accuracy === 'none') accuracy = 'exact';
         break;
       }
     }
 
-    // 3. Street-level Fallback: if still no matches, search for the street first
+    // 3. Fuzzy Street Fallback: if still no matches, try partial lookup
     if (finalMatches.length === 0 && rawStreet) {
-      // Try fuzzy street lookup to get canonical name
-      const suggestions = await getStreets({ province, municipality, query: rawStreet });
-      if (suggestions.length > 0) {
-        const canonical = suggestions[0];
+      // Try fuzzy search with only the first few words to be more inclusive
+      const fuzzyQuery = words.slice(0, 2).join(' ');
+      const suggestions = await getStreets({ province, municipality, query: fuzzyQuery });
+      
+      // Try to find the best match in suggestions that contains our surnames
+      const surnames = words.slice(1).filter(w => w.length > 2 && w !== 'I' && w !== 'Y');
+      const bestSuggestion = suggestions.find(s => 
+        surnames.every(surname => s.name.includes(surname))
+      ) || suggestions[0];
+
+      if (bestSuggestion) {
         let matches = await resolveByAddress({
           province,
           municipality,
-          street: canonical.name,
+          street: bestSuggestion.name,
           number,
-          sigla: canonical.type,
+          sigla: bestSuggestion.type,
         });
 
         if (matches.length === 0) {
-          // Try canonical street without number
           matches = await resolveByAddress({
             province,
             municipality,
-            street: canonical.name,
+            street: bestSuggestion.name,
             number: '',
-            sigla: canonical.type,
+            sigla: bestSuggestion.type,
           });
           accuracy = 'street';
         } else {
@@ -132,19 +159,17 @@ export async function GET(request: NextRequest) {
 
     // 4. Extract and Enrich Coordinates
     if (finalMatches.length > 0) {
-      // Try to find one with coords
       let bestMatch = finalMatches.find(m => m.lat && m.lng);
       
       if (!bestMatch) {
-        // Enrichment: Attempt to get coordinates from the first result's RC
         const targetRC = finalMatches[0].cadastralReference;
         if (targetRC) {
           const enriched = await resolveByCadastralReference(targetRC);
           if (enriched.length > 0 && enriched[0].lat && enriched[0].lng) {
             bestMatch = enriched[0];
           } else if (targetRC.length >= 14) {
-            // Try the parcel reference (14 chars) if full RC failed
-            const parcelEnriched = await resolveByCadastralReference(targetRC.slice(0, 14));
+            const parcelRC = targetRC.slice(0, 14);
+            const parcelEnriched = await resolveByCadastralReference(parcelRC);
             if (parcelEnriched.length > 0 && parcelEnriched[0].lat && parcelEnriched[0].lng) {
               bestMatch = parcelEnriched[0];
             }
@@ -176,10 +201,9 @@ export async function GET(request: NextRequest) {
         accuracy, 
         rc,
         debug: {
-          original: rawStreet,
-          processed: uniqueVariations[0],
-          found: finalMatches.length > 0,
-          matchCount: finalMatches.length
+          variations: uniqueVariations.slice(0, 5),
+          finalAccuracy: accuracy,
+          found: finalMatches.length > 0
         }
       });
     }
