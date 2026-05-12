@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -131,7 +131,7 @@ export default function AssessmentWizard() {
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
-  const handleCadastreConfirm = (match: CadastralMatch) => {
+  const handleCadastreConfirm = useCallback((match: CadastralMatch) => {
     setConfirmedMatch(match);
     const autofill = mapCadastralMatchToWizardFields(match);
     
@@ -155,26 +155,26 @@ export default function AssessmentWizard() {
       setAutofillNotice(false);
       setAreaNotice(false);
     }, 8000);
-  };
+  }, [setValue, t.wizardMapLocationCatastro]);
 
-  const handleMatchSelect = (match: CadastralMatch | null) => {
+  const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
     if (match?.lat && match?.lng) {
       setMapCenter({ lat: match.lat, lng: match.lng });
       setMapZoom(19);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
-  };
+  }, [t.wizardMapLocationCatastro]);
 
-  const handleLocationChange = (province: string, municipality: string) => {
+  const handleLocationChange = useCallback((province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
     if (coords) {
       setMapCenter({ lat: coords.lat, lng: coords.lng });
       setMapZoom(coords.zoom);
       setMapSourceLabel(municipality ? t.wizardMapLocationMunicipality : t.wizardMapLocationProvince);
     }
-  };
+  }, [t.wizardMapLocationMunicipality, t.wizardMapLocationProvince]);
 
-  const handleAddressChange = (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => {
+  const handleAddressChange = useCallback((address: { province: string, municipality: string, street: string, number: string, sigla: string }) => {
     if (geocodeTimeoutRef.current) clearTimeout(geocodeTimeoutRef.current);
 
     geocodeTimeoutRef.current = setTimeout(async () => {
@@ -190,15 +190,15 @@ export default function AssessmentWizard() {
         console.error('Auto-geocoding failed', err);
       }
     }, 1000);
-  };
+  }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
 
-  const handleMapClick = (pos: { lat: number; lng: number }) => {
+  const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
     setMapCenter(pos);
     setMapSourceLabel(t.wizardMapLocationManual);
-  };
+  }, [setValue, t.wizardMapLocationManual]);
 
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);

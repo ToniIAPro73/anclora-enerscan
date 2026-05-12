@@ -69,6 +69,21 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
     }
   }, [mode, provinces.length, fetchProvinces]);
 
+  const fetchMunicipalities = useCallback(async (province: string) => {
+    setMunicipalitiesLoading(true);
+    try {
+      const res = await fetch(`/api/catastro/municipalities?province=${encodeURIComponent(province)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMunicipalities(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch municipalities', err);
+    } finally {
+      setMunicipalitiesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedProvince) {
       fetchMunicipalities(selectedProvince);
@@ -79,7 +94,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
     setSelectedStreet(null);
     setStreetQuery('');
     onLocationChange?.(selectedProvince, '');
-  }, [selectedProvince, onLocationChange]);
+  }, [selectedProvince, onLocationChange, fetchMunicipalities]);
 
   useEffect(() => {
     setSelectedStreet(null);
@@ -98,21 +113,6 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
       });
     }
   }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);
-
-  async function fetchMunicipalities(province: string) {
-    setMunicipalitiesLoading(true);
-    try {
-      const res = await fetch(`/api/catastro/municipalities?province=${encodeURIComponent(province)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMunicipalities(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch municipalities', err);
-    } finally {
-      setMunicipalitiesLoading(false);
-    }
-  }
 
   // Street autocomplete debounce
   useEffect(() => {
