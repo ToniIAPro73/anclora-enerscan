@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { MousePointer2, Calculator, Sparkles, Zap } from 'lucide-react';
+import { usePreferences } from './AppPreferencesProvider';
 
 const ENERGY_LEVELS = [
   { letter: 'A', color: '#008F5A', bg: 'bg-[#008F5A]', width: 'w-[100%]' },
@@ -14,6 +15,7 @@ const ENERGY_LEVELS = [
 ];
 
 export function HeroEnergyScale() {
+  const { dictionary: t } = usePreferences();
   const [currentIndex, setCurrentIndex] = useState(6); // Start at G
   const [isCalculating, setIsCalculating] = useState(false);
   const targetIndex = 2; // Stop at C
@@ -61,14 +63,14 @@ export function HeroEnergyScale() {
                 )}
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#00DC82] uppercase tracking-[0.2em]">Live Analysis</p>
-                <p className="text-xs font-heading font-bold text-premium">ENERGY SCAN PRO</p>
+                <p className="text-[10px] font-bold text-[#00DC82] uppercase tracking-[0.2em]">{t.heroLiveAnalysis}</p>
+                <p className="text-xs font-heading font-bold text-premium">{t.heroEnergyScanPro}</p>
               </div>
             </div>
             {!isCalculating && (
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 animate-bounce">
                 <MousePointer2 className="w-3 h-3 text-muted" />
-                <span className="text-[9px] font-bold text-muted uppercase">Simulate</span>
+                <span className="text-[9px] font-bold text-muted uppercase">{t.heroSimulate}</span>
               </div>
             )}
           </div>
@@ -116,15 +118,15 @@ export function HeroEnergyScale() {
           {/* BOTTOM METER (DYNAMIC DATA) */}
           <div className="mt-10 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-[9px] font-bold text-muted uppercase tracking-widest leading-none">Estimate Grade</p>
+              <p className="text-[9px] font-bold text-muted uppercase tracking-widest leading-none">{t.heroEstimateGrade}</p>
               <p className={`text-2xl font-heading font-black transition-colors duration-500 ${isCalculating ? 'text-muted' : 'text-premium'}`}>
                 {isCalculating ? '...' : ENERGY_LEVELS[currentIndex].letter}
               </p>
             </div>
             <div className="space-y-1 text-right text-[#00DC82]">
-              <p className="text-[9px] font-bold uppercase tracking-widest leading-none">Potential</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest leading-none">{t.heroPotential}</p>
               <p className="text-2xl font-heading font-black">
-                {isCalculating ? '??%' : 'High'}
+                {isCalculating ? '??%' : t.heroPotentialHigh}
               </p>
             </div>
           </div>

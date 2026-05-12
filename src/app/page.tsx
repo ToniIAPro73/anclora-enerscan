@@ -48,33 +48,33 @@ export default function LandingPage() {
 
       <main>
         {/* HERO SECTION */}
-        <section className="relative min-h-screen flex items-center pt-16">
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <section className="relative min-h-[calc(100vh-64px)] flex items-center pt-8">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00DC82]/30 bg-[#00DC82]/5 mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00DC82]/30 bg-[#00DC82]/5 mb-4">
                   <span className="w-2 h-2 rounded-full bg-[#00DC82] animate-pulse"></span>
                   <span className="text-xs text-[#00DC82] font-heading font-medium">{t.heroBadge}</span>
                 </div>
-                <h1 className="font-heading font-bold text-4xl sm:text-5xl lg:text-[3.5rem] leading-[1.1] text-premium mb-6">
+                <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-[3rem] leading-[1.1] text-premium mb-4">
                   {t.heroTitleA}<br />
                   <span className="text-[#00DC82]">{t.heroTitleB}</span> {t.heroTitleC}
                 </h1>
-                <p className="text-muted text-lg sm:text-xl leading-relaxed mb-8 max-w-xl">
+                <p className="text-muted text-base sm:text-lg leading-relaxed mb-6 max-w-xl">
                   {t.heroCopy}
                 </p>
-                <div className="flex flex-wrap gap-4 mb-6">
-                  <Link href="/wizard" className="px-7 py-3.5 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition pulse-glow">
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <Link href="/wizard" className="px-6 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition pulse-glow">
                     {t.startFree}
                   </Link>
-                  <Link href="/api/assessment/demo" className="px-7 py-3.5 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
+                  <Link href="/api/assessment/demo" className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.demo}
                   </Link>
-                  <Link href="#como-funciona" className="px-7 py-3.5 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
+                  <Link href="#como-funciona" className="px-6 py-3 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
                     {t.howItWorks}
                   </Link>
                 </div>
-                <p className="text-[11px] text-muted leading-relaxed max-w-md">
+                <p className="text-[10px] text-muted leading-relaxed max-w-md">
                   {getLegalDisclaimer(language)}
                 </p>
               </div>
@@ -84,16 +84,16 @@ export default function LandingPage() {
             </div>
 
             {/* STATS */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 lg:mt-20">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-12 lg:mt-16">
               {[
                 { label: t.statsDeficient, val: '80%', color: 'text-premium' },
                 { label: t.statsDate, val: '2030', color: 'text-[#FFB020]' },
                 { label: t.statsTarget, val: '2033', color: 'text-[#EF4444]' },
                 { label: t.statsSteps, val: '7', color: 'text-[#00DC82]' },
               ].map((s, i) => (
-                <div key={i} className="p-4 rounded-xl surface-2 border text-center">
-                  <p className={`font-heading font-bold text-2xl sm:text-3xl ${s.color}`}>{s.val}</p>
-                  <p className="text-xs text-muted mt-1">{s.label}</p>
+                <div key={i} className="p-3 rounded-xl surface-2 border text-center">
+                  <p className={`font-heading font-bold text-xl sm:text-2xl ${s.color}`}>{s.val}</p>
+                  <p className="text-[10px] text-muted mt-1 uppercase tracking-wider font-semibold">{s.label}</p>
                 </div>
               ))}
             </div>
