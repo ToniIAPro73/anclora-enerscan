@@ -71,7 +71,8 @@ export async function getStreets(params: {
 
 export async function resolveByCadastralReference(rc: string): Promise<CadastralMatch[]> {
   // Catastro Resolve RC
-  const url = `${BASE_URL}/Consulta_DNPRC?RC=${encodeURIComponent(rc)}&Provincia=&Municipio=`;
+  // Use SRS=EPSG:4326 to get coordinates in WGS84 (Lat/Lon)
+  const url = `${BASE_URL}/Consulta_DNPRC?RC=${encodeURIComponent(rc)}&Provincia=&Municipio=&SRS=EPSG:4326`;
   const response = await fetch(url, { cache: 'no-store' });
   
   if (!response.ok) {
@@ -103,7 +104,8 @@ export async function resolveByAddress(params: {
 }): Promise<CadastralMatch[]> {
   const { province, municipality, street, number, sigla, block, staircase, floor, door } = params;
   
-  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=${encodeURIComponent(block || '')}&Escalera=${encodeURIComponent(staircase || '')}&Planta=${encodeURIComponent(floor || '')}&Puerta=${encodeURIComponent(door || '')}`;
+  // Use SRS=EPSG:4326 to get coordinates in WGS84 (Lat/Lon)
+  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=${encodeURIComponent(block || '')}&Escalera=${encodeURIComponent(staircase || '')}&Planta=${encodeURIComponent(floor || '')}&Puerta=${encodeURIComponent(door || '')}&SRS=EPSG:4326`;
   
   const response = await fetch(url, { cache: 'no-store' });
   

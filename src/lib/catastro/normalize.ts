@@ -85,8 +85,8 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
     participationCoefficient: coefficient,
     yearBuilt,
     
-    lat: parseFloat(extractTagValue(xmlFragment, 'lat')) || undefined,
-    lng: parseFloat(extractTagValue(xmlFragment, 'lon')) || undefined,
+    lat: parseFloat(extractTagValue(xmlFragment, 'lat') || extractTagValue(xmlFragment, 'ycen')) || undefined,
+    lng: parseFloat(extractTagValue(xmlFragment, 'lon') || extractTagValue(xmlFragment, 'xcen')) || undefined,
     source: 'catastro',
     confidence: 1,
   };
