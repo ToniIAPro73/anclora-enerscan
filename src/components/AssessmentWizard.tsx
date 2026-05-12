@@ -63,7 +63,7 @@ export default function AssessmentWizard() {
   const [autofillNotice, setAutofillNotice] = useState<boolean>(false);
   const [areaNotice, setAreaNotice] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
-  const [mapZoom, setMapZoom] = useState<number>(6);
+  const [mapZoom, setMapZoom] = useState<number>(15);
   const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
   const [isMapLoading, setIsMapLoading] = useState(false);
@@ -175,7 +175,7 @@ export default function AssessmentWizard() {
   const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
     if (match?.lat && match?.lng) {
       setMapCenter({ lat: match.lat, lng: match.lng });
-      setMapZoom(19);
+      setMapZoom(18);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
   }, [t.wizardMapLocationCatastro]);
@@ -184,7 +184,7 @@ export default function AssessmentWizard() {
     const coords = getCoordinatesForLocation(province, municipality);
     if (coords) {
       setMapCenter({ lat: coords.lat, lng: coords.lng });
-      setMapZoom(coords.zoom);
+      setMapZoom(coords.zoom || 14);
       setMapSourceLabel(municipality ? t.wizardMapLocationMunicipality : t.wizardMapLocationProvince);
     }
   }, [t.wizardMapLocationMunicipality, t.wizardMapLocationProvince]);

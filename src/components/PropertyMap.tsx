@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -30,20 +30,22 @@ interface PropertyMapProps {
 
 function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: number, bounds?: [[number, number], [number, number]] }) {
   const map = useMap();
-  const [lat, lng] = center;
   
   useEffect(() => {
     if (bounds) {
-      map.fitBounds(bounds, { animate: true, padding: [40, 40], maxZoom: 19 });
-    } else if (lat && lng) {
-      // Use flyTo for a smoother and more professional transition
-      // especially when zooming in to deep levels
-      map.flyTo([lat, lng], zoom, {
-        animate: true,
-        duration: 1.5
-      });
+      map.fitBounds(bounds, { animate: true, padding: [40, 40], maxZoom: 18 });
+    } else {
+      const [lat, lng] = center;
+      if (lat && lng) {
+        // Use setView instead of flyTo for reliability if flyTo is glitching
+        // or a very short flyTo
+        map.flyTo([lat, lng], Math.min(zoom, 18), {
+          animate: true,
+          duration: 1.0
+        });
+      }
     }
-  }, [lat, lng, zoom, map, bounds]);
+  }, [center[0], center[1], zoom, map, bounds]);
   return null;
 }
 
@@ -66,7 +68,7 @@ function LocationPicker({ onPositionChange, onParcelSelect }: {
 export default function PropertyMap({ 
   lat, 
   lng, 
-  zoom = 16, 
+  zoom = 15, 
   bounds,
   onPositionChange, 
   onParcelSelect,
@@ -75,22 +77,24 @@ export default function PropertyMap({
   isLoading = false
 }: PropertyMapProps) {
   // Default to Spain (Madrid) if no coordinates
-  const position: [number, number] = lat && lng ? [lat, lng] : [40.4168, -3.7038];
+  const position = useMemo((): [number, number] => 
+    lat && lng ? [lat, lng] : [40.4168, -3.7038], 
+  [lat, lng]);
 
   return (
     <div className="relative w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-white/10 bg-black/20">
       <MapContainer 
         center={position} 
         zoom={zoom} 
-        maxZoom={22}
+        maxZoom={19}
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={22}
-          maxNativeZoom={19}
+          maxZoom={19}
+          maxNativeZoom={18}
         />
         
         {showParcels && (
@@ -101,7 +105,7 @@ export default function PropertyMap({
             transparent={true}
             version="1.1.1"
             opacity={0.6}
-            maxZoom={22}
+            maxZoom={19}
             attribution="&copy; Dirección General del Catastro"
           />
         )}
