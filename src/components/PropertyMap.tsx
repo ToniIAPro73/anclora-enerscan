@@ -95,6 +95,17 @@ export default function PropertyMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
           maxNativeZoom={18}
+          opacity={0.4}
+        />
+
+        <WMSTileLayer
+          url="https://www.ign.es/wms-inspire/pnoa-ma"
+          layers="OI.OrthoimageCoverage"
+          format="image/png"
+          transparent={false}
+          version="1.3.0"
+          attribution="&copy; Instituto Geográfico Nacional"
+          maxZoom={19}
         />
         
         {showParcels && (
@@ -104,7 +115,7 @@ export default function PropertyMap({
             format="image/png"
             transparent={true}
             version="1.1.1"
-            opacity={0.6}
+            opacity={0.5}
             maxZoom={19}
             attribution="&copy; Dirección General del Catastro"
           />
