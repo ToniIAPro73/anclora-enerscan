@@ -12,11 +12,7 @@ export function extractTagValue(xml: string, tag: string): string {
 export function extractTagsValues(xml: string, tag: string): string[] {
   const regex = new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, 'gi');
   const matches = Array.from(xml.matchAll(regex));
-  const values: string[] = [];
-  for (const match of matches) {
-    values.push(match[1].trim());
-  }
-  return values;
+  return matches.map(match => match[1].trim());
 }
 
 /**

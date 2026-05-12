@@ -24,6 +24,8 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
   // Address search state
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [provincesLoading, setProvincesLoading] = useState(false);
+  const [municipalitiesLoading, setMunicipalitiesLoading] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedMunicipality, setSelectedMunicipality] = useState('');
   const [streetQuery, setStreetQuery] = useState('');
@@ -47,6 +49,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
   }, [detailMatch, onMatchSelect]);
 
   const fetchProvinces = useCallback(async () => {
+    setProvincesLoading(true);
     try {
       const res = await fetch('/api/catastro/provinces');
       if (res.ok) {
@@ -55,6 +58,8 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
       }
     } catch (err) {
       console.error('Failed to fetch provinces', err);
+    } finally {
+      setProvincesLoading(false);
     }
   }, []);
 
@@ -95,6 +100,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
   }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);
 
   async function fetchMunicipalities(province: string) {
+    setMunicipalitiesLoading(true);
     try {
       const res = await fetch(`/api/catastro/municipalities?province=${encodeURIComponent(province)}`);
       if (res.ok) {
@@ -103,6 +109,8 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
       }
     } catch (err) {
       console.error('Failed to fetch municipalities', err);
+    } finally {
+      setMunicipalitiesLoading(false);
     }
   }
 
@@ -255,30 +263,40 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Provincia</label>
-                <select
-                  value={selectedProvince}
-                  onChange={(e) => setSelectedProvince(e.target.value)}
-                  className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none"
-                >
-                  <option value="">Selecciona provincia</option>
-                  {provinces.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedProvince}
+                    onChange={(e) => setSelectedProvince(e.target.value)}
+                    className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none"
+                  >
+                    <option value="">{provincesLoading ? 'Cargando provincias...' : 'Selecciona provincia'}</option>
+                    {provinces.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  {provincesLoading && (
+                    <Loader2 className="absolute right-8 top-3 w-4 h-4 animate-spin text-[#00DC82]" />
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Municipio</label>
-                <select
-                  value={selectedMunicipality}
-                  onChange={(e) => setSelectedMunicipality(e.target.value)}
-                  disabled={!selectedProvince}
-                  className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none disabled:opacity-50"
-                >
-                  <option value="">Selecciona municipio</option>
-                  {municipalities.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedMunicipality}
+                    onChange={(e) => setSelectedMunicipality(e.target.value)}
+                    disabled={!selectedProvince || municipalitiesLoading}
+                    className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none disabled:opacity-50"
+                  >
+                    <option value="">{municipalitiesLoading ? 'Cargando municipios...' : 'Selecciona municipio'}</option>
+                    {municipalities.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  {municipalitiesLoading && (
+                    <Loader2 className="absolute right-8 top-3 w-4 h-4 animate-spin text-[#00DC82]" />
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5 sm:col-span-2 relative">
                 <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Calle / Vía</label>
