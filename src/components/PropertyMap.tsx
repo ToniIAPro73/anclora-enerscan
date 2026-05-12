@@ -32,9 +32,11 @@ function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: 
     if (bounds) {
       map.fitBounds(bounds, { animate: true, padding: [20, 20] });
     } else {
+      // Use the values directly to ensure precision in change detection
       map.setView(center, zoom, { animate: true });
     }
-  }, [center, zoom, map, bounds]);
+    // We use center[0] and center[1] to react to value changes, not array reference
+  }, [center[0], center[1], zoom, map, bounds]);
   return null;
 }
 
@@ -64,12 +66,14 @@ export default function PropertyMap({
       <MapContainer 
         center={position} 
         zoom={zoom} 
+        maxZoom={22}
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={22}
         />
         
         {showParcels && (
@@ -80,6 +84,7 @@ export default function PropertyMap({
             transparent={true}
             version="1.1.1"
             opacity={0.6}
+            maxZoom={22}
             attribution="&copy; Dirección General del Catastro"
           />
         )}

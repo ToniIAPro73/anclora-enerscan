@@ -99,6 +99,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
   useEffect(() => {
     setSelectedStreet(null);
     setStreetQuery('');
+    // Only trigger location change if we actually have a selection or it's an intentional reset
     onLocationChange?.(selectedProvince, selectedMunicipality);
   }, [selectedMunicipality, selectedProvince, onLocationChange]);
 
