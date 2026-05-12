@@ -16,12 +16,12 @@ export function extractTagsValues(xml: string, tag: string): string[] {
 }
 
 /**
- * Parses a Spanish decimal string (using comma as separator) to a number.
+ * Parses a numeric value from a string, handling Spanish comma decimal separators.
  */
-function parseSpanishDecimal(value: string): number | undefined {
+function parseNumericValue(value: string): number | undefined {
   if (!value) return undefined;
-  // Replace comma with dot and remove any non-numeric characters except dot
-  const normalized = value.replace(',', '.').replace(/[^\d.]/g, '');
+  const normalized = value.replace(',', '.').replace(/[^\d.-]/g, '');
+  if (!normalized) return undefined;
   const parsed = parseFloat(normalized);
   return isNaN(parsed) ? undefined : parsed;
 }
@@ -67,15 +67,15 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   const door = extractTagValue(xmlFragment, 'pu');  // 'pu' in <loint> is Door (Puerta)
 
   // 5. Extract Physical Data
-  const surfaceBuiltM2 = parseSpanishDecimal(extractTagValue(xmlFragment, 'scons')) || undefined;
-  const surfacePlotM2 = parseSpanishDecimal(extractTagValue(xmlFragment, 'ssuelo')) || undefined;
+  const surfaceBuiltM2 = parseNumericValue(extractTagValue(xmlFragment, 'scons'));
+  const surfacePlotM2 = parseNumericValue(extractTagValue(xmlFragment, 'ssuelo'));
   const yearBuilt = parseInt(extractTagValue(xmlFragment, 'ant'), 10) || undefined;
   
   // Property use usually in <ldbi>
   const propertyUse = extractTagValue(xmlFragment, 'ldbi');
   
   // Participation coefficient in horizontal division
-  const coefficient = parseSpanishDecimal(extractTagValue(xmlFragment, 'cpt')) || undefined;
+  const coefficient = parseNumericValue(extractTagValue(xmlFragment, 'cpt'));
 
   // 6. Extract detailed construction areas if available (<lcons>)
   let surfaceDwellingM2: number | undefined;
@@ -85,7 +85,7 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   if (consBlocks) {
     for (const consBlock of consBlocks) {
       const use = extractTagValue(consBlock, 'lcd').toUpperCase();
-      const area = parseSpanishDecimal(extractTagValue(consBlock, 'sqyt'));
+      const area = parseNumericValue(extractTagValue(consBlock, 'sqyt'));
       
       if (use === 'VIVIENDA') {
         surfaceDwellingM2 = (surfaceDwellingM2 || 0) + (area || 0);
@@ -96,17 +96,18 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   }
 
   // 7. Extract Postal Code
-  // Some XMLs have <cp> (5 digits), others <dp> (2 digits province). 
-  // We prioritize <cp>.
   let postalCode = extractTagValue(xmlFragment, 'cp');
   if (!postalCode || postalCode.length < 5) {
-    // If CP is missing or incomplete, try to extract from <ldbi> text if it contains the pattern
     const ldbi = extractTagValue(xmlFragment, 'ldbi');
     const cpMatch = ldbi.match(/\b\d{5}\b/);
     if (cpMatch) {
       postalCode = cpMatch[0];
     }
   }
+
+  // 8. Extract Coordinates
+  const lat = parseNumericValue(extractTagValue(xmlFragment, 'lat') || extractTagValue(xmlFragment, 'ycen'));
+  const lng = parseNumericValue(extractTagValue(xmlFragment, 'lon') || extractTagValue(xmlFragment, 'xcen'));
 
   return {
     cadastralReference: fullRC,
@@ -129,8 +130,8 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
     participationCoefficient: coefficient,
     yearBuilt,
     
-    lat: parseFloat(extractTagValue(xmlFragment, 'lat') || extractTagValue(xmlFragment, 'ycen')) || undefined,
-    lng: parseFloat(extractTagValue(xmlFragment, 'lon') || extractTagValue(xmlFragment, 'xcen')) || undefined,
+    lat,
+    lng,
     source: 'catastro',
     confidence: 1,
   };

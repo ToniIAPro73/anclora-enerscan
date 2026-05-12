@@ -198,6 +198,8 @@ export default function AssessmentWizard() {
         if (res.ok) {
           const data = await res.json();
           
+          if (!data.lat || !data.lng || isNaN(data.lat) || isNaN(data.lng)) return;
+
           // Intelligent zoom based on geocoding accuracy
           let zoom = 18;
           if (data.accuracy === 'exact') zoom = 18;
