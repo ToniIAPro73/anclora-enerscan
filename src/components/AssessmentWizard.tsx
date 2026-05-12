@@ -64,7 +64,9 @@ export default function AssessmentWizard() {
   const [areaNotice, setAreaNotice] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
   const [mapZoom, setMapZoom] = useState<number>(6);
+  const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
+  const geocodeTimeoutRef = useMemo(() => ({ current: null as NodeJS.Timeout | null }), []);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -170,6 +172,24 @@ export default function AssessmentWizard() {
       setMapZoom(coords.zoom);
       setMapSourceLabel(municipality ? t.wizardMapLocationMunicipality : t.wizardMapLocationProvince);
     }
+  };
+
+  const handleAddressChange = (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => {
+    if (geocodeTimeoutRef.current) clearTimeout(geocodeTimeoutRef.current);
+
+    geocodeTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/catastro/geocode?province=${encodeURIComponent(address.province)}&municipality=${encodeURIComponent(address.municipality)}&street=${encodeURIComponent(address.street)}&number=${encodeURIComponent(address.number)}&sigla=${encodeURIComponent(address.sigla)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMapCenter({ lat: data.lat, lng: data.lng });
+          setMapZoom(18);
+          setMapSourceLabel(t.wizardMapLocationAddress);
+        }
+      } catch (err) {
+        console.error('Auto-geocoding failed', err);
+      }
+    }, 1000);
   };
 
   const handleMapClick = (pos: { lat: number; lng: number }) => {
@@ -336,8 +356,8 @@ export default function AssessmentWizard() {
   };
 
   return (
-    <div className={`mx-auto py-12 ${step === 2 ? 'w-full px-4 sm:px-6 lg:px-8' : 'max-w-3xl px-4'}`}>
-      <div className={`${step === 2 ? 'max-w-[1600px] mx-auto' : ''}`}>
+    <div className={`mx-auto py-12 ${step === 2 ? 'w-full max-w-none px-4 sm:px-8 lg:px-12' : 'max-w-3xl px-4'}`}>
+      <div className={`${step === 2 ? 'w-full mx-auto' : ''}`}>
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
@@ -399,11 +419,12 @@ export default function AssessmentWizard() {
             </div>
             
             <div className="grid lg:grid-cols-12 gap-8 flex-1">
-              <div className="lg:col-span-4 space-y-6 overflow-y-auto max-h-[70vh] lg:max-h-none pr-2 custom-scrollbar">
+              <div className="lg:col-span-3 space-y-6 overflow-y-auto max-h-[75vh] lg:max-h-none pr-2 custom-scrollbar">
                 <CadastreSearch 
                   onConfirm={handleCadastreConfirm} 
                   onLocationChange={handleLocationChange} 
                   onMatchSelect={handleMatchSelect}
+                  onAddressChange={handleAddressChange}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -463,7 +484,7 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div className="lg:col-span-8 space-y-4 min-h-[500px] lg:min-h-0 h-full flex flex-col">
+              <div className="lg:col-span-9 space-y-4 min-h-[500px] lg:min-h-0 h-full flex flex-col">
                 <div className="flex flex-col h-full flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
@@ -478,6 +499,7 @@ export default function AssessmentWizard() {
                       lat={mapCenter?.lat || lat} 
                       lng={mapCenter?.lng || lng} 
                       zoom={mapZoom}
+                      bounds={mapBounds}
                       onPositionChange={handleMapClick}
                     />
                   </div>

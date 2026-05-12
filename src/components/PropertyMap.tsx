@@ -20,16 +20,21 @@ interface PropertyMapProps {
   lat?: number;
   lng?: number;
   zoom?: number;
+  bounds?: [[number, number], [number, number]];
   onPositionChange?: (pos: { lat: number; lng: number }) => void;
   readOnly?: boolean;
   showParcels?: boolean;
 }
 
-function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
+function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: number, bounds?: [[number, number], [number, number]] }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom, { animate: true });
-  }, [center, zoom, map]);
+    if (bounds) {
+      map.fitBounds(bounds, { animate: true, padding: [20, 20] });
+    } else {
+      map.setView(center, zoom, { animate: true });
+    }
+  }, [center, zoom, map, bounds]);
   return null;
 }
 
@@ -46,6 +51,7 @@ export default function PropertyMap({
   lat, 
   lng, 
   zoom = 16, 
+  bounds,
   onPositionChange, 
   readOnly = false,
   showParcels = true
@@ -79,7 +85,7 @@ export default function PropertyMap({
         )}
 
         {lat && lng && <Marker position={[lat, lng]} />}
-        <MapUpdater center={position} zoom={zoom} />
+        <MapUpdater center={position} zoom={zoom} bounds={bounds} />
         {!readOnly && onPositionChange && <LocationPicker onPositionChange={onPositionChange} />}
       </MapContainer>
       
