@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveByAddress, resolveByCadastralReference } from '@/lib/catastro/client';
+import { resolveByAddress, resolveByCadastralReference, getStreets } from '@/lib/catastro/client';
 import { getCoordinatesForLocation } from '@/lib/location/geocoding';
 
 export const dynamic = 'force-dynamic';
@@ -53,14 +53,50 @@ export async function GET(request: NextRequest) {
           sigla: '',
         });
       }
+      
+      // Fuzzy Street Fallback: if still no matches, search for the street first
+      if (matches.length === 0) {
+        const suggestions = await getStreets({ province, municipality, query: street });
+        if (suggestions.length > 0) {
+          // Try exact address with the canonical street name from Catastro
+          const canonicalStreet = suggestions[0];
+          matches = await resolveByAddress({
+            province,
+            municipality,
+            street: canonicalStreet.name,
+            number: number || '',
+            sigla: canonicalStreet.type,
+          });
+          
+          if (matches.length === 0 && number) {
+            // Try canonical street without number
+            matches = await resolveByAddress({
+              province,
+              municipality,
+              street: canonicalStreet.name,
+              number: '',
+              sigla: canonicalStreet.type,
+            });
+          }
+        }
+      }
 
       if (matches.length > 0) {
         // Try to find one with coords or enrich first one
         let bestMatch = matches.find(m => m.lat && m.lng);
+        
         if (!bestMatch && matches[0].cadastralReference) {
+          // Attempt to enrich the first result
           const enriched = await resolveByCadastralReference(matches[0].cadastralReference);
           if (enriched.length > 0 && enriched[0].lat && enriched[0].lng) {
             bestMatch = enriched[0];
+          } else if (matches[0].cadastralReference.length >= 14) {
+            // If full RC didn't have coordinates, try the parcel reference (14 chars)
+            const parcelRC = matches[0].cadastralReference.slice(0, 14);
+            const parcelEnriched = await resolveByCadastralReference(parcelRC);
+            if (parcelEnriched.length > 0 && parcelEnriched[0].lat && parcelEnriched[0].lng) {
+              bestMatch = parcelEnriched[0];
+            }
           }
         }
 

@@ -197,7 +197,6 @@ export default function AssessmentWizard() {
         const res = await fetch(`/api/catastro/geocode?province=${encodeURIComponent(address.province)}&municipality=${encodeURIComponent(address.municipality)}&street=${encodeURIComponent(address.street)}&number=${encodeURIComponent(address.number)}&sigla=${encodeURIComponent(address.sigla)}`);
         if (res.ok) {
           const data = await res.json();
-          setMapCenter({ lat: data.lat, lng: data.lng });
           
           // Intelligent zoom based on geocoding accuracy
           let zoom = 18;
@@ -205,10 +204,12 @@ export default function AssessmentWizard() {
           else if (data.accuracy === 'street') zoom = 17;
           else zoom = 14; // Municipality or province fallback
           
+          setMapCenter({ lat: data.lat, lng: data.lng });
           setMapZoom(zoom);
           setMapSourceLabel(t.wizardMapLocationAddress);
 
-          // Update form coordinates if we have a reasonably accurate location
+          // Update form coordinates ONLY if we have a precise location (street or exact)
+          // This prevents overwriting a manual precise marker with a municipality center
           if (data.accuracy === 'exact' || data.accuracy === 'street') {
             setValue('latitude', data.lat);
             setValue('longitude', data.lng);
