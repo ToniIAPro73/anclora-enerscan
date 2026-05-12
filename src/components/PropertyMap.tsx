@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
 
@@ -22,6 +22,7 @@ interface PropertyMapProps {
   zoom?: number;
   onPositionChange?: (pos: { lat: number; lng: number }) => void;
   readOnly?: boolean;
+  showParcels?: boolean;
 }
 
 function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
@@ -46,7 +47,8 @@ export default function PropertyMap({
   lng, 
   zoom = 16, 
   onPositionChange, 
-  readOnly = false 
+  readOnly = false,
+  showParcels = true
 }: PropertyMapProps) {
   // Default to Spain (Madrid) if no coordinates
   const position: [number, number] = lat && lng ? [lat, lng] : [40.4168, -3.7038];
@@ -63,6 +65,19 @@ export default function PropertyMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        
+        {showParcels && (
+          <WMSTileLayer
+            url="https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx"
+            layers="Catastro"
+            format="image/png"
+            transparent={true}
+            version="1.1.1"
+            opacity={0.6}
+            attribution="&copy; Dirección General del Catastro"
+          />
+        )}
+
         {lat && lng && <Marker position={[lat, lng]} />}
         <MapUpdater center={position} zoom={zoom} />
         {!readOnly && onPositionChange && <LocationPicker onPositionChange={onPositionChange} />}

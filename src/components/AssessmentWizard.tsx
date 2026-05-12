@@ -64,6 +64,7 @@ export default function AssessmentWizard() {
   const [areaNotice, setAreaNotice] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
   const [mapZoom, setMapZoom] = useState<number>(6);
+  const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -124,7 +125,6 @@ export default function AssessmentWizard() {
   const objective = watch('objective');
   const lat = watch('latitude');
   const lng = watch('longitude');
-  const locationSource = watch('locationSource');
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
@@ -144,6 +144,7 @@ export default function AssessmentWizard() {
       setValue('locationSource', 'catastro');
       setMapCenter({ lat: autofill.lat, lng: autofill.lng });
       setMapZoom(18);
+      setMapSourceLabel(t.wizardMapLocationCatastro);
     }
 
     setAutofillNotice(true);
@@ -154,11 +155,20 @@ export default function AssessmentWizard() {
     }, 8000);
   };
 
+  const handleMatchSelect = (match: CadastralMatch | null) => {
+    if (match?.lat && match?.lng) {
+      setMapCenter({ lat: match.lat, lng: match.lng });
+      setMapZoom(19);
+      setMapSourceLabel(t.wizardMapLocationCatastro);
+    }
+  };
+
   const handleLocationChange = (province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
     if (coords) {
       setMapCenter({ lat: coords.lat, lng: coords.lng });
       setMapZoom(coords.zoom);
+      setMapSourceLabel(municipality ? t.wizardMapLocationMunicipality : t.wizardMapLocationProvince);
     }
   };
 
@@ -167,6 +177,7 @@ export default function AssessmentWizard() {
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
     setMapCenter(pos);
+    setMapSourceLabel(t.wizardMapLocationManual);
   };
 
   const addFiles = (incoming: FileList | File[]) => {
@@ -325,25 +336,26 @@ export default function AssessmentWizard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map(s => (
-              <div key={s} className={`h-1 w-8 rounded-full ${step >= s ? 'bg-[#00DC82]' : 'bg-[#262626]'}`} />
-            ))}
+    <div className={`mx-auto py-12 ${step === 2 ? 'w-full px-4 sm:px-6 lg:px-8' : 'max-w-3xl px-4'}`}>
+      <div className={`${step === 2 ? 'max-w-[1600px] mx-auto' : ''}`}>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map(s => (
+                <div key={s} className={`h-1 w-8 rounded-full ${step >= s ? 'bg-[#00DC82]' : 'bg-[#262626]'}`} />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {formError && (
-        <div className="mb-6 rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 p-4 text-sm text-[#EF4444]">
-          {formError}
-        </div>
-      )}
+        {formError && (
+          <div className="mb-6 rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 p-4 text-sm text-[#EF4444]">
+            {formError}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
         {/* STEP 1: OBJECTIVE */}
         {step === 1 && (
           <div className="space-y-6">
@@ -387,8 +399,12 @@ export default function AssessmentWizard() {
             </div>
             
             <div className="grid lg:grid-cols-12 gap-8 flex-1">
-              <div className="lg:col-span-5 space-y-6 overflow-y-auto max-h-[70vh] lg:max-h-none pr-2 custom-scrollbar">
-                <CadastreSearch onConfirm={handleCadastreConfirm} onLocationChange={handleLocationChange} />
+              <div className="lg:col-span-4 space-y-6 overflow-y-auto max-h-[70vh] lg:max-h-none pr-2 custom-scrollbar">
+                <CadastreSearch 
+                  onConfirm={handleCadastreConfirm} 
+                  onLocationChange={handleLocationChange} 
+                  onMatchSelect={handleMatchSelect}
+                />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -447,17 +463,17 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div className="lg:col-span-7 space-y-4 min-h-[400px] lg:min-h-0">
-                <div className="flex flex-col h-full">
+              <div className="lg:col-span-8 space-y-4 min-h-[500px] lg:min-h-0 h-full flex flex-col">
+                <div className="flex flex-col h-full flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
-                    {locationSource !== 'none' && (
+                    {mapSourceLabel && (
                       <span className="text-[9px] font-bold text-[#00DC82] uppercase px-2 py-0.5 rounded bg-[#00DC82]/10 border border-[#00DC82]/20">
-                        {locationSource === 'catastro' ? t.wizardMapDesc : t.wizardMapManual}
+                        {mapSourceLabel}
                       </span>
                     )}
                   </div>
-                  <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
+                  <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative min-h-[400px]">
                     <PropertyMap 
                       lat={mapCenter?.lat || lat} 
                       lng={mapCenter?.lng || lng} 
@@ -680,6 +696,7 @@ export default function AssessmentWizard() {
           </div>
         )}
       </form>
+      </div>
     </div>
   );
 }
