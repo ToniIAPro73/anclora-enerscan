@@ -27,7 +27,7 @@ interface PropertyMapProps {
 function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    map.setView(center, zoom, { animate: true });
   }, [center, zoom, map]);
   return null;
 }
@@ -49,8 +49,7 @@ export default function PropertyMap({
   readOnly = false 
 }: PropertyMapProps) {
   // Default to Spain (Madrid) if no coordinates
-  const defaultPos: [number, number] = [40.4168, -3.7038];
-  const position: [number, number] = lat && lng ? [lat, lng] : defaultPos;
+  const position: [number, number] = lat && lng ? [lat, lng] : [40.4168, -3.7038];
 
   return (
     <div className="relative w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-white/10 bg-black/20">

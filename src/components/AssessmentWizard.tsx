@@ -8,10 +8,11 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { upload } from '@vercel/blob/client';
-import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2 } from 'lucide-react';
+import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2, Info } from 'lucide-react';
 import { CadastreSearch } from './CadastreSearch';
 import type { CadastralMatch } from '@/lib/catastro/types';
 import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
+import { getCoordinatesForLocation } from '@/lib/location/geocoding';
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
@@ -60,6 +61,9 @@ export default function AssessmentWizard() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [confirmedMatch, setConfirmedMatch] = useState<CadastralMatch | null>(null);
   const [autofillNotice, setAutofillNotice] = useState<boolean>(false);
+  const [areaNotice, setAreaNotice] = useState<boolean>(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
+  const [mapZoom, setMapZoom] = useState<number>(6);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -138,16 +142,31 @@ export default function AssessmentWizard() {
       setValue('latitude', autofill.lat);
       setValue('longitude', autofill.lng);
       setValue('locationSource', 'catastro');
+      setMapCenter({ lat: autofill.lat, lng: autofill.lng });
+      setMapZoom(18);
     }
 
     setAutofillNotice(true);
-    setTimeout(() => setAutofillNotice(false), 5000);
+    setAreaNotice(autofill.areaRequiresReview);
+    setTimeout(() => {
+      setAutofillNotice(false);
+      setAreaNotice(false);
+    }, 8000);
+  };
+
+  const handleLocationChange = (province: string, municipality: string) => {
+    const coords = getCoordinatesForLocation(province, municipality);
+    if (coords) {
+      setMapCenter({ lat: coords.lat, lng: coords.lng });
+      setMapZoom(coords.zoom);
+    }
   };
 
   const handleMapClick = (pos: { lat: number; lng: number }) => {
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
+    setMapCenter(pos);
   };
 
   const addFiles = (incoming: FileList | File[]) => {
@@ -356,7 +375,7 @@ export default function AssessmentWizard() {
 
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-6 min-h-[calc(100vh-12rem)] flex flex-col">
             <div className="flex items-center justify-between gap-4">
               <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
               {autofillNotice && (
@@ -367,9 +386,9 @@ export default function AssessmentWizard() {
               )}
             </div>
             
-            <div className="grid lg:grid-cols-5 gap-8">
-              <div className="lg:col-span-3 space-y-6">
-                <CadastreSearch onConfirm={handleCadastreConfirm} />
+            <div className="grid lg:grid-cols-12 gap-8 flex-1">
+              <div className="lg:col-span-5 space-y-6 overflow-y-auto max-h-[70vh] lg:max-h-none pr-2 custom-scrollbar">
+                <CadastreSearch onConfirm={handleCadastreConfirm} onLocationChange={handleLocationChange} />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -386,9 +405,15 @@ export default function AssessmentWizard() {
                     <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardConstructionYear}</label>
                     <input type="number" {...register('year', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardAreaLabel} ({t.unitArea})</label>
                     <input type="number" {...register('area', { valueAsNumber: true })} className="w-full bg-[#131313] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none" />
+                    {areaNotice && (
+                      <p className="text-[10px] font-bold text-[#FFB020] mt-1 flex items-center gap-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                        <Info className="w-3 h-3" />
+                        {t.wizardCatastroAreaBuiltNotice}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-[#7A7A7A] uppercase">{t.wizardZipcode}</label>
@@ -415,9 +440,14 @@ export default function AssessmentWizard() {
                     </select>
                   </div>
                 </div>
+
+                <div className="flex gap-4 pt-4 hidden lg:flex">
+                  <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
+                  <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
+                </div>
               </div>
 
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-7 space-y-4 min-h-[400px] lg:min-h-0">
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
@@ -427,10 +457,11 @@ export default function AssessmentWizard() {
                       </span>
                     )}
                   </div>
-                  <div className="flex-1 min-h-[400px] lg:min-h-0">
+                  <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
                     <PropertyMap 
-                      lat={lat} 
-                      lng={lng} 
+                      lat={mapCenter?.lat || lat} 
+                      lng={mapCenter?.lng || lng} 
+                      zoom={mapZoom}
                       onPositionChange={handleMapClick}
                     />
                   </div>
@@ -438,7 +469,7 @@ export default function AssessmentWizard() {
               </div>
             </div>
             
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-4 lg:hidden">
               <button type="button" onClick={prevStep} className="flex-1 py-3 rounded-full border border-[#262626] font-heading font-bold text-sm hover:bg-white/5 transition">{t.previous}</button>
               <button type="button" onClick={nextStep} className="flex-1 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">{t.next}</button>
             </div>

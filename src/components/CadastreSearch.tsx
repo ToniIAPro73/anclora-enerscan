@@ -8,9 +8,10 @@ import type { CatastroStreetSuggestion } from '@/lib/catastro/client';
 
 interface CadastreSearchProps {
   onConfirm: (match: CadastralMatch) => void;
+  onLocationChange?: (province: string, municipality: string) => void;
 }
 
-export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
+export function CadastreSearch({ onConfirm, onLocationChange }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
   const [rc, setRc] = useState('');
@@ -66,12 +67,14 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
     setSelectedMunicipality('');
     setSelectedStreet(null);
     setStreetQuery('');
-  }, [selectedProvince]);
+    onLocationChange?.(selectedProvince, '');
+  }, [selectedProvince, onLocationChange]);
 
   useEffect(() => {
     setSelectedStreet(null);
     setStreetQuery('');
-  }, [selectedMunicipality]);
+    onLocationChange?.(selectedProvince, selectedMunicipality);
+  }, [selectedMunicipality, selectedProvince, onLocationChange]);
 
   async function fetchMunicipalities(province: string) {
     try {
@@ -465,12 +468,6 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
                 <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailYear}</p>
                 <p className="text-sm font-bold text-premium">{detailMatch.yearBuilt || '---'}</p>
               </div>
-              {detailMatch.propertyUse && (
-                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
-                  <p className="text-[9px] font-bold text-muted uppercase">{t.cadastralDetailPropertyUse}</p>
-                  <p className="text-sm font-bold text-premium uppercase">{detailMatch.propertyUse}</p>
-                </div>
-              )}
               {detailMatch.participationCoefficient && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                   <p className="text-[9px] font-bold text-muted uppercase">% {t.cadastralDetailParticipationCoefficient}</p>
@@ -478,9 +475,15 @@ export function CadastreSearch({ onConfirm }: CadastreSearchProps) {
                 </div>
               )}
               {detailMatch.surfacePlotM2 && (
-                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1 col-span-2">
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                   <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailPlotArea}</p>
                   <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfacePlotM2)}</p>
+                </div>
+              )}
+              {detailMatch.propertyUse && (
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1 col-span-2">
+                  <p className="text-[9px] font-bold text-muted uppercase">{t.cadastralDetailPropertyUse}</p>
+                  <p className="text-sm font-bold text-premium uppercase">{detailMatch.propertyUse}</p>
                 </div>
               )}
             </div>

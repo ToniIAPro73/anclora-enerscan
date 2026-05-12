@@ -3,6 +3,8 @@ import type { CadastralMatch } from './types';
 export type WizardAutofillData = {
   year?: number;
   area?: number;
+  areaSource?: 'usable' | 'living' | 'built_fallback';
+  areaRequiresReview: boolean;
   zipcode?: string;
   propertyType?: string;
   address?: string;
@@ -18,13 +20,15 @@ export type WizardAutofillData = {
 
 /**
  * Maps a CadastralMatch to wizard fields.
- * Rule for area: Uses builtAreaM2 if available, as it's the most common reliable data.
  */
 export function mapCadastralMatchToWizardFields(match: CadastralMatch): WizardAutofillData {
+  const areaData = getWizardAreaFromCadastralMatch(match);
+
   return {
     year: match.yearBuilt,
-    // We round the area as wizard fields usually expect integers for m2/sqft
-    area: match.surfaceBuiltM2 ? Math.round(match.surfaceBuiltM2) : (match.surfacePlotM2 ? Math.round(match.surfacePlotM2) : undefined),
+    area: areaData.areaM2,
+    areaSource: areaData.source,
+    areaRequiresReview: areaData.requiresReview,
     zipcode: match.postalCode,
     address: match.address,
     cadastralReference: match.cadastralReference,
@@ -38,6 +42,34 @@ export function mapCadastralMatchToWizardFields(match: CadastralMatch): WizardAu
     // Property use mapping if reliable
     propertyType: mapPropertyUseToType(match.propertyUse),
   };
+}
+
+export function getWizardAreaFromCadastralMatch(match: CadastralMatch): {
+  areaM2?: number;
+  source?: 'usable' | 'living' | 'built_fallback';
+  requiresReview: boolean;
+} {
+  // If we had usableAreaM2 or livingAreaM2 from API, we would use them here.
+  // Currently normalize.ts only extracts scons (built) and ssuelo (plot).
+  // In many cases Catastro scons for a flat IS the built area including common parts.
+  
+  if (match.surfaceBuiltM2) {
+    return {
+      areaM2: Math.round(match.surfaceBuiltM2),
+      source: 'built_fallback',
+      requiresReview: true
+    };
+  }
+
+  if (match.surfacePlotM2) {
+    return {
+      areaM2: Math.round(match.surfacePlotM2),
+      source: 'built_fallback',
+      requiresReview: true
+    };
+  }
+
+  return { requiresReview: false };
 }
 
 function mapPropertyUseToType(use?: string): string | undefined {
