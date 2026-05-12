@@ -534,19 +534,39 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
 
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
-                <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailBuiltArea}</p>
+                <p className="text-[9px] font-bold text-muted uppercase">
+                  {detailMatch.surfaceDwellingM2 ? t.wizardCatastroDetailDwellingArea : t.wizardCatastroDetailBuiltArea}
+                </p>
                 <p className="text-sm font-bold text-premium">
-                  {detailMatch.surfaceBuiltM2 ? formatArea(detailMatch.surfaceBuiltM2) : '---'}
+                  {detailMatch.surfaceDwellingM2 
+                    ? formatArea(detailMatch.surfaceDwellingM2) 
+                    : detailMatch.surfaceBuiltM2 
+                      ? formatArea(detailMatch.surfaceBuiltM2) 
+                      : '---'}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                 <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailYear}</p>
                 <p className="text-sm font-bold text-premium">{detailMatch.yearBuilt || '---'}</p>
               </div>
-              {detailMatch.participationCoefficient && (
+              {detailMatch.participationCoefficient !== undefined && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                   <p className="text-[9px] font-bold text-muted uppercase">% {t.cadastralDetailParticipationCoefficient}</p>
-                  <p className="text-sm font-bold text-premium">{detailMatch.participationCoefficient} %</p>
+                  <p className="text-sm font-bold text-premium">
+                    {detailMatch.participationCoefficient.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 6 })} %
+                  </p>
+                </div>
+              )}
+              {detailMatch.postalCode && (
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
+                  <p className="text-[9px] font-bold text-muted uppercase">{t.wizardZipcode}</p>
+                  <p className="text-sm font-bold text-premium">{detailMatch.postalCode}</p>
+                </div>
+              )}
+              {detailMatch.surfaceDwellingM2 && detailMatch.surfaceBuiltM2 && (
+                <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1 col-span-1">
+                  <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailBuiltArea}</p>
+                  <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfaceBuiltM2)}</p>
                 </div>
               )}
               {detailMatch.surfacePlotM2 && (

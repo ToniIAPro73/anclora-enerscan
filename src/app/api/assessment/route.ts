@@ -259,6 +259,8 @@ export async function POST(req: Request) {
             lat: cadastralData.lat,
             lng: cadastralData.lng,
             surfaceBuiltM2: cadastralData.surfaceBuiltM2,
+            surfaceDwellingM2: cadastralData.surfaceDwellingM2,
+            surfaceCommonM2: cadastralData.surfaceCommonM2,
             surfacePlotM2: cadastralData.surfacePlotM2,
             yearBuilt: cadastralData.yearBuilt,
             

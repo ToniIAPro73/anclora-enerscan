@@ -2,7 +2,9 @@ import type { CadastralMatch } from './types';
 
 export type WizardAutofillData = {
   year?: number;
-  area?: number;
+  area?: number; // main calculation area (prefer dwelling)
+  builtAreaM2?: number; // total built area
+  participationPercent?: number;
   areaSource?: 'usable' | 'living' | 'built_fallback';
   areaRequiresReview: boolean;
   zipcode?: string;
@@ -16,6 +18,8 @@ export type WizardAutofillData = {
   staircase?: string;
   floor?: string;
   door?: string;
+  municipality?: string;
+  province?: string;
 };
 
 /**
@@ -27,6 +31,8 @@ export function mapCadastralMatchToWizardFields(match: CadastralMatch): WizardAu
   return {
     year: match.yearBuilt,
     area: areaData.areaM2,
+    builtAreaM2: match.surfaceBuiltM2,
+    participationPercent: match.participationCoefficient,
     areaSource: areaData.source,
     areaRequiresReview: areaData.requiresReview,
     zipcode: match.postalCode,
@@ -39,6 +45,8 @@ export function mapCadastralMatchToWizardFields(match: CadastralMatch): WizardAu
     staircase: match.staircase,
     floor: match.floor,
     door: match.door,
+    municipality: match.municipality,
+    province: match.province,
     // Property use mapping if reliable
     propertyType: mapPropertyUseToType(match.propertyUse),
   };
@@ -49,10 +57,16 @@ export function getWizardAreaFromCadastralMatch(match: CadastralMatch): {
   source?: 'usable' | 'living' | 'built_fallback';
   requiresReview: boolean;
 } {
-  // If we had usableAreaM2 or livingAreaM2 from API, we would use them here.
-  // Currently normalize.ts only extracts scons (built) and ssuelo (plot).
-  // In many cases Catastro scons for a flat IS the built area including common parts.
-  
+  // Priority 1: Dwelling area if specifically extracted from <lcons>
+  if (match.surfaceDwellingM2) {
+    return {
+      areaM2: Math.round(match.surfaceDwellingM2),
+      source: 'usable',
+      requiresReview: false
+    };
+  }
+
+  // Priority 2: Built area as fallback
   if (match.surfaceBuiltM2) {
     return {
       areaM2: Math.round(match.surfaceBuiltM2),
@@ -61,6 +75,7 @@ export function getWizardAreaFromCadastralMatch(match: CadastralMatch): {
     };
   }
 
+  // Priority 3: Plot area as last resort
   if (match.surfacePlotM2) {
     return {
       areaM2: Math.round(match.surfacePlotM2),

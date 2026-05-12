@@ -17,6 +17,8 @@ export const CadastralMatchSchema = z.object({
 
   propertyUse: z.string().optional(),
   surfaceBuiltM2: z.number().optional(),
+  surfaceDwellingM2: z.number().optional(),
+  surfaceCommonM2: z.number().optional(),
   surfacePlotM2: z.number().optional(),
   participationCoefficient: z.number().optional(),
   yearBuilt: z.number().optional(),

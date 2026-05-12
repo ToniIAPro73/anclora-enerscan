@@ -114,6 +114,13 @@ export async function resolveByAddress(params: {
   }
   
   const xml = await response.text();
+  
+  // Check for errors in XML
+  const errCode = extractTagValue(xml, 'cod');
+  if (errCode && parseInt(errCode) > 0) {
+    if (errCode === '1') return []; // Not found
+  }
+
   return parseCadastralList(xml);
 }
 

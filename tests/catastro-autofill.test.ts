@@ -12,7 +12,10 @@ const MOCK_MATCH: CadastralMatch = {
   door: 'B',
   propertyUse: 'RESIDENCIAL',
   surfaceBuiltM2: 67.45,
+  surfaceDwellingM2: 52.3,
+  surfaceCommonM2: 15.15,
   yearBuilt: 2003,
+  participationCoefficient: 14.57,
   lat: 39.57,
   lng: 2.65,
   source: 'catastro',
@@ -20,17 +23,28 @@ const MOCK_MATCH: CadastralMatch = {
 };
 
 describe('Catastro Autofill Mapping', () => {
-  it('should map cadastral match to wizard fields correctly', () => {
+  it('should map full cadastral data correctly to wizard fields', () => {
     const autofill = mapCadastralMatchToWizardFields(MOCK_MATCH);
     
-    expect(autofill.year).toBe(2003);
-    expect(autofill.area).toBe(67); // Rounded
-    expect(autofill.zipcode).toBe('07015');
-    expect(autofill.address).toBe('CL MIQUEL ROSSELLO I ALEMANY, 48');
     expect(autofill.cadastralReference).toBe('6485534DD6768E0003QD');
+    expect(autofill.year).toBe(2003);
+    expect(autofill.zipcode).toBe('07015');
+    expect(autofill.area).toBe(52); // Dwelling area prioritized and rounded
+    expect(autofill.builtAreaM2).toBe(67.45);
+    expect(autofill.participationPercent).toBe(14.57);
+    expect(autofill.areaSource).toBe('usable');
+    expect(autofill.areaRequiresReview).toBe(false);
+    expect(autofill.propertyType).toBe('flat');
     expect(autofill.lat).toBe(39.57);
     expect(autofill.lng).toBe(2.65);
-    expect(autofill.propertyType).toBe('flat');
+  });
+
+  it('should fallback to built area when dwelling area is missing', () => {
+    const matchWithoutDwelling = { ...MOCK_MATCH, surfaceDwellingM2: undefined };
+    const autofill = mapCadastralMatchToWizardFields(matchWithoutDwelling);
+    
+    expect(autofill.area).toBe(67); // 67.45 rounded
+    expect(autofill.areaSource).toBe('built_fallback');
     expect(autofill.areaRequiresReview).toBe(true);
   });
 

@@ -19,6 +19,51 @@ const MOCK_XML_SINGLE = `
 </bico>
 `;
 
+const MOCK_XML_REAL = `
+<bico>
+  <bi>
+    <idbi>
+      <rc>
+        <pc1>6485534</pc1>
+        <pc2>DD6768E</pc2>
+        <car>0003</car>
+        <cc1>Q</cc1>
+        <cc2>D</cc2>
+      </rc>
+      <ldbi>CL MIQUEL ROSSELLO I ALEMANY 48 Pl:01 Pt:B 07015 PALMA (ILLES BALEARS)</ldbi>
+    </idbi>
+    <dt>
+      <loiv>
+        <pv>ILLES BALEARS</pv>
+        <nm>PALMA</nm>
+      </loiv>
+      <lourb>
+        <dir>
+          <tv>CL</tv>
+          <nv>MIQUEL ROSSELLO I ALEMANY</nv>
+          <pnum>48</pnum>
+        </dir>
+      </lourb>
+    </dt>
+    <lp>
+      <cpt>14,570000</cpt>
+    </lp>
+  </bi>
+  <lcons>
+    <cons>
+      <lcd>VIVIENDA</lcd>
+      <sqyt>52</sqyt>
+    </cons>
+    <cons>
+      <lcd>ELEMENTOS COMUNES</lcd>
+      <sqyt>15</sqyt>
+    </cons>
+  </lcons>
+  <scons>67</scons>
+  <ant>2003</ant>
+</bico>
+`;
+
 const MOCK_PROVINCES = `
 <provinciero>
   <prov><np>MADRID</np></prov>
@@ -37,5 +82,18 @@ describe('Catastro Normalizer', () => {
     expect(match.cadastralReference).toBe('1234567AB1234C0001XA');
     expect(match.parcelReference).toBe('1234567AB1234C');
     expect(match.province).toBe('MADRID');
+  });
+
+  it('should correctly normalize real Catastro data with detailed construction areas', () => {
+    const match = normalizeCadastralMatch(MOCK_XML_REAL);
+    expect(match.cadastralReference).toBe('6485534DD6768E0003QD');
+    expect(match.province).toBe('ILLES BALEARS');
+    expect(match.municipality).toBe('PALMA');
+    expect(match.postalCode).toBe('07015');
+    expect(match.surfaceBuiltM2).toBe(67);
+    expect(match.surfaceDwellingM2).toBe(52);
+    expect(match.surfaceCommonM2).toBe(15);
+    expect(match.yearBuilt).toBe(2003);
+    expect(match.participationCoefficient).toBe(14.57);
   });
 });
