@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -64,9 +64,9 @@ export default function AssessmentWizard() {
   const [areaNotice, setAreaNotice] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
   const [mapZoom, setMapZoom] = useState<number>(6);
-  const [mapBounds] = useState<[[number, number], [number, number]] | undefined>();
+  const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
-  const geocodeTimeoutRef = useMemo(() => ({ current: null as NodeJS.Timeout | null }), []);
+  const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   const assessmentSchema = useMemo(() => z.object({
@@ -183,7 +183,7 @@ export default function AssessmentWizard() {
         if (res.ok) {
           const data = await res.json();
           setMapCenter({ lat: data.lat, lng: data.lng });
-          setMapZoom(20);
+          setMapZoom(21);
           setMapSourceLabel(t.wizardMapLocationAddress);
         } else {
           console.warn('Geocode API returned non-ok response:', res.status);
@@ -191,10 +191,27 @@ export default function AssessmentWizard() {
       } catch (err) {
         console.error('Auto-geocoding failed:', err);
       }
-    }, 1000);
-  }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
+    }, 600);
+    }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
 
-  const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
+    const handleSearchResults = useCallback((results: CadastralMatch[]) => {
+    const validCoords = results.filter(r => r.lat && r.lng);
+    if (validCoords.length > 1) {
+      const lats = validCoords.map(r => r.lat!);
+      const lngs = validCoords.map(r => r.lng!);
+      setMapBounds([
+        [Math.min(...lats), Math.min(...lngs)],
+        [Math.max(...lats), Math.max(...lngs)]
+      ]);
+      setMapSourceLabel(t.wizardMapLocationAddress);
+    } else if (validCoords.length === 1) {
+      setMapCenter({ lat: validCoords[0].lat!, lng: validCoords[0].lng! });
+      setMapZoom(21);
+      setMapSourceLabel(t.wizardMapLocationCatastro);
+    }
+    }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro]);
+
+    const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
@@ -427,6 +444,7 @@ export default function AssessmentWizard() {
                   onLocationChange={handleLocationChange} 
                   onMatchSelect={handleMatchSelect}
                   onAddressChange={handleAddressChange}
+                  onResults={handleSearchResults}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

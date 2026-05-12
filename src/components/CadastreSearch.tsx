@@ -11,9 +11,10 @@ interface CadastreSearchProps {
   onLocationChange?: (province: string, municipality: string) => void;
   onMatchSelect?: (match: CadastralMatch | null) => void;
   onAddressChange?: (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => void;
+  onResults?: (results: CadastralMatch[]) => void;
 }
 
-export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange }: CadastreSearchProps) {
+export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange, onResults }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
   const [rc, setRc] = useState('');
@@ -185,6 +186,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
       
       if (data.ok && data.data) {
         setResults(data.data.matches);
+        onResults?.(data.data.matches);
         if (data.data.matches.length === 0) {
           setError(t.wizardCatastroNoResults);
         } else {

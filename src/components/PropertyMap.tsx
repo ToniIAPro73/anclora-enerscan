@@ -28,15 +28,20 @@ interface PropertyMapProps {
 
 function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: number, bounds?: [[number, number], [number, number]] }) {
   const map = useMap();
+  const [lat, lng] = center;
+  
   useEffect(() => {
     if (bounds) {
       map.fitBounds(bounds, { animate: true, padding: [20, 20] });
-    } else {
-      // Use the values directly to ensure precision in change detection
-      map.setView(center, zoom, { animate: true });
+    } else if (lat && lng) {
+      // Use flyTo for a smoother and more professional transition
+      // especially when zooming in to deep levels
+      map.flyTo([lat, lng], zoom, {
+        animate: true,
+        duration: 1.5
+      });
     }
-    // We use center[0] and center[1] to react to value changes, not array reference
-  }, [center[0], center[1], zoom, map, bounds]);
+  }, [lat, lng, zoom, map, bounds]);
   return null;
 }
 
