@@ -66,6 +66,8 @@ export default function AssessmentWizard() {
   const [mapZoom, setMapZoom] = useState<number>(6);
   const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const [mapResults, setMapResults] = useState<CadastralMatch[] | undefined>();
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
@@ -74,10 +76,10 @@ export default function AssessmentWizard() {
   useEffect(() => {
     if (step === 2 && (mapCenter || mapBounds) && mapContainerRef.current) {
       const rect = mapContainerRef.current.getBoundingClientRect();
-      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      const isVisible = rect.top >= 0 && rect.top <= window.innerHeight * 0.5;
       
       if (!isVisible && window.innerWidth >= 1024) {
-        mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
   }, [mapCenter, mapBounds, step]);
@@ -207,7 +209,7 @@ export default function AssessmentWizard() {
     }, 600);
   }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
 
-    const handleSearchResults = useCallback((results: CadastralMatch[]) => {
+  const handleSearchResults = useCallback((results: CadastralMatch[]) => {
     const validCoords = results.filter(r => r.lat && r.lng);
     if (validCoords.length > 1) {
       const lats = validCoords.map(r => r.lat!);
@@ -222,15 +224,45 @@ export default function AssessmentWizard() {
       setMapZoom(21);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
-    }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro]);
+  }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro]);
 
-    const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
+  const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
     setMapCenter(pos);
     setMapSourceLabel(t.wizardMapLocationManual);
   }, [setValue, t.wizardMapLocationManual]);
+
+  const handleParcelSelect = useCallback(async (plat: number, plng: number) => {
+    setIsMapLoading(true);
+    try {
+      const res = await fetch('/api/catastro/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'coords', lat: plat, lng: plng }),
+      });
+      
+      const data = await res.json();
+      if (data.ok && data.data?.matches?.length > 0) {
+        const matches = data.data.matches;
+        // If it's a direct match or a small list, we let the Search component handle the list
+        // but we update the map viewport to center on the selected point
+        setMapCenter({ lat: plat, lng: plng });
+        setMapZoom(21);
+        setMapSourceLabel(t.wizardMapLocationCatastro);
+        
+        // Pass results back to the search component to show the list/detail
+        // This is handled by a ref or a shared state if we had one, 
+        // but for now we'll rely on handleSearchResults being triggered if needed
+        handleSearchResults(matches);
+      }
+    } catch (err) {
+      console.error('Parcel select failed:', err);
+    } finally {
+      setIsMapLoading(false);
+    }
+  }, [t.wizardMapLocationCatastro, handleSearchResults]);
 
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);
@@ -458,6 +490,8 @@ export default function AssessmentWizard() {
                   onMatchSelect={handleMatchSelect}
                   onAddressChange={handleAddressChange}
                   onResults={handleSearchResults}
+                  externalResults={mapResults}
+                  onReset={() => setMapResults(undefined)}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -534,6 +568,8 @@ export default function AssessmentWizard() {
                       zoom={mapZoom}
                       bounds={mapBounds}
                       onPositionChange={handleMapClick}
+                      onParcelSelect={handleParcelSelect}
+                      isLoading={isMapLoading}
                     />
                   </div>
                 </div>

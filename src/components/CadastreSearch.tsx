@@ -12,9 +12,11 @@ interface CadastreSearchProps {
   onMatchSelect?: (match: CadastralMatch | null) => void;
   onAddressChange?: (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => void;
   onResults?: (results: CadastralMatch[]) => void;
+  externalResults?: CadastralMatch[];
+  onReset?: () => void;
 }
 
-export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange, onResults }: CadastreSearchProps) {
+export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange, onResults, externalResults, onReset }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
   const [rc, setRc] = useState('');
@@ -44,6 +46,18 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
 
   // Detail view state
   const [detailMatch, setDetailMatch] = useState<CadastralMatch | null>(null);
+
+  // Sync with external results (e.g. from map selection)
+  useEffect(() => {
+    if (externalResults) {
+      setResults(externalResults);
+      if (externalResults.length === 1) {
+        setDetailMatch(externalResults[0]);
+      } else {
+        setDetailMatch(null);
+      }
+    }
+  }, [externalResults]);
 
   useEffect(() => {
     onMatchSelect?.(detailMatch);
@@ -231,7 +245,10 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
         </div>
         {detailMatch && (
           <button 
-            onClick={() => setDetailMatch(null)}
+            onClick={() => {
+              setDetailMatch(null);
+              onReset?.();
+            }}
             className="p-2 rounded-full hover:bg-white/5 text-muted transition"
           >
             <X className="w-4 h-4" />

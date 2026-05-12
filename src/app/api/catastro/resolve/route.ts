@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveByCadastralReference, resolveByAddress } from '@/lib/catastro/client';
+import { resolveByCadastralReference, resolveByAddress, resolveByCoordinates } from '@/lib/catastro/client';
 import type { CatastroResolveResponse } from '@/lib/catastro/types';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mode, rc, province, municipality, street, number, sigla, block, staircase, floor, door } = body;
+    const { mode, rc, province, municipality, street, number, sigla, block, staircase, floor, door, lat, lng } = body;
 
     let matches = [];
 
@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: false, error: { code: 'MISSING_FIELDS', message: 'Province, municipality and street are required' } }, { status: 400 });
       }
       matches = await resolveByAddress({ province, municipality, street, number, sigla, block, staircase, floor, door });
+    } else if (mode === 'coords') {
+      if (lat === undefined || lng === undefined) {
+        return NextResponse.json({ ok: false, error: { code: 'MISSING_COORDS', message: 'Latitude and longitude are required' } }, { status: 400 });
+      }
+      matches = await resolveByCoordinates(lat, lng);
     } else {
       return NextResponse.json({ ok: false, error: { code: 'INVALID_MODE', message: 'Invalid resolution mode' } }, { status: 400 });
     }
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
         matches,
         source: {
           system: 'catastro',
-          mode: mode as 'rc' | 'address',
+          mode: mode as 'rc' | 'address' | 'coords',
           retrievedAt: new Date().toISOString(),
           confidence: matches.length === 1 ? 1 : 0.8,
         },

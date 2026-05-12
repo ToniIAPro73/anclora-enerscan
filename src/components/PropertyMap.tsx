@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
 
 // Fix for default marker icon in Leaflet + Next.js
 const DefaultIcon = L.icon({
@@ -22,8 +22,10 @@ interface PropertyMapProps {
   zoom?: number;
   bounds?: [[number, number], [number, number]];
   onPositionChange?: (pos: { lat: number; lng: number }) => void;
+  onParcelSelect?: (lat: number, lng: number) => void;
   readOnly?: boolean;
   showParcels?: boolean;
+  isLoading?: boolean;
 }
 
 function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: number, bounds?: [[number, number], [number, number]] }) {
@@ -32,7 +34,7 @@ function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: 
   
   useEffect(() => {
     if (bounds) {
-      map.fitBounds(bounds, { animate: true, padding: [20, 20] });
+      map.fitBounds(bounds, { animate: true, padding: [40, 40], maxZoom: 19 });
     } else if (lat && lng) {
       // Use flyTo for a smoother and more professional transition
       // especially when zooming in to deep levels
@@ -45,10 +47,17 @@ function MapUpdater({ center, zoom, bounds }: { center: [number, number], zoom: 
   return null;
 }
 
-function LocationPicker({ onPositionChange }: { onPositionChange: (pos: { lat: number; lng: number }) => void }) {
+function LocationPicker({ onPositionChange, onParcelSelect }: { 
+  onPositionChange: (pos: { lat: number; lng: number }) => void,
+  onParcelSelect?: (lat: number, lng: number) => void
+}) {
   useMapEvents({
     click(e) {
-      onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (onParcelSelect) {
+        onParcelSelect(e.latlng.lat, e.latlng.lng);
+      } else {
+        onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
     },
   });
   return null;
@@ -60,8 +69,10 @@ export default function PropertyMap({
   zoom = 16, 
   bounds,
   onPositionChange, 
+  onParcelSelect,
   readOnly = false,
-  showParcels = true
+  showParcels = true,
+  isLoading = false
 }: PropertyMapProps) {
   // Default to Spain (Madrid) if no coordinates
   const position: [number, number] = lat && lng ? [lat, lng] : [40.4168, -3.7038];
@@ -96,10 +107,21 @@ export default function PropertyMap({
 
         {lat && lng && <Marker position={[lat, lng]} />}
         <MapUpdater center={position} zoom={zoom} bounds={bounds} />
-        {!readOnly && onPositionChange && <LocationPicker onPositionChange={onPositionChange} />}
+        {!readOnly && onPositionChange && (
+          <LocationPicker onPositionChange={onPositionChange} onParcelSelect={onParcelSelect} />
+        )}
       </MapContainer>
       
-      {!lat && !lng && (
+      {isLoading && (
+        <div className="absolute inset-0 z-[10] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+          <div className="bg-[#131313]/90 border border-[#00DC82]/30 p-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-[#00DC82] animate-spin" />
+            <span className="text-xs font-bold text-[#00DC82] uppercase tracking-wider">Consultando Catastro...</span>
+          </div>
+        </div>
+      )}
+
+      {!lat && !lng && !isLoading && (
         <div className="absolute inset-0 z-[10] flex items-center justify-center bg-black/40 pointer-events-none">
           <div className="bg-[#131313] border border-white/10 p-4 rounded-xl shadow-2xl flex flex-col items-center gap-2 text-center max-w-[200px]">
             <MapPin className="w-6 h-6 text-[#00DC82]" />

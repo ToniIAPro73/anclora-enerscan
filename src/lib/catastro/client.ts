@@ -115,6 +115,27 @@ export async function resolveByAddress(params: {
   return parseCadastralList(xml);
 }
 
+export async function resolveByCoordinates(lat: number, lng: number): Promise<CadastralMatch[]> {
+  // Catastro Resolve by Coordinates (Consulta_RCCOOR)
+  // Note: Catastro expects coordinates in ETRS89 (standard for GPS/Leaflet)
+  const url = `${BASE_URL}/Consulta_RCCOOR?CoorX=${lng}&CoorY=${lat}&SRS=EPSG:4326`;
+  const response = await fetch(url, { cache: 'no-store' });
+  
+  if (!response.ok) {
+    throw new Error(`Catastro service error: ${response.status}`);
+  }
+  
+  const xml = await response.text();
+  
+  // Check for errors
+  const errCode = extractTagValue(xml, 'cod');
+  if (errCode && parseInt(errCode) > 0) {
+    return [];
+  }
+
+  return parseCadastralList(xml);
+}
+
 /**
  * Gets the bounding box for a cadastral parcel.
  */
