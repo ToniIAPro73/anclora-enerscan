@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -67,7 +67,20 @@ export default function AssessmentWizard() {
   const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
+
+  // Ensure map is in view when it updates or when zooming
+  useEffect(() => {
+    if (step === 2 && (mapCenter || mapBounds) && mapContainerRef.current) {
+      const rect = mapContainerRef.current.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      
+      if (!isVisible && window.innerWidth >= 1024) {
+        mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [mapCenter, mapBounds, step]);
 
   const assessmentSchema = useMemo(() => z.object({
     objective: z.string().min(1, t.wizardSelectObjective),
@@ -192,7 +205,7 @@ export default function AssessmentWizard() {
         console.error('Auto-geocoding failed:', err);
       }
     }, 600);
-    }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
+  }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
 
     const handleSearchResults = useCallback((results: CadastralMatch[]) => {
     const validCoords = results.filter(r => r.lat && r.lng);
@@ -375,7 +388,7 @@ export default function AssessmentWizard() {
   };
 
   return (
-    <div className={`mx-auto py-12 ${step === 2 ? 'w-full max-w-none px-4 sm:px-8 lg:px-12' : 'max-w-3xl px-4'}`}>
+    <div className={`mx-auto py-8 ${step === 2 ? 'w-full max-w-none px-4 sm:px-8 lg:px-12' : 'max-w-3xl px-4'}`}>
       <div className={`${step === 2 ? 'w-full mx-auto' : ''}`}>
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -504,7 +517,7 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div className="lg:col-span-9 space-y-4 min-h-[500px] lg:min-h-0 h-full flex flex-col">
+              <div ref={mapContainerRef} className="lg:col-span-9 space-y-4 h-full flex flex-col min-h-[400px]">
                 <div className="flex flex-col h-full flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>

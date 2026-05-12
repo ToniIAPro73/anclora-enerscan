@@ -5,7 +5,7 @@ export default function WizardPage() {
   return (
     <div className="min-h-screen app-shell">
       <Navbar />
-      <div className="pt-24">
+      <div className="pt-20">
         <AssessmentWizard />
       </div>
     </div>
