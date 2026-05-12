@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, Home, Gauge, Zap, FileText } from 'lucide-rea
 import Link from 'next/link';
 import { usePreferences } from '@/components/AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
+import { HeroEnergyScale } from '@/components/HeroEnergyScale';
 
 export default function LandingPage() {
   const { dictionary: t, language, formatCurrency } = usePreferences();
@@ -78,24 +79,8 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* GAUGE MOCKUP */}
-              <div className="flex justify-center lg:justify-end">
-                <div className="float-anim relative">
-                  <div className="w-[320px] h-[160px] rounded-t-full border-b-0 relative overflow-hidden bg-gradient-to-r from-[#D32F2F] via-[#FDD835] to-[#1B8C2F] p-[2px]">
-                    <div className="w-full h-full rounded-t-full app-shell flex items-end justify-center pb-4">
-                       <span className="font-heading font-bold text-6xl text-premium">E</span>
-                    </div>
-                  </div>
-                  <div className="text-center mt-4">
-                    <p className="text-xs text-muted">{t.confidenceMedium}</p>
-                    <div className="flex gap-1 justify-center mt-2">
-                       {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(l => (
-                         <span key={l} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${l === 'E' ? 'bg-[#FF9800] text-white' : 'bg-[#262626] text-[#7A7A7A]'}`}>{l}</span>
-                       ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* ENERGY SCALE INTERACTIVE */}
+              <HeroEnergyScale />
             </div>
 
             {/* STATS */}
