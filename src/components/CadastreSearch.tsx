@@ -9,9 +9,10 @@ import type { CatastroStreetSuggestion } from '@/lib/catastro/client';
 interface CadastreSearchProps {
   onConfirm: (match: CadastralMatch) => void;
   onLocationChange?: (province: string, municipality: string) => void;
+  onMatchSelect?: (match: CadastralMatch | null) => void;
 }
 
-export function CadastreSearch({ onConfirm, onLocationChange }: CadastreSearchProps) {
+export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
   const [rc, setRc] = useState('');
@@ -39,6 +40,10 @@ export function CadastreSearch({ onConfirm, onLocationChange }: CadastreSearchPr
 
   // Detail view state
   const [detailMatch, setDetailMatch] = useState<CadastralMatch | null>(null);
+
+  useEffect(() => {
+    onMatchSelect?.(detailMatch);
+  }, [detailMatch, onMatchSelect]);
 
   const fetchProvinces = useCallback(async () => {
     try {
@@ -148,9 +153,16 @@ export function CadastreSearch({ onConfirm, onLocationChange }: CadastreSearchPr
         setResults(data.data.matches);
         if (data.data.matches.length === 0) {
           setError(t.wizardCatastroNoResults);
-        } else if (data.data.matches.length === 1) {
-          // If only one result, show detail automatically
-          setDetailMatch(data.data.matches[0]);
+        } else {
+          if (data.data.matches.length === 1) {
+            setDetailMatch(data.data.matches[0]);
+          } else {
+            // If multiple results, center map on the first one that has coordinates
+            const firstWithCoords = data.data.matches.find(m => m.lat && m.lng);
+            if (firstWithCoords) {
+              onMatchSelect?.(firstWithCoords);
+            }
+          }
         }
       } else {
         setError(data.error?.message || t.wizardCatastroErrorService);
