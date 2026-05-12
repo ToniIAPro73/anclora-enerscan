@@ -48,8 +48,8 @@ export default function LandingPage() {
 
       <main>
         {/* HERO SECTION */}
-        <section className="relative min-h-[calc(100vh-64px)] flex items-center pt-8">
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <section className="relative min-h-[calc(100vh-64px)] flex items-center pt-16 lg:pt-20">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00DC82]/30 bg-[#00DC82]/5 mb-4">

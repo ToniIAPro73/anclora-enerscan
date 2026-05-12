@@ -40,7 +40,7 @@ export function HeroEnergyScale() {
   }, [isCalculating, currentIndex, targetIndex]);
 
   return (
-    <div className="flex justify-center lg:justify-end">
+    <div className="flex justify-center lg:justify-end py-4">
       <div 
         onClick={startCalculation}
         className="group relative cursor-pointer"
