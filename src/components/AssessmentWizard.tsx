@@ -125,7 +125,6 @@ export default function AssessmentWizard() {
   const objective = watch('objective');
   const lat = watch('latitude');
   const lng = watch('longitude');
-  const locationSource = watch('locationSource');
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
@@ -697,6 +696,7 @@ export default function AssessmentWizard() {
           </div>
         )}
       </form>
+      </div>
     </div>
   );
 }
