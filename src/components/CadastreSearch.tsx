@@ -105,12 +105,24 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
 
   useEffect(() => {
     if (selectedProvince && selectedMunicipality && (selectedStreet || streetQuery.length >= 3) && number) {
+      let street = selectedStreet ? selectedStreet.name : streetQuery;
+      let sigla = selectedStreet ? selectedStreet.type : '';
+
+      // Try to extract sigla from manual query if it looks like "STREET NAME (TYPE)"
+      if (!selectedStreet && streetQuery.includes('(') && streetQuery.includes(')')) {
+        const match = streetQuery.match(/^(.*)\s\((.*)\)$/);
+        if (match) {
+          street = match[1].trim();
+          sigla = match[2].trim();
+        }
+      }
+
       onAddressChange?.({
         province: selectedProvince,
         municipality: selectedMunicipality,
-        street: selectedStreet ? selectedStreet.name : streetQuery,
+        street,
         number,
-        sigla: selectedStreet ? selectedStreet.type : '',
+        sigla,
       });
     }
   }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);

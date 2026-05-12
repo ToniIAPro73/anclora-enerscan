@@ -16,13 +16,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const matches = await resolveByAddress({
+    let matches = await resolveByAddress({
       province,
       municipality,
       street,
       number: number || '',
       sigla,
     });
+
+    // Fallback: if sigla was provided but no matches found, try without it
+    if (matches.length === 0 && sigla) {
+      matches = await resolveByAddress({
+        province,
+        municipality,
+        street,
+        number: number || '',
+        sigla: '',
+      });
+    }
 
     if (matches.length > 0) {
       // Find the first one with coordinates

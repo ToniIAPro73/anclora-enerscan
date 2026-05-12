@@ -160,7 +160,7 @@ export default function AssessmentWizard() {
   const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
     if (match?.lat && match?.lng) {
       setMapCenter({ lat: match.lat, lng: match.lng });
-      setMapZoom(19);
+      setMapZoom(21);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
   }, [t.wizardMapLocationCatastro]);
@@ -183,11 +183,13 @@ export default function AssessmentWizard() {
         if (res.ok) {
           const data = await res.json();
           setMapCenter({ lat: data.lat, lng: data.lng });
-          setMapZoom(18);
+          setMapZoom(20);
           setMapSourceLabel(t.wizardMapLocationAddress);
+        } else {
+          console.warn('Geocode API returned non-ok response:', res.status);
         }
       } catch (err) {
-        console.error('Auto-geocoding failed', err);
+        console.error('Auto-geocoding failed:', err);
       }
     }, 1000);
   }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
