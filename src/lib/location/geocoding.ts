@@ -78,7 +78,6 @@ export const REGION_COORDINATES: Record<string, MapViewportTarget> = {
   "IBIZA": { lat: 38.9089, lng: 1.4324, zoom: 14 },
   "EIVISSA": { lat: 38.9089, lng: 1.4324, zoom: 14 },
   "LUCHMAYOR": { lat: 39.4908, lng: 2.8906, zoom: 13 },
-  "LLUCMAJOR": { lat: 39.4908, lng: 2.8906, zoom: 13 },
   "MAHON": { lat: 39.888, lng: 4.2625, zoom: 14 },
   "MAO": { lat: 39.888, lng: 4.2625, zoom: 14 },
   "POLLENÇA": { lat: 39.8775, lng: 3.0163, zoom: 14 },
@@ -95,7 +94,6 @@ export const REGION_COORDINATES: Record<string, MapViewportTarget> = {
   "VALLDEMOSSA": { lat: 39.7122, lng: 2.6225, zoom: 15 },
   "CIUTADELLA DE MENORCA": { lat: 40.0017, lng: 3.8403, zoom: 14 },
   };
-
 export function getCoordinatesForLocation(province?: string, municipality?: string): MapViewportTarget | null {
   const normProvince = province?.toUpperCase().trim();
   const normMunicipality = municipality?.toUpperCase().trim();
