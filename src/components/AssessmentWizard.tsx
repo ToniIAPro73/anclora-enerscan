@@ -175,7 +175,7 @@ export default function AssessmentWizard() {
   const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
     if (match?.lat && match?.lng) {
       setMapCenter({ lat: match.lat, lng: match.lng });
-      setMapZoom(21);
+      setMapZoom(19);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
   }, [t.wizardMapLocationCatastro]);
@@ -198,8 +198,22 @@ export default function AssessmentWizard() {
         if (res.ok) {
           const data = await res.json();
           setMapCenter({ lat: data.lat, lng: data.lng });
-          setMapZoom(21);
+          
+          // Intelligent zoom based on geocoding accuracy
+          let zoom = 18;
+          if (data.accuracy === 'exact') zoom = 18;
+          else if (data.accuracy === 'street') zoom = 17;
+          else zoom = 14; // Municipality or province fallback
+          
+          setMapZoom(zoom);
           setMapSourceLabel(t.wizardMapLocationAddress);
+
+          // Update form coordinates if we have a reasonably accurate location
+          if (data.accuracy === 'exact' || data.accuracy === 'street') {
+            setValue('latitude', data.lat);
+            setValue('longitude', data.lng);
+            setValue('locationSource', 'catastro');
+          }
         } else {
           console.warn('Geocode API returned non-ok response:', res.status);
         }
@@ -207,7 +221,7 @@ export default function AssessmentWizard() {
         console.error('Auto-geocoding failed:', err);
       }
     }, 600);
-  }, [t.wizardMapLocationAddress, geocodeTimeoutRef]);
+  }, [t.wizardMapLocationAddress, geocodeTimeoutRef, setValue]);
 
   const handleSearchResults = useCallback((results: CadastralMatch[]) => {
     const validCoords = results.filter(r => r.lat && r.lng);
@@ -220,17 +234,24 @@ export default function AssessmentWizard() {
       ]);
       setMapSourceLabel(t.wizardMapLocationAddress);
     } else if (validCoords.length === 1) {
-      setMapCenter({ lat: validCoords[0].lat!, lng: validCoords[0].lng! });
-      setMapZoom(21);
+      const match = validCoords[0];
+      setMapCenter({ lat: match.lat!, lng: match.lng! });
+      setMapZoom(18);
       setMapSourceLabel(t.wizardMapLocationCatastro);
+      
+      // Update form coordinates for single match
+      setValue('latitude', match.lat!);
+      setValue('longitude', match.lng!);
+      setValue('locationSource', 'catastro');
     }
-  }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro]);
+  }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro, setValue]);
 
   const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
     setMapCenter(pos);
+    setMapZoom(18);
     setMapSourceLabel(t.wizardMapLocationManual);
   }, [setValue, t.wizardMapLocationManual]);
 
@@ -249,12 +270,15 @@ export default function AssessmentWizard() {
         // If it's a direct match or a small list, we let the Search component handle the list
         // but we update the map viewport to center on the selected point
         setMapCenter({ lat: plat, lng: plng });
-        setMapZoom(21);
+        setMapZoom(18);
         setMapSourceLabel(t.wizardMapLocationCatastro);
         
+        // Update form coordinates
+        setValue('latitude', plat);
+        setValue('longitude', plng);
+        setValue('locationSource', 'catastro');
+        
         // Pass results back to the search component to show the list/detail
-        // This is handled by a ref or a shared state if we had one, 
-        // but for now we'll rely on handleSearchResults being triggered if needed
         handleSearchResults(matches);
       }
     } catch (err) {
@@ -262,7 +286,7 @@ export default function AssessmentWizard() {
     } finally {
       setIsMapLoading(false);
     }
-  }, [t.wizardMapLocationCatastro, handleSearchResults]);
+  }, [t.wizardMapLocationCatastro, handleSearchResults, setValue]);
 
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);
