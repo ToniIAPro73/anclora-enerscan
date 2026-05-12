@@ -10,9 +10,10 @@ interface CadastreSearchProps {
   onConfirm: (match: CadastralMatch) => void;
   onLocationChange?: (province: string, municipality: string) => void;
   onMatchSelect?: (match: CadastralMatch | null) => void;
+  onAddressChange?: (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => void;
 }
 
-export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect }: CadastreSearchProps) {
+export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
   const [rc, setRc] = useState('');
@@ -80,6 +81,18 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect }: C
     setStreetQuery('');
     onLocationChange?.(selectedProvince, selectedMunicipality);
   }, [selectedMunicipality, selectedProvince, onLocationChange]);
+
+  useEffect(() => {
+    if (selectedProvince && selectedMunicipality && (selectedStreet || streetQuery.length >= 3) && number) {
+      onAddressChange?.({
+        province: selectedProvince,
+        municipality: selectedMunicipality,
+        street: selectedStreet ? selectedStreet.name : streetQuery,
+        number,
+        sigla: selectedStreet ? selectedStreet.type : '',
+      });
+    }
+  }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);
 
   async function fetchMunicipalities(province: string) {
     try {

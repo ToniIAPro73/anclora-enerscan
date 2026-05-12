@@ -114,3 +114,23 @@ export async function resolveByAddress(params: {
   const xml = await response.text();
   return parseCadastralList(xml);
 }
+
+/**
+ * Gets the bounding box for a cadastral parcel.
+ */
+export async function getParcelBBox(rc: string): Promise<[[number, number], [number, number]] | null> {
+  // We can use the CPPC (Consulta de Coordenadas y Perímetro de una Parcela Catastral)
+  // But for now, we'll try to get it from the standard resolve if it has coordinates.
+  // Real geometry would require WFS or another service.
+  // For the MVP, we'll provide a small box around the point if we only have the point.
+  const matches = await resolveByCadastralReference(rc);
+  const match = matches[0];
+  if (match?.lat && match?.lng) {
+    const offset = 0.0005; // ~50m
+    return [
+      [match.lat - offset, match.lng - offset],
+      [match.lat + offset, match.lng + offset]
+    ];
+  }
+  return null;
+}
