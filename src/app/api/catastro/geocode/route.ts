@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
   const rawStreet = normalizeCatastroString(searchParams.get('street'));
   const number = searchParams.get('number')?.trim() || '';
   const sigla = normalizeCatastroString(searchParams.get('sigla'));
+  const provinceCode = searchParams.get('provinceCode')?.trim() || undefined;
+  const municipalityCode = searchParams.get('municipalityCode')?.trim() || undefined;
+  const streetCode = searchParams.get('streetCode')?.trim() || undefined;
 
   if (!province || !municipality) {
     return NextResponse.json({ error: 'Province and municipality are required' }, { status: 400 });
@@ -85,6 +88,9 @@ export async function GET(request: NextRequest) {
         street: streetVar,
         number,
         sigla,
+        provinceCode,
+        municipalityCode,
+        streetCode,
       });
 
       // 2b. Fallback: try without sigla
@@ -95,6 +101,9 @@ export async function GET(request: NextRequest) {
           street: streetVar,
           number,
           sigla: '',
+          provinceCode,
+          municipalityCode,
+          streetCode,
         });
       }
 
@@ -106,6 +115,9 @@ export async function GET(request: NextRequest) {
           street: streetVar,
           number: '',
           sigla: '',
+          provinceCode,
+          municipalityCode,
+          streetCode,
         });
         if (matches.length > 0) accuracy = 'street';
       }
@@ -136,6 +148,9 @@ export async function GET(request: NextRequest) {
           street: bestSuggestion.name,
           number,
           sigla: bestSuggestion.type,
+          provinceCode: bestSuggestion.provinceCode,
+          municipalityCode: bestSuggestion.municipalityCode,
+          streetCode: bestSuggestion.streetCode,
         });
 
         if (matches.length === 0) {
@@ -145,6 +160,9 @@ export async function GET(request: NextRequest) {
             street: bestSuggestion.name,
             number: '',
             sigla: bestSuggestion.type,
+            provinceCode: bestSuggestion.provinceCode,
+            municipalityCode: bestSuggestion.municipalityCode,
+            streetCode: bestSuggestion.streetCode,
           });
           accuracy = 'street';
         } else {

@@ -45,7 +45,10 @@ describe('Catastro Street Autocomplete', () => {
       name: 'MIQUEL ROSSELLO I ALEMANY',
       type: 'CL',
       province: 'ILLES BALEARS',
-      municipality: 'PALMA'
+      municipality: 'PALMA',
+      provinceCode: '7',
+      municipalityCode: '40',
+      streetCode: '1091',
     });
     expect(streets[1].name).toBe('MIQUEL ANGEL COLOMAR');
     const requestedUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;

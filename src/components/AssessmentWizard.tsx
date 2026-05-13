@@ -198,12 +198,22 @@ export default function AssessmentWizard() {
     }
   }, [t.wizardMapLocationMunicipality, t.wizardMapLocationProvince]);
 
-  const handleAddressChange = useCallback((address: { province: string, municipality: string, street: string, number: string, sigla: string }) => {
+  const handleAddressChange = useCallback((address: { province: string, municipality: string, street: string, number: string, sigla: string, provinceCode?: string, municipalityCode?: string, streetCode?: string }) => {
     if (geocodeTimeoutRef.current) clearTimeout(geocodeTimeoutRef.current);
 
     geocodeTimeoutRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/catastro/geocode?province=${encodeURIComponent(address.province)}&municipality=${encodeURIComponent(address.municipality)}&street=${encodeURIComponent(address.street)}&number=${encodeURIComponent(address.number)}&sigla=${encodeURIComponent(address.sigla)}`);
+        const params = new URLSearchParams({
+          province: address.province,
+          municipality: address.municipality,
+          street: address.street,
+          number: address.number,
+          sigla: address.sigla,
+        });
+        if (address.provinceCode) params.set('provinceCode', address.provinceCode);
+        if (address.municipalityCode) params.set('municipalityCode', address.municipalityCode);
+        if (address.streetCode) params.set('streetCode', address.streetCode);
+        const res = await fetch(`/api/catastro/geocode?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           

@@ -1,22 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
-import L from 'leaflet';
-import { CircleMarker, MapContainer, Marker, Popup, Rectangle, TileLayer, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import maplibregl from 'maplibre-gl';
 import { Box, Layers, Loader2, MapPin, Minus, Plus } from 'lucide-react';
 import type { CadastralMapFeature } from '@/lib/catastro/types';
-
-// Fix for default marker icon in Leaflet + Next.js
-const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
 
 interface PropertyMapProps {
   lat?: number;
@@ -32,39 +20,154 @@ interface PropertyMapProps {
   isLoading?: boolean;
 }
 
-const SPAIN_CENTER: [number, number] = [40.05, -3.7];
-const SPAIN_ZOOM = 6;
+type MapFeatureProperties = {
+  id: string;
+  label: string;
+  selected: boolean;
+};
 
-function MapUpdater({ center, zoom, bounds, hasExplicitCenter }: { center: [number, number], zoom: number, bounds?: [[number, number], [number, number]], hasExplicitCenter: boolean }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (bounds) {
-      map.fitBounds(bounds, { animate: true, padding: [40, 40], maxZoom: 18 });
-    } else if (hasExplicitCenter) {
-      const [lat, lng] = center;
-      if (lat && lng) {
-        // Use setView instead of flyTo for reliability if flyTo is glitching
-        // or a very short flyTo
-        map.flyTo([lat, lng], Math.min(zoom, 18), {
-          animate: true,
-          duration: 1.0
-        });
-      }
+type MapGeoJsonFeature = {
+  type: 'Feature';
+  id: string;
+  properties: MapFeatureProperties;
+  geometry:
+    | { type: 'Point'; coordinates: [number, number] }
+    | { type: 'Polygon'; coordinates: [Array<[number, number]>] };
+};
+
+type MapGeoJson = {
+  type: 'FeatureCollection';
+  features: MapGeoJsonFeature[];
+};
+
+const SPAIN_CENTER: [number, number] = [-3.7, 40.05];
+const SPAIN_ZOOM = 5.5;
+const OPEN_VECTOR_STYLES = [
+  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  'https://tiles.openfreemap.org/styles/bright',
+];
+const FEATURE_SOURCE_ID = 'catastro-search-features';
+const FEATURE_FILL_LAYER_ID = 'catastro-feature-fill';
+const FEATURE_LINE_LAYER_ID = 'catastro-feature-line';
+const FEATURE_POINT_LAYER_ID = 'catastro-feature-point';
+
+function boundsToPolygon(bounds: [[number, number], [number, number]]): [Array<[number, number]>] {
+  const [[south, west], [north, east]] = bounds;
+  return [[
+    [west, south],
+    [east, south],
+    [east, north],
+    [west, north],
+    [west, south],
+  ]];
+}
+
+function featuresToGeoJson(features: CadastralMapFeature[]): MapGeoJson {
+  const geoJsonFeatures: MapGeoJsonFeature[] = [];
+
+  for (const feature of features) {
+    const label = feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral';
+    if (feature.bounds) {
+      geoJsonFeatures.push({
+        type: 'Feature',
+        id: feature.id,
+        properties: {
+          id: feature.id,
+          label,
+          selected: Boolean(feature.selected),
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: boundsToPolygon(feature.bounds),
+        },
+      });
+    } else if (feature.center) {
+      geoJsonFeatures.push({
+        type: 'Feature',
+        id: feature.id,
+        properties: {
+          id: feature.id,
+          label,
+          selected: Boolean(feature.selected),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [feature.center.lng, feature.center.lat],
+        },
+      });
     }
-  }, [center, zoom, map, bounds, hasExplicitCenter]);
-  return null;
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: geoJsonFeatures,
+  };
+}
+
+function addFeatureLayers(map: maplibregl.Map, data: MapGeoJson) {
+  if (!map.getSource(FEATURE_SOURCE_ID)) {
+    map.addSource(FEATURE_SOURCE_ID, {
+      type: 'geojson',
+      data,
+    });
+  }
+
+  if (!map.getLayer(FEATURE_FILL_LAYER_ID)) {
+    map.addLayer({
+      id: FEATURE_FILL_LAYER_ID,
+      type: 'fill',
+      source: FEATURE_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: {
+        'fill-color': '#00DC82',
+        'fill-opacity': ['case', ['boolean', ['get', 'selected'], false], 0.24, 0.12],
+      },
+    });
+  }
+
+  if (!map.getLayer(FEATURE_LINE_LAYER_ID)) {
+    map.addLayer({
+      id: FEATURE_LINE_LAYER_ID,
+      type: 'line',
+      source: FEATURE_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: {
+        'line-color': ['case', ['boolean', ['get', 'selected'], false], '#00DC82', '#008F5A'],
+        'line-width': ['case', ['boolean', ['get', 'selected'], false], 3, 2],
+      },
+    });
+  }
+
+  if (!map.getLayer(FEATURE_POINT_LAYER_ID)) {
+    map.addLayer({
+      id: FEATURE_POINT_LAYER_ID,
+      type: 'circle',
+      source: FEATURE_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: {
+        'circle-color': '#00DC82',
+        'circle-radius': ['case', ['boolean', ['get', 'selected'], false], 10, 7],
+        'circle-stroke-color': '#005D3F',
+        'circle-stroke-width': 2,
+        'circle-opacity': 0.72,
+      },
+    });
+  }
 }
 
 function MapToolbar({
-  satellite,
-  onToggleSatellite,
+  map,
+  styleIndex,
+  pitchEnabled,
+  onToggleStyle,
+  onTogglePitch,
 }: {
-  satellite: boolean;
-  onToggleSatellite: () => void;
+  map: maplibregl.Map | null;
+  styleIndex: number;
+  pitchEnabled: boolean;
+  onToggleStyle: () => void;
+  onTogglePitch: () => void;
 }) {
-  const map = useMap();
-
   const stopPropagation = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -72,7 +175,7 @@ function MapToolbar({
 
   return (
     <div
-      className="absolute right-3 top-1/2 z-[600] flex -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white text-[#111] shadow-xl ring-1 ring-black/10"
+      className="absolute right-3 top-1/2 z-[20] flex -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white text-[#111] shadow-xl ring-1 ring-black/10"
       onMouseDown={stopPropagation}
       onClick={stopPropagation}
       onDoubleClick={stopPropagation}
@@ -80,7 +183,7 @@ function MapToolbar({
     >
       <button
         type="button"
-        onClick={() => map.zoomIn()}
+        onClick={() => map?.zoomIn()}
         className="flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100"
         aria-label="Acercar mapa"
         title="Acercar"
@@ -89,7 +192,7 @@ function MapToolbar({
       </button>
       <button
         type="button"
-        onClick={() => map.zoomOut()}
+        onClick={() => map?.zoomOut()}
         className="flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100"
         aria-label="Alejar mapa"
         title="Alejar"
@@ -98,8 +201,8 @@ function MapToolbar({
       </button>
       <button
         type="button"
-        onClick={onToggleSatellite}
-        className={`flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100 ${satellite ? 'bg-[#00DC82]/20' : ''}`}
+        onClick={onToggleStyle}
+        className={`flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100 ${styleIndex > 0 ? 'bg-[#00DC82]/20' : ''}`}
         aria-label="Cambiar capa base"
         title="Cambiar capa"
       >
@@ -107,7 +210,8 @@ function MapToolbar({
       </button>
       <button
         type="button"
-        className="flex h-11 w-11 flex-col items-center justify-center gap-0.5 text-[11px] font-black hover:bg-neutral-100"
+        onClick={onTogglePitch}
+        className={`flex h-11 w-11 flex-col items-center justify-center gap-0.5 text-[11px] font-black hover:bg-neutral-100 ${pitchEnabled ? 'bg-[#00DC82]/20' : ''}`}
         aria-label="Vista 3D orientativa"
         title="Vista 3D"
       >
@@ -118,147 +222,198 @@ function MapToolbar({
   );
 }
 
-function LocationPicker({ onPositionChange, onParcelSelect }: { 
-  onPositionChange: (pos: { lat: number; lng: number }) => void,
-  onParcelSelect?: (lat: number, lng: number) => void
-}) {
-  useMapEvents({
-    click(e) {
-      if (onParcelSelect) {
-        onParcelSelect(e.latlng.lat, e.latlng.lng);
-      } else {
-        onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
-      }
-    },
-  });
-  return null;
-}
-
-export default function PropertyMap({ 
-  lat, 
-  lng, 
-  zoom = 15, 
+export default function PropertyMap({
+  lat,
+  lng,
+  zoom = 15,
   bounds,
-  onPositionChange, 
+  onPositionChange,
   onParcelSelect,
   features = [],
   onFeatureSelect,
   readOnly = false,
   showParcels = true,
-  isLoading = false
+  isLoading = false,
 }: PropertyMapProps) {
-  const [satellite, setSatellite] = useState(false);
-  const hasExplicitCenter = Boolean(lat && lng);
-  const position = useMemo((): [number, number] => 
-    hasExplicitCenter ? [lat!, lng!] : SPAIN_CENTER, 
-  [hasExplicitCenter, lat, lng]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const loadedRef = useRef(false);
+  const featureByIdRef = useRef(new Map<string, CadastralMapFeature>());
+  const latestHandlersRef = useRef({
+    onFeatureSelect,
+    onParcelSelect,
+    onPositionChange,
+    readOnly,
+  });
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+  const [styleIndex, setStyleIndex] = useState(0);
+  const [pitchEnabled, setPitchEnabled] = useState(false);
+  const hasExplicitCenter = Number.isFinite(lat) && Number.isFinite(lng);
+  const center = useMemo((): [number, number] => (
+    hasExplicitCenter ? [lng!, lat!] : SPAIN_CENTER
+  ), [hasExplicitCenter, lat, lng]);
+  const geoJson = useMemo(() => featuresToGeoJson(showParcels ? features : []), [features, showParcels]);
+  const initialCenterRef = useRef(center);
+  const initialZoomRef = useRef(hasExplicitCenter ? zoom : SPAIN_ZOOM);
+  const initialGeoJsonRef = useRef(geoJson);
+
+  useEffect(() => {
+    latestHandlersRef.current = {
+      onFeatureSelect,
+      onParcelSelect,
+      onPositionChange,
+      readOnly,
+    };
+  }, [onFeatureSelect, onParcelSelect, onPositionChange, readOnly]);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: OPEN_VECTOR_STYLES[0],
+      center: initialCenterRef.current,
+      zoom: initialZoomRef.current,
+      minZoom: 5,
+      maxZoom: 19,
+      pitch: 0,
+      attributionControl: { compact: true },
+    });
+
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+    map.on('load', () => {
+      loadedRef.current = true;
+      addFeatureLayers(map, initialGeoJsonRef.current);
+    });
+
+    map.on('click', (event) => {
+      const renderedFeatures = map.queryRenderedFeatures(event.point, {
+        layers: [FEATURE_FILL_LAYER_ID, FEATURE_LINE_LAYER_ID, FEATURE_POINT_LAYER_ID].filter((layerId) => map.getLayer(layerId)),
+      });
+      const selectedFeatureId = renderedFeatures[0]?.properties?.id as string | undefined;
+      const selectedFeature = selectedFeatureId ? featureByIdRef.current.get(selectedFeatureId) : undefined;
+      if (selectedFeature) {
+        latestHandlersRef.current.onFeatureSelect?.(selectedFeature);
+        return;
+      }
+
+      if (latestHandlersRef.current.readOnly) return;
+      if (latestHandlersRef.current.onParcelSelect) {
+        latestHandlersRef.current.onParcelSelect(event.lngLat.lat, event.lngLat.lng);
+      } else {
+        latestHandlersRef.current.onPositionChange?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      }
+    });
+
+    mapRef.current = map;
+    setMapInstance(map);
+
+    return () => {
+      loadedRef.current = false;
+      setMapInstance(null);
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+
+    featureByIdRef.current = new Map(features.map((feature) => [feature.id, feature]));
+    if (!map.getSource(FEATURE_SOURCE_ID)) {
+      addFeatureLayers(map, geoJson);
+      return;
+    }
+
+    const source = map.getSource(FEATURE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(geoJson);
+    }
+  }, [features, geoJson]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+
+    const restore = () => {
+      addFeatureLayers(map, geoJson);
+      const source = map.getSource(FEATURE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (source) {
+        source.setData(geoJson);
+      }
+    };
+
+    map.setStyle(OPEN_VECTOR_STYLES[styleIndex]);
+    map.once('styledata', restore);
+  }, [geoJson, styleIndex]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+
+    if (bounds) {
+      const [[south, west], [north, east]] = bounds;
+      map.fitBounds([[west, south], [east, north]], {
+        animate: true,
+        padding: 40,
+        maxZoom: 18,
+      });
+      return;
+    }
+
+    if (hasExplicitCenter) {
+      map.easeTo({
+        center,
+        zoom: Math.min(zoom, 18),
+        duration: 800,
+      });
+    }
+  }, [bounds, center, hasExplicitCenter, zoom]);
+
+  const handleToggleStyle = () => {
+    setStyleIndex((current) => (current + 1) % OPEN_VECTOR_STYLES.length);
+  };
+
+  const handleTogglePitch = () => {
+    const nextPitchEnabled = !pitchEnabled;
+    setPitchEnabled(nextPitchEnabled);
+    mapRef.current?.easeTo({
+      pitch: nextPitchEnabled ? 55 : 0,
+      bearing: 0,
+      duration: 500,
+    });
+  };
 
   return (
-    <div className="relative w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-white/10 bg-black/20">
-      <MapContainer 
-        center={position} 
-        zoom={hasExplicitCenter ? zoom : SPAIN_ZOOM}
-        minZoom={5}
-        maxZoom={19}
-        zoomControl={false}
-        scrollWheelZoom
-        dragging
-        touchZoom
-        doubleClickZoom
-        keyboard
-        style={{ height: '100%', width: '100%', zIndex: 0 }}
-      >
-        {satellite ? (
-          <WMSTileLayer
-            url="https://www.ign.es/wms-inspire/pnoa-ma"
-            layers="OI.OrthoimageCoverage"
-            format="image/png"
-            transparent={false}
-            version="1.3.0"
-            attribution="&copy; Instituto Geográfico Nacional"
-            maxZoom={19}
-          />
-        ) : (
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maxZoom={19}
-            maxNativeZoom={18}
-          />
-        )}
-        
-        {showParcels && (
-          <WMSTileLayer
-            url="https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx"
-            layers="Catastro"
-            format="image/png"
-            transparent={true}
-            version="1.1.1"
-            opacity={1}
-            maxZoom={19}
-            attribution="&copy; Dirección General del Catastro"
-          />
-        )}
+    <div className="relative h-full min-h-[300px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[#d6d8d3]">
+      <div ref={containerRef} className="h-full w-full" />
+      <MapToolbar
+        map={mapInstance}
+        styleIndex={styleIndex}
+        pitchEnabled={pitchEnabled}
+        onToggleStyle={handleToggleStyle}
+        onTogglePitch={handleTogglePitch}
+      />
 
-        {features.map((feature) => (
-          feature.bounds ? (
-            <Rectangle
-              key={feature.id}
-              bounds={feature.bounds}
-              pathOptions={{
-                color: feature.selected ? '#00DC82' : '#008F5A',
-                weight: feature.selected ? 3 : 2,
-                fillColor: '#00DC82',
-                fillOpacity: feature.selected ? 0.22 : 0.12,
-              }}
-              eventHandlers={{
-                click: () => onFeatureSelect?.(feature),
-              }}
-            >
-              <Popup>
-                <span>{feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral'}</span>
-              </Popup>
-            </Rectangle>
-          ) : feature.center ? (
-            <CircleMarker
-              key={feature.id}
-              center={[feature.center.lat, feature.center.lng]}
-              radius={feature.selected ? 10 : 7}
-              pathOptions={{
-                color: feature.selected ? '#00DC82' : '#008F5A',
-                fillColor: '#00DC82',
-                fillOpacity: 0.35,
-              }}
-              eventHandlers={{
-                click: () => onFeatureSelect?.(feature),
-              }}
-            >
-              <Popup>
-                <span>{feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral'}</span>
-              </Popup>
-            </CircleMarker>
-          ) : null
-        ))}
+      {lat && lng && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[15] -translate-x-1/2 -translate-y-full text-[#1976B8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.45)]">
+          <MapPin className="h-10 w-10 fill-current stroke-white stroke-[1.5]" />
+        </div>
+      )}
 
-        {lat && lng && <Marker position={[lat, lng]} />}
-        <MapUpdater center={position} zoom={zoom} bounds={bounds} hasExplicitCenter={hasExplicitCenter} />
-        <MapToolbar satellite={satellite} onToggleSatellite={() => setSatellite((current) => !current)} />
-        {!readOnly && onPositionChange && (
-          <LocationPicker onPositionChange={onPositionChange} onParcelSelect={onParcelSelect} />
-        )}
-      </MapContainer>
-      
       {isLoading && (
-        <div className="absolute inset-0 z-[10] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
-          <div className="bg-[#131313]/90 border border-[#00DC82]/30 p-4 rounded-2xl shadow-2xl flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-[#00DC82] animate-spin" />
-            <span className="text-xs font-bold text-[#00DC82] uppercase tracking-wider">Consultando Catastro...</span>
+        <div className="absolute inset-0 z-[30] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#00DC82]/30 bg-[#131313]/90 p-4 shadow-2xl">
+            <Loader2 className="h-5 w-5 animate-spin text-[#00DC82]" />
+            <span className="text-xs font-bold uppercase tracking-wider text-[#00DC82]">Consultando Catastro...</span>
           </div>
         </div>
       )}
 
       {!lat && !lng && !isLoading && (
-        <div className="pointer-events-none absolute left-3 top-3 z-[10] rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase text-[#111] shadow-lg">
+        <div className="pointer-events-none absolute left-3 top-3 z-[15] rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase text-[#111] shadow-lg">
           <span className="inline-flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-[#00A65A]" />
             Selecciona ubicación en el mapa

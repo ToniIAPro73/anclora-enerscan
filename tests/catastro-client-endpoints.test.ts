@@ -31,6 +31,28 @@ describe('Catastro client endpoints', () => {
     expect(url).toContain('Numero=48');
   });
 
+  it('prefers official Callejero Codigos REST endpoint when street codes are available', async () => {
+    await resolveByAddress({
+      province: 'ILLES BALEARS',
+      municipality: 'PALMA',
+      sigla: 'CL',
+      street: 'MIQUEL ROSSELLO I ALEMANY',
+      number: '48',
+      provinceCode: '7',
+      municipalityCode: '40',
+      streetCode: '1091',
+    });
+
+    const firstUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    const secondUrl = (global.fetch as jest.Mock).mock.calls[1][0] as string;
+    expect(firstUrl).toContain('/COVCCallejeroCodigos.svc/rest/Consulta_DNPLOC_Codigos?');
+    expect(firstUrl).toContain('CodigoProvincia=7');
+    expect(firstUrl).toContain('CodigoMunicipio=40');
+    expect(firstUrl).toContain('CodigoVia=1091');
+    expect(firstUrl).toContain('Numero=48');
+    expect(secondUrl).toContain('/COVCCallejero.svc/rest/Consulta_DNPLOC?');
+  });
+
   it('uses official Callejero REST endpoint for cadastral reference data', async () => {
     await resolveByCadastralReference('6485534DD6768E0003QD');
 

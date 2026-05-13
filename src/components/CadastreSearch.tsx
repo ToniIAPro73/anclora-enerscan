@@ -10,7 +10,7 @@ interface CadastreSearchProps {
   onConfirm: (match: CadastralMatch) => void;
   onLocationChange?: (province: string, municipality: string) => void;
   onMatchSelect?: (match: CadastralMatch | null) => void;
-  onAddressChange?: (address: { province: string, municipality: string, street: string, number: string, sigla: string }) => void;
+  onAddressChange?: (address: { province: string, municipality: string, street: string, number: string, sigla: string, provinceCode?: string, municipalityCode?: string, streetCode?: string }) => void;
   onResults?: (results: CadastralMatch[]) => void;
   externalResults?: CadastralMatch[];
   onReset?: () => void;
@@ -149,6 +149,9 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
         street,
         number,
         sigla,
+        provinceCode: selectedStreet?.provinceCode,
+        municipalityCode: selectedStreet?.municipalityCode,
+        streetCode: selectedStreet?.streetCode,
       });
     }
   }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);
@@ -218,6 +221,9 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
             municipality: selectedMunicipality, 
             street: selectedStreet ? selectedStreet.name : streetQuery,
             sigla: selectedStreet ? selectedStreet.type : '',
+            provinceCode: selectedStreet?.provinceCode,
+            municipalityCode: selectedStreet?.municipalityCode,
+            streetCode: selectedStreet?.streetCode,
             number,
             block,
             staircase,
