@@ -32,6 +32,19 @@ export const CadastralMatchSchema = z.object({
 
 export type CadastralMatch = z.infer<typeof CadastralMatchSchema>;
 
+export type CadastralMapFeature = {
+  id: string;
+  cadastralReference?: string;
+  parcelReference?: string;
+  label?: string;
+  kind: 'parcel' | 'building' | 'unit' | 'address';
+  geometry?: unknown;
+  center?: { lat: number; lng: number };
+  bounds?: [[number, number], [number, number]];
+  selected?: boolean;
+  source: 'catastro' | 'wms' | 'fallback';
+};
+
 export const CatastroResolveResponseSchema = z.object({
   ok: z.boolean(),
   data: z.object({

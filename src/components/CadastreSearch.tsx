@@ -485,7 +485,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
           <button
             type="button"
             onClick={handleSearch}
-            disabled={loading || (mode === 'rc' ? !rc : (!selectedProvince || !selectedMunicipality || (!selectedStreet && streetQuery.length < 3)))}
+            disabled={loading || (mode === 'rc' ? !rc : (!selectedProvince || !selectedMunicipality || (!selectedStreet && streetQuery.length < 3) || !number.trim()))}
             className="w-full py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
+import { CircleMarker, MapContainer, Marker, Popup, Rectangle, TileLayer, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Box, Layers, Loader2, MapPin, Minus, Plus } from 'lucide-react';
+import type { CadastralMapFeature } from '@/lib/catastro/types';
 
 // Fix for default marker icon in Leaflet + Next.js
 const DefaultIcon = L.icon({
@@ -24,6 +25,8 @@ interface PropertyMapProps {
   bounds?: [[number, number], [number, number]];
   onPositionChange?: (pos: { lat: number; lng: number }) => void;
   onParcelSelect?: (lat: number, lng: number) => void;
+  features?: CadastralMapFeature[];
+  onFeatureSelect?: (feature: CadastralMapFeature) => void;
   readOnly?: boolean;
   showParcels?: boolean;
   isLoading?: boolean;
@@ -138,6 +141,8 @@ export default function PropertyMap({
   bounds,
   onPositionChange, 
   onParcelSelect,
+  features = [],
+  onFeatureSelect,
   readOnly = false,
   showParcels = true,
   isLoading = false
@@ -189,11 +194,51 @@ export default function PropertyMap({
             format="image/png"
             transparent={true}
             version="1.1.1"
-            opacity={0.5}
+            opacity={1}
             maxZoom={19}
             attribution="&copy; Dirección General del Catastro"
           />
         )}
+
+        {features.map((feature) => (
+          feature.bounds ? (
+            <Rectangle
+              key={feature.id}
+              bounds={feature.bounds}
+              pathOptions={{
+                color: feature.selected ? '#00DC82' : '#008F5A',
+                weight: feature.selected ? 3 : 2,
+                fillColor: '#00DC82',
+                fillOpacity: feature.selected ? 0.22 : 0.12,
+              }}
+              eventHandlers={{
+                click: () => onFeatureSelect?.(feature),
+              }}
+            >
+              <Popup>
+                <span>{feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral'}</span>
+              </Popup>
+            </Rectangle>
+          ) : feature.center ? (
+            <CircleMarker
+              key={feature.id}
+              center={[feature.center.lat, feature.center.lng]}
+              radius={feature.selected ? 10 : 7}
+              pathOptions={{
+                color: feature.selected ? '#00DC82' : '#008F5A',
+                fillColor: '#00DC82',
+                fillOpacity: 0.35,
+              }}
+              eventHandlers={{
+                click: () => onFeatureSelect?.(feature),
+              }}
+            >
+              <Popup>
+                <span>{feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral'}</span>
+              </Popup>
+            </CircleMarker>
+          ) : null
+        ))}
 
         {lat && lng && <Marker position={[lat, lng]} />}
         <MapUpdater center={position} zoom={zoom} bounds={bounds} hasExplicitCenter={hasExplicitCenter} />
