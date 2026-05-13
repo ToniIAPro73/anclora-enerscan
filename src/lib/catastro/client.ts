@@ -2,6 +2,7 @@ import type { CadastralMatch, Province, Municipality } from './types';
 import { extractTagsValues, parseCadastralList, extractTagValue, parseCoordinateList } from './normalize';
 
 const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
+const CALLEJERO_CODIGOS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejeroCodigos.svc/rest';
 const COORDENADAS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/rest';
 
 function buildUrl(baseUrl: string, endpoint: string, params: Record<string, string | number | undefined>) {
@@ -53,6 +54,9 @@ export type CatastroStreetSuggestion = {
   type: string;
   province: string;
   municipality: string;
+  provinceCode?: string;
+  municipalityCode?: string;
+  streetCode?: string;
 };
 
 export class CatastroStreetServiceError extends Error {
@@ -108,7 +112,10 @@ export async function getStreets(params: {
     name: extractTagValue(block, 'nv'),
     type: extractTagValue(block, 'tv'),
     province,
-    municipality
+    municipality,
+    provinceCode: extractTagValue(block, 'cp'),
+    municipalityCode: extractTagValue(block, 'cm'),
+    streetCode: extractTagValue(block, 'cv'),
   }));
 
   streetCache.set(cacheKey, streets);
@@ -147,13 +154,35 @@ export async function resolveByAddress(params: {
   street: string;
   number?: string;
   sigla?: string;
+  provinceCode?: string;
+  municipalityCode?: string;
+  streetCode?: string;
   block?: string;
   staircase?: string;
   floor?: string;
   door?: string;
 }): Promise<CadastralMatch[]> {
-  const { province, municipality, street, number, sigla, block, staircase, floor, door } = params;
+  const { province, municipality, street, number, sigla, provinceCode, municipalityCode, streetCode, block, staircase, floor, door } = params;
   const normalizedStreet = normalizeStreetQuery(street);
+  const hasCodeLookup = provinceCode && municipalityCode && streetCode;
+
+  if (hasCodeLookup) {
+    const codeUrl = buildUrl(CALLEJERO_CODIGOS_REST_URL, 'Consulta_DNPLOC_Codigos', {
+      CodigoProvincia: provinceCode,
+      CodigoMunicipio: municipalityCode,
+      CodigoMunicipioINE: '',
+      CodigoVia: streetCode,
+      Numero: number || '',
+      Bloque: block || '',
+      Escalera: staircase || '',
+      Planta: floor || '',
+      Puerta: door || '',
+    });
+
+    const codeMatches = await resolveAddressFromUrl(codeUrl).catch(() => []);
+    if (codeMatches.length > 0) return codeMatches;
+  }
+
   const url = buildUrl(CALLEJERO_REST_URL, 'Consulta_DNPLOC', {
     Provincia: province,
     Municipio: municipality,
@@ -165,6 +194,11 @@ export async function resolveByAddress(params: {
     Planta: floor || '',
     Puerta: door || '',
   });
+
+  return resolveAddressFromUrl(url);
+}
+
+async function resolveAddressFromUrl(url: string): Promise<CadastralMatch[]> {
   const xml = await fetchCatastroXml(url, 'Failed to resolve address');
   
   // Check for errors in XML

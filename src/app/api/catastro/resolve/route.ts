@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mode, rc, province, municipality, street, number, sigla, block, staircase, floor, door, lat, lng } = body;
+    const { mode, rc, province, municipality, street, number, sigla, provinceCode, municipalityCode, streetCode, block, staircase, floor, door, lat, lng } = body;
 
     let matches = [];
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       if (!province || !municipality || !street || !number) {
         return NextResponse.json({ ok: false, error: { code: 'MISSING_FIELDS', message: 'Province, municipality, street and number are required' } }, { status: 400 });
       }
-      matches = await resolveByAddress({ province, municipality, street, number, sigla, block, staircase, floor, door });
+      matches = await resolveByAddress({ province, municipality, street, number, sigla, provinceCode, municipalityCode, streetCode, block, staircase, floor, door });
     } else if (mode === 'coords') {
       if (lat === undefined || lng === undefined) {
         return NextResponse.json({ ok: false, error: { code: 'MISSING_COORDS', message: 'Latitude and longitude are required' } }, { status: 400 });
