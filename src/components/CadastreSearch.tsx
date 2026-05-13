@@ -595,7 +595,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                 <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailYear}</p>
                 <p className="text-sm font-bold text-premium">{detailMatch.yearBuilt || '---'}</p>
               </div>
-              {detailMatch.participationCoefficient !== undefined && (
+              {detailMatch.participationCoefficient !== undefined && detailMatch.participationCoefficient > 0 && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                   <p className="text-[9px] font-bold text-muted uppercase">% {t.cadastralDetailParticipationCoefficient}</p>
                   <p className="text-sm font-bold text-premium">
