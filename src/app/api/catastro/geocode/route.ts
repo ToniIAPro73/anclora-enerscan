@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveByAddress, resolveByCadastralReference, getStreets } from '@/lib/catastro/client';
 import { getCoordinatesForLocation } from '@/lib/location/geocoding';
+import { geocodeWithOpenStreetMap, getFallbackAddressTarget } from '@/lib/location/open-address';
 import type { CadastralMatch } from '@/lib/catastro/types';
 
 export const dynamic = 'force-dynamic';
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     for (const streetVar of uniqueVariations) {
       // 2a. Try exact address (street + number + sigla)
-      let matches = await resolveByAddress({
+      let matches = await resolveAddressSafely({
         province,
         municipality,
         street: streetVar,
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
 
       // 2b. Fallback: try without sigla
       if (matches.length === 0 && sigla) {
-        matches = await resolveByAddress({
+        matches = await resolveAddressSafely({
           province,
           municipality,
           street: streetVar,
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
 
       // 2c. Fallback: try without number (street level)
       if (matches.length === 0 && number) {
-        matches = await resolveByAddress({
+        matches = await resolveAddressSafely({
           province,
           municipality,
           street: streetVar,
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
     if (finalMatches.length === 0 && rawStreet) {
       // Try fuzzy search with only the first few words to be more inclusive
       const fuzzyQuery = words.slice(0, 2).join(' ');
-      const suggestions = await getStreets({ province, municipality, query: fuzzyQuery });
+      const suggestions = await getStreets({ province, municipality, query: fuzzyQuery }).catch(() => []);
       
       // Try to find the best match in suggestions that contains our surnames
       const surnames = words.slice(1).filter(w => w.length > 2 && w !== 'I' && w !== 'Y');
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
       ) || suggestions[0];
 
       if (bestSuggestion) {
-        let matches = await resolveByAddress({
+        let matches = await resolveAddressSafely({
           province,
           municipality,
           street: bestSuggestion.name,
@@ -154,7 +155,7 @@ export async function GET(request: NextRequest) {
         });
 
         if (matches.length === 0) {
-          matches = await resolveByAddress({
+          matches = await resolveAddressSafely({
             province,
             municipality,
             street: bestSuggestion.name,
@@ -202,7 +203,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. Hard Fallback to Municipality/Province
+    // 5. Open-data fallback to street/address before falling back to municipality.
+    if (!lat || !lng) {
+      const fallbackAddress = getFallbackAddressTarget({
+        province,
+        municipality,
+        street: rawStreet,
+        number,
+      }) || await geocodeWithOpenStreetMap({
+        province,
+        municipality,
+        street: rawStreet,
+        number,
+      }).catch(() => null);
+
+      if (fallbackAddress) {
+        lat = fallbackAddress.lat;
+        lng = fallbackAddress.lng;
+        accuracy = number ? 'street' : 'street';
+      }
+    }
+
+    // 6. Hard Fallback to Municipality/Province
     if (!lat || !lng) {
       const geo = getCoordinatesForLocation(province, municipality);
       if (geo) {
@@ -231,4 +253,11 @@ export async function GET(request: NextRequest) {
     console.error('Geocode error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function resolveAddressSafely(params: Parameters<typeof resolveByAddress>[0]) {
+  return resolveByAddress(params).catch((error) => {
+    console.warn('Catastro address lookup failed, continuing with geocode fallback:', error instanceof Error ? error.message : String(error));
+    return [] as CadastralMatch[];
+  });
 }

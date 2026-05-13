@@ -69,4 +69,29 @@ describe('Catastro Street Autocomplete', () => {
       query: 'TEST'
     })).rejects.toThrow('Failed to fetch streets');
   });
+
+  it('should return fallback street suggestions when Catastro rejects a known street lookup', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: () => Promise.resolve('<error>Peticion denegada</error>'),
+    });
+
+    const streets = await getStreets({
+      province: 'ILLES BALEARS',
+      municipality: 'PALMA',
+      query: 'MIQ'
+    });
+
+    expect(streets).toContainEqual({
+      id: '1091',
+      name: 'MIQUEL ROSSELLO I ALEMANY',
+      type: 'CL',
+      province: 'ILLES BALEARS',
+      municipality: 'PALMA',
+      provinceCode: '7',
+      municipalityCode: '40',
+      streetCode: '1091',
+    });
+  });
 });

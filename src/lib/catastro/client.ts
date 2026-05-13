@@ -1,6 +1,7 @@
 import type { CadastralMatch, Province, Municipality } from './types';
 import { extractTagsValues, parseCadastralList, extractTagValue, parseCoordinateList } from './normalize';
 import { getFallbackMunicipalities, getFallbackProvinces } from '@/lib/location/spanish-admin';
+import { getFallbackStreets } from '@/lib/location/open-address';
 
 const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
 const CALLEJERO_CODIGOS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejeroCodigos.svc/rest';
@@ -122,21 +123,32 @@ export async function getStreets(params: {
     TipoVia: '',
     NombreVia: normalizedQuery,
   });
-  const xml = await fetchCatastroXml(url, 'Failed to fetch streets');
-  
-  // Extract street data using a more specific regex since they are inside <calle>
-  const streetBlocks = xml.match(/<calle>[\s\S]*?<\/calle>/gi) || [];
-  
-  const streets = streetBlocks.map(block => ({
-    id: extractTagValue(block, 'cv'),
-    name: extractTagValue(block, 'nv'),
-    type: extractTagValue(block, 'tv'),
-    province,
-    municipality,
-    provinceCode: extractTagValue(block, 'cp'),
-    municipalityCode: extractTagValue(block, 'cm'),
-    streetCode: extractTagValue(block, 'cv'),
-  }));
+  let streets: CatastroStreetSuggestion[] = [];
+  try {
+    const xml = await fetchCatastroXml(url, 'Failed to fetch streets');
+    
+    // Extract street data using a more specific regex since they are inside <calle>
+    const streetBlocks = xml.match(/<calle>[\s\S]*?<\/calle>/gi) || [];
+    
+    streets = streetBlocks.map(block => ({
+      id: extractTagValue(block, 'cv'),
+      name: extractTagValue(block, 'nv'),
+      type: extractTagValue(block, 'tv'),
+      province,
+      municipality,
+      provinceCode: extractTagValue(block, 'cp'),
+      municipalityCode: extractTagValue(block, 'cm'),
+      streetCode: extractTagValue(block, 'cv'),
+    }));
+  } catch (error) {
+    console.warn('Using fallback streets after Catastro street lookup failed:', getCatastroFallbackReason(error));
+    streets = getFallbackStreets({ province, municipality, query: normalizedQuery });
+    if (streets.length === 0) throw error;
+  }
+
+  if (streets.length === 0) {
+    streets = getFallbackStreets({ province, municipality, query: normalizedQuery });
+  }
 
   streetCache.set(cacheKey, streets);
   return streets;

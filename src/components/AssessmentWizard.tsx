@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import { upload } from '@vercel/blob/client';
 import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2, Info, Menu } from 'lucide-react';
 import { CadastreSearch } from './CadastreSearch';
-import type { CadastralMatch } from '@/lib/catastro/types';
+import type { CadastralMapFeature, CadastralMatch } from '@/lib/catastro/types';
 import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
 import { mapMatchesToFeatures } from '@/lib/catastro/map-features';
 import { getCoordinatesForLocation } from '@/lib/location/geocoding';
@@ -21,6 +21,7 @@ import { getLegalDisclaimer } from '@/lib/i18n';
 const PropertyMap = dynamic(() => import('./PropertyMap'), { ssr: false, loading: () => <div className="w-full h-full min-h-[300px] bg-white/5 animate-pulse rounded-2xl" /> });
 
 const DIRECT_UPLOAD_FALLBACK_LIMIT = 4 * 1024 * 1024;
+const SELECTED_MAP_FEATURE_OFFSET = 0.00022;
 
 const fieldSteps: Partial<Record<string, number>> = {
   objective: 1,
@@ -52,6 +53,22 @@ type UploadedAttachment = {
   url: string;
 };
 
+function createSelectedMapFeature(lat: number, lng: number): CadastralMapFeature {
+  const id = `selected-map-${lat.toFixed(6)}-${lng.toFixed(6)}`;
+  return {
+    id,
+    label: 'Ubicación seleccionada',
+    kind: 'address',
+    center: { lat, lng },
+    bounds: [
+      [lat - SELECTED_MAP_FEATURE_OFFSET, lng - SELECTED_MAP_FEATURE_OFFSET],
+      [lat + SELECTED_MAP_FEATURE_OFFSET, lng + SELECTED_MAP_FEATURE_OFFSET],
+    ],
+    selected: true,
+    source: 'fallback',
+  };
+}
+
 export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
@@ -70,6 +87,7 @@ export default function AssessmentWizard() {
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [mapResults, setMapResults] = useState<CadastralMatch[] | undefined>();
   const [selectedCadastralReference, setSelectedCadastralReference] = useState<string | undefined>();
+  const [selectedMapFeature, setSelectedMapFeature] = useState<CadastralMapFeature | undefined>();
   const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -195,8 +213,12 @@ export default function AssessmentWizard() {
 
   const mapFeatures = useMemo(() => {
     const matches = confirmedMatch ? [confirmedMatch] : mapResults || [];
-    return mapMatchesToFeatures(matches, selectedCadastralReference);
-  }, [confirmedMatch, mapResults, selectedCadastralReference]);
+    const features = mapMatchesToFeatures(matches, selectedCadastralReference);
+    if (selectedMapFeature && !features.some((feature) => feature.id === selectedMapFeature.id)) {
+      features.push(selectedMapFeature);
+    }
+    return features;
+  }, [confirmedMatch, mapResults, selectedCadastralReference, selectedMapFeature]);
 
   const handleLocationChange = useCallback((province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
@@ -256,6 +278,7 @@ export default function AssessmentWizard() {
 
   const handleSearchResults = useCallback((results: CadastralMatch[]) => {
     setMapResults(results);
+    if (results.length > 0) setSelectedMapFeature(undefined);
     const validCoords = results.filter(r => r.lat && r.lng);
     if (validCoords.length > 1) {
       const lats = validCoords.map(r => r.lat!);
@@ -280,6 +303,9 @@ export default function AssessmentWizard() {
   }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro, setValue]);
 
   const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
+    const feature = createSelectedMapFeature(pos.lat, pos.lng);
+    setSelectedMapFeature(feature);
+    setSelectedCadastralReference(feature.id);
     setValue('latitude', pos.lat);
     setValue('longitude', pos.lng);
     setValue('locationSource', 'manual');
@@ -289,6 +315,14 @@ export default function AssessmentWizard() {
   }, [setValue, t.wizardMapLocationManual]);
 
   const handleParcelSelect = useCallback(async (plat: number, plng: number) => {
+    const fallbackFeature = createSelectedMapFeature(plat, plng);
+    setSelectedMapFeature(fallbackFeature);
+    setSelectedCadastralReference(fallbackFeature.id);
+    setMapCenter({ lat: plat, lng: plng });
+    setMapZoom(18);
+    setValue('latitude', plat);
+    setValue('longitude', plng);
+    setValue('locationSource', 'manual');
     setIsMapLoading(true);
     try {
       const res = await fetch('/api/catastro/resolve', {
@@ -300,6 +334,7 @@ export default function AssessmentWizard() {
       const data = await res.json();
       if (data.ok && data.data?.matches?.length > 0) {
         const matches = data.data.matches;
+        setSelectedMapFeature(undefined);
         // If it's a direct match or a small list, we let the Search component handle the list
         // but we update the map viewport to center on the selected point
         setMapCenter({ lat: plat, lng: plng });
@@ -313,13 +348,16 @@ export default function AssessmentWizard() {
         
         // Pass results back to the search component to show the list/detail
         handleSearchResults(matches);
+      } else {
+        setMapSourceLabel(t.wizardMapLocationManual);
       }
     } catch (err) {
       console.error('Parcel select failed:', err);
+      setMapSourceLabel(t.wizardMapLocationManual);
     } finally {
       setIsMapLoading(false);
     }
-  }, [t.wizardMapLocationCatastro, handleSearchResults, setValue]);
+  }, [t.wizardMapLocationCatastro, t.wizardMapLocationManual, handleSearchResults, setValue]);
 
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);
