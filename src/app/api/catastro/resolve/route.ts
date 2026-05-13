@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveByCadastralReference, resolveByAddress, resolveByCoordinates } from '@/lib/catastro/client';
+import { CatastroStreetServiceError, resolveByCadastralReference, resolveByAddress, resolveByCoordinates } from '@/lib/catastro/client';
 import type { CatastroResolveResponse } from '@/lib/catastro/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
       if (!rc) return NextResponse.json({ ok: false, error: { code: 'MISSING_RC', message: 'RC is required' } }, { status: 400 });
       matches = await resolveByCadastralReference(rc);
     } else if (mode === 'address') {
-      if (!province || !municipality || !street) {
-        return NextResponse.json({ ok: false, error: { code: 'MISSING_FIELDS', message: 'Province, municipality and street are required' } }, { status: 400 });
+      if (!province || !municipality || !street || !number) {
+        return NextResponse.json({ ok: false, error: { code: 'MISSING_FIELDS', message: 'Province, municipality, street and number are required' } }, { status: 400 });
       }
       matches = await resolveByAddress({ province, municipality, street, number, sigla, block, staircase, floor, door });
     } else if (mode === 'coords') {
@@ -43,13 +43,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error resolving catastro:', error);
+    const status = error instanceof CatastroStreetServiceError ? error.status : 500;
+    const isRateLimited = error instanceof CatastroStreetServiceError && error.status === 403;
+    console.error('Error resolving catastro:', {
+      status,
+      response: error instanceof CatastroStreetServiceError ? error.responseText?.slice(0, 240) : undefined,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ 
       ok: false, 
       error: { 
-        code: 'SERVER_ERROR', 
-        message: error instanceof Error ? error.message : 'Unknown server error' 
+        code: isRateLimited ? 'CATASTRO_RATE_LIMITED' : 'SERVER_ERROR', 
+        message: isRateLimited
+          ? 'El servicio de Catastro ha limitado temporalmente las consultas. Inténtalo más tarde.'
+          : error instanceof Error ? error.message : 'Unknown server error' 
       } 
-    }, { status: 500 });
+    }, { status: isRateLimited ? 503 : status });
   }
 }

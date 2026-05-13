@@ -1,16 +1,30 @@
 import type { CadastralMatch, Province, Municipality } from './types';
-import { extractTagsValues, parseCadastralList, extractTagValue } from './normalize';
+import { extractTagsValues, parseCadastralList, extractTagValue, parseCoordinateList } from './normalize';
 
-const BASE_URL = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx';
+const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
+const COORDENADAS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/rest';
+
+function buildUrl(baseUrl: string, endpoint: string, params: Record<string, string | number | undefined>) {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    searchParams.set(key, value === undefined ? '' : String(value));
+  }
+  return `${baseUrl}/${endpoint}?${searchParams.toString()}`;
+}
+
+async function fetchCatastroXml(url: string, errorMessage: string) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) {
+    const responseText = typeof response.text === 'function'
+      ? await response.text().catch(() => undefined)
+      : undefined;
+    throw new CatastroStreetServiceError(errorMessage, response.status, responseText);
+  }
+  return response.text();
+}
 
 export async function getProvinces(): Promise<Province[]> {
-  const response = await fetch(`${BASE_URL}/ConsultaProvincia`, {
-    cache: 'no-store',
-  });
-  
-  if (!response.ok) throw new Error('Failed to fetch provinces');
-  
-  const xml = await response.text();
+  const xml = await fetchCatastroXml(`${CALLEJERO_REST_URL}/ConsultaProvincia`, 'Failed to fetch provinces');
   const names = extractTagsValues(xml, 'np');
   
   return names.map((name) => ({
@@ -20,13 +34,10 @@ export async function getProvinces(): Promise<Province[]> {
 }
 
 export async function getMunicipalities(province: string): Promise<Municipality[]> {
-  const response = await fetch(`${BASE_URL}/ConsultaMunicipio?Provincia=${encodeURIComponent(province)}&Municipio=`, {
-    cache: 'no-store',
-  });
-  
-  if (!response.ok) throw new Error('Failed to fetch municipalities');
-  
-  const xml = await response.text();
+  const xml = await fetchCatastroXml(buildUrl(CALLEJERO_REST_URL, 'ConsultaMunicipio', {
+    Provincia: province,
+    Municipio: '',
+  }), 'Failed to fetch municipalities');
   const names = extractTagsValues(xml, 'nm');
   
   return names.map((name) => ({
@@ -81,17 +92,13 @@ export async function getStreets(params: {
   const cached = streetCache.get(cacheKey);
   if (cached) return cached;
 
-  const url = `${BASE_URL}/ConsultaVia?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&TipoVia=&NombreVia=${encodeURIComponent(normalizedQuery)}`;
-  
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) {
-    const responseText = typeof response.text === 'function'
-      ? await response.text().catch(() => undefined)
-      : undefined;
-    throw new CatastroStreetServiceError('Failed to fetch streets', response.status, responseText);
-  }
-  
-  const xml = await response.text();
+  const url = buildUrl(CALLEJERO_REST_URL, 'ConsultaVia', {
+    Provincia: province,
+    Municipio: municipality,
+    TipoVia: '',
+    NombreVia: normalizedQuery,
+  });
+  const xml = await fetchCatastroXml(url, 'Failed to fetch streets');
   
   // Extract street data using a more specific regex since they are inside <calle>
   const streetBlocks = xml.match(/<calle>[\s\S]*?<\/calle>/gi) || [];
@@ -109,16 +116,12 @@ export async function getStreets(params: {
 }
 
 export async function resolveByCadastralReference(rc: string): Promise<CadastralMatch[]> {
-  // Catastro Resolve RC
-  // Use SRS=EPSG:4326 to get coordinates in WGS84 (Lat/Lon)
-  const url = `${BASE_URL}/Consulta_DNPRC?RC=${encodeURIComponent(rc)}&Provincia=&Municipio=&SRS=EPSG:4326`;
-  const response = await fetch(url, { cache: 'no-store' });
-  
-  if (!response.ok) {
-    throw new Error(`Catastro service error: ${response.status}`);
-  }
-  
-  const xml = await response.text();
+  const url = buildUrl(CALLEJERO_REST_URL, 'Consulta_DNPRC', {
+    RefCat: rc,
+    Provincia: '',
+    Municipio: '',
+  });
+  const xml = await fetchCatastroXml(url, 'Failed to resolve cadastral reference');
   
   // Check for errors in XML
   const errCode = extractTagValue(xml, 'cod');
@@ -127,7 +130,15 @@ export async function resolveByCadastralReference(rc: string): Promise<Cadastral
     if (errCode === '1') return []; // Not found
   }
 
-  return parseCadastralList(xml);
+  const matches = parseCadastralList(xml);
+  const coordinate = await getCoordinatesByCadastralReference(rc).catch(() => null);
+  if (!coordinate) return matches;
+
+  return matches.map((match) => ({
+    ...match,
+    lat: match.lat ?? coordinate.lat,
+    lng: match.lng ?? coordinate.lng,
+  }));
 }
 
 export async function resolveByAddress(params: {
@@ -142,17 +153,19 @@ export async function resolveByAddress(params: {
   door?: string;
 }): Promise<CadastralMatch[]> {
   const { province, municipality, street, number, sigla, block, staircase, floor, door } = params;
-  
-  // Use SRS=EPSG:4326 to get coordinates in WGS84 (Lat/Lon)
-  const url = `${BASE_URL}/Consulta_DNPLOC?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&Sigla=${encodeURIComponent(sigla || '')}&Calle=${encodeURIComponent(street)}&Numero=${encodeURIComponent(number || '')}&Bloque=${encodeURIComponent(block || '')}&Escalera=${encodeURIComponent(staircase || '')}&Planta=${encodeURIComponent(floor || '')}&Puerta=${encodeURIComponent(door || '')}&SRS=EPSG:4326`;
-  
-  const response = await fetch(url, { cache: 'no-store' });
-  
-  if (!response.ok) {
-    throw new Error(`Catastro service error: ${response.status}`);
-  }
-  
-  const xml = await response.text();
+  const normalizedStreet = normalizeStreetQuery(street);
+  const url = buildUrl(CALLEJERO_REST_URL, 'Consulta_DNPLOC', {
+    Provincia: province,
+    Municipio: municipality,
+    TipoVia: sigla || 'CL',
+    NomVia: normalizedStreet,
+    Numero: number || '',
+    Bloque: block || '',
+    Escalera: staircase || '',
+    Planta: floor || '',
+    Puerta: door || '',
+  });
+  const xml = await fetchCatastroXml(url, 'Failed to resolve address');
   
   // Check for errors in XML
   const errCode = extractTagValue(xml, 'cod');
@@ -160,20 +173,24 @@ export async function resolveByAddress(params: {
     if (errCode === '1') return []; // Not found
   }
 
-  return parseCadastralList(xml);
+  const matches = parseCadastralList(xml);
+  return Promise.all(matches.map(async (match) => {
+    const coordinate = await getCoordinatesByCadastralReference(match.parcelReference || match.cadastralReference).catch(() => null);
+    return {
+      ...match,
+      lat: match.lat ?? coordinate?.lat,
+      lng: match.lng ?? coordinate?.lng,
+    };
+  }));
 }
 
 export async function resolveByCoordinates(lat: number, lng: number): Promise<CadastralMatch[]> {
-  // Catastro Resolve by Coordinates (Consulta_RCCOOR)
-  // Note: Catastro expects coordinates in ETRS89 (standard for GPS/Leaflet)
-  const url = `${BASE_URL}/Consulta_RCCOOR?CoorX=${lng}&CoorY=${lat}&SRS=EPSG:4326`;
-  const response = await fetch(url, { cache: 'no-store' });
-  
-  if (!response.ok) {
-    throw new Error(`Catastro service error: ${response.status}`);
-  }
-  
-  const xml = await response.text();
+  const url = buildUrl(COORDENADAS_REST_URL, 'Consulta_RCCOOR', {
+    SRS: 'EPSG:4326',
+    Coordenada_X: lng,
+    Coordenada_Y: lat,
+  });
+  const xml = await fetchCatastroXml(url, 'Failed to resolve coordinates');
   
   // Check for errors
   const errCode = extractTagValue(xml, 'cod');
@@ -181,7 +198,40 @@ export async function resolveByCoordinates(lat: number, lng: number): Promise<Ca
     return [];
   }
 
-  return parseCadastralList(xml);
+  const coordinateMatches = parseCoordinateList(xml);
+  if (coordinateMatches.length === 0) return [];
+
+  const enriched = await Promise.all(coordinateMatches.map(async (match) => {
+    const rc = match.parcelReference || match.cadastralReference;
+    const details = rc ? await resolveByCadastralReference(rc).catch(() => []) : [];
+    return details.length > 0 ? details.map((detail) => ({
+      ...detail,
+      lat: detail.lat ?? match.lat ?? lat,
+      lng: detail.lng ?? match.lng ?? lng,
+    })) : [{
+      ...match,
+      lat: match.lat ?? lat,
+      lng: match.lng ?? lng,
+    }];
+  }));
+
+  return enriched.flat();
+}
+
+async function getCoordinatesByCadastralReference(rc: string): Promise<{ lat: number; lng: number } | null> {
+  const parcelRef = rc.slice(0, 14);
+  if (parcelRef.length !== 14) return null;
+
+  const url = buildUrl(COORDENADAS_REST_URL, 'Consulta_CPMRC', {
+    Provincia: '',
+    Municipio: '',
+    SRS: 'EPSG:4326',
+    RefCat: parcelRef,
+  });
+  const xml = await fetchCatastroXml(url, 'Failed to resolve cadastral coordinates');
+  const matches = parseCoordinateList(xml);
+  const match = matches.find((item) => item.lat && item.lng);
+  return match?.lat && match.lng ? { lat: match.lat, lng: match.lng } : null;
 }
 
 /**

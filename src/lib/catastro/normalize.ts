@@ -40,8 +40,8 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   const cc2 = extractTagValue(xmlFragment, 'cc2');
   
   let fullRC = '';
-  if (pc1 && pc2 && car && cc1 && cc2) {
-    fullRC = `${pc1}${pc2}${car}${cc1}${cc2}`;
+  if (pc1 && pc2) {
+    fullRC = `${pc1}${pc2}${car || ''}${cc1 || ''}${cc2 || ''}`;
   } else {
     // Fallback to single RC tag if parts not found
     fullRC = extractTagValue(xmlFragment, 'rc');
@@ -58,7 +58,8 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   const number = extractTagValue(xmlFragment, 'pnum') || extractTagValue(xmlFragment, 'pnp');
   
   // Format address string
-  const address = `${streetType ? streetType + ' ' : ''}${streetName}${number ? ', ' + number : ''}`;
+  const structuredAddress = `${streetType ? streetType + ' ' : ''}${streetName}${number ? ', ' + number : ''}`.trim();
+  const address = structuredAddress || extractTagValue(xmlFragment, 'ldt');
 
   // 4. Extract Internal Address
   const block = extractTagValue(xmlFragment, 'bq');
@@ -67,12 +68,12 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   const door = extractTagValue(xmlFragment, 'pu');  // 'pu' in <loint> is Door (Puerta)
 
   // 5. Extract Physical Data
-  const surfaceBuiltM2 = parseNumericValue(extractTagValue(xmlFragment, 'scons'));
-  const surfacePlotM2 = parseNumericValue(extractTagValue(xmlFragment, 'ssuelo'));
+  const surfaceBuiltM2 = parseNumericValue(extractTagValue(xmlFragment, 'scons') || extractTagValue(xmlFragment, 'sfc'));
+  const surfacePlotM2 = parseNumericValue(extractTagValue(xmlFragment, 'ssuelo') || extractTagValue(xmlFragment, 'ss') || extractTagValue(xmlFragment, 'stl'));
   const yearBuilt = parseInt(extractTagValue(xmlFragment, 'ant'), 10) || undefined;
   
   // Property use usually in <ldbi>
-  const propertyUse = extractTagValue(xmlFragment, 'ldbi');
+  const propertyUse = extractTagValue(xmlFragment, 'luso') || extractTagValue(xmlFragment, 'ldbi');
   
   // Participation coefficient in horizontal division
   const coefficient = parseNumericValue(extractTagValue(xmlFragment, 'cpt'));
@@ -96,7 +97,7 @@ export function normalizeCadastralMatch(xmlFragment: string): CadastralMatch {
   }
 
   // 7. Extract Postal Code
-  let postalCode = extractTagValue(xmlFragment, 'cp');
+  let postalCode = extractTagValue(xmlFragment, 'dp') || extractTagValue(xmlFragment, 'cp');
   if (!postalCode || postalCode.length < 5) {
     const ldbi = extractTagValue(xmlFragment, 'ldbi');
     const cpMatch = ldbi.match(/\b\d{5}\b/);
@@ -161,4 +162,12 @@ export function parseCadastralList(xml: string): CadastralMatch[] {
   }
   
   return matches;
+}
+
+export function parseCoordinateList(xml: string): CadastralMatch[] {
+  const coordBlocks = xml.match(/<coord[>\s][\s\S]*?<\/coord>/gi) || [];
+  const distanceBlocks = xml.match(/<pcd>[\s\S]*?<\/pcd>/gi) || [];
+  const blocks = coordBlocks.length > 0 ? coordBlocks : distanceBlocks;
+
+  return blocks.map((block) => normalizeCadastralMatch(block)).filter((match) => match.cadastralReference);
 }

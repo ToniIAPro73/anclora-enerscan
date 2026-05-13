@@ -1,4 +1,4 @@
-import { normalizeCadastralMatch, parseCadastralList, extractTagsValues } from '@/lib/catastro/normalize';
+import { normalizeCadastralMatch, parseCadastralList, extractTagsValues, parseCoordinateList } from '@/lib/catastro/normalize';
 
 const MOCK_XML_SINGLE = `
 <bico>
@@ -71,6 +71,18 @@ const MOCK_PROVINCES = `
 </provinciero>
 `;
 
+const MOCK_COORDINATE_XML = `
+<consulta_coordenadas>
+  <coordenadas>
+    <coord>
+      <pc><pc1>6485534</pc1><pc2>DD6768E</pc2></pc>
+      <geo><xcen>2.6502</xcen><ycen>39.5696</ycen><srs>EPSG:4326</srs></geo>
+      <ldt>CL MIQUEL ROSSELLO I ALEMANY 48 PALMA</ldt>
+    </coord>
+  </coordenadas>
+</consulta_coordenadas>
+`;
+
 describe('Catastro Normalizer', () => {
   it('should extract tag values correctly', () => {
     const values = extractTagsValues(MOCK_PROVINCES, 'np');
@@ -95,5 +107,14 @@ describe('Catastro Normalizer', () => {
     expect(match.surfaceCommonM2).toBe(15);
     expect(match.yearBuilt).toBe(2003);
     expect(match.participationCoefficient).toBe(14.57);
+  });
+
+  it('should parse coordinate service responses without truncating parcel reference', () => {
+    const matches = parseCoordinateList(MOCK_COORDINATE_XML);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].cadastralReference).toBe('6485534DD6768E');
+    expect(matches[0].parcelReference).toBe('6485534DD6768E');
+    expect(matches[0].lat).toBe(39.5696);
+    expect(matches[0].lng).toBe(2.6502);
   });
 });

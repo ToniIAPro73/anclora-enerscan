@@ -12,6 +12,7 @@ import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCir
 import { CadastreSearch } from './CadastreSearch';
 import type { CadastralMatch } from '@/lib/catastro/types';
 import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
+import { mapMatchesToFeatures } from '@/lib/catastro/map-features';
 import { getCoordinatesForLocation } from '@/lib/location/geocoding';
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
@@ -68,6 +69,7 @@ export default function AssessmentWizard() {
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [mapResults, setMapResults] = useState<CadastralMatch[] | undefined>();
+  const [selectedCadastralReference, setSelectedCadastralReference] = useState<string | undefined>();
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
@@ -148,6 +150,7 @@ export default function AssessmentWizard() {
 
   const handleCadastreConfirm = useCallback((match: CadastralMatch) => {
     setConfirmedMatch(match);
+    setSelectedCadastralReference(match.cadastralReference || match.parcelReference);
     const autofill = mapCadastralMatchToWizardFields(match);
     
     if (autofill.year) setValue('year', autofill.year);
@@ -173,12 +176,18 @@ export default function AssessmentWizard() {
   }, [setValue, t.wizardMapLocationCatastro]);
 
   const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
+    setSelectedCadastralReference(match?.cadastralReference || match?.parcelReference);
     if (match?.lat && match?.lng) {
       setMapCenter({ lat: match.lat, lng: match.lng });
       setMapZoom(18);
       setMapSourceLabel(t.wizardMapLocationCatastro);
     }
   }, [t.wizardMapLocationCatastro]);
+
+  const mapFeatures = useMemo(() => {
+    const matches = confirmedMatch ? [confirmedMatch] : mapResults || [];
+    return mapMatchesToFeatures(matches, selectedCadastralReference);
+  }, [confirmedMatch, mapResults, selectedCadastralReference]);
 
   const handleLocationChange = useCallback((province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
@@ -227,6 +236,7 @@ export default function AssessmentWizard() {
   }, [t.wizardMapLocationAddress, geocodeTimeoutRef, setValue]);
 
   const handleSearchResults = useCallback((results: CadastralMatch[]) => {
+    setMapResults(results);
     const validCoords = results.filter(r => r.lat && r.lng);
     if (validCoords.length > 1) {
       const lats = validCoords.map(r => r.lat!);
@@ -238,6 +248,7 @@ export default function AssessmentWizard() {
       setMapSourceLabel(t.wizardMapLocationAddress);
     } else if (validCoords.length === 1) {
       const match = validCoords[0];
+      setSelectedCadastralReference(match.cadastralReference || match.parcelReference);
       setMapCenter({ lat: match.lat!, lng: match.lng! });
       setMapZoom(18);
       setMapSourceLabel(t.wizardMapLocationCatastro);
@@ -518,7 +529,10 @@ export default function AssessmentWizard() {
                   onAddressChange={handleAddressChange}
                   onResults={handleSearchResults}
                   externalResults={mapResults}
-                  onReset={() => setMapResults(undefined)}
+                  onReset={() => {
+                    setMapResults(undefined);
+                    setSelectedCadastralReference(undefined);
+                  }}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -596,6 +610,15 @@ export default function AssessmentWizard() {
                       bounds={mapBounds}
                       onPositionChange={handleMapClick}
                       onParcelSelect={handleParcelSelect}
+                      features={mapFeatures}
+                      onFeatureSelect={(feature) => {
+                        setSelectedCadastralReference(feature.cadastralReference || feature.parcelReference || feature.id);
+                        const match = (mapResults || []).find((item) =>
+                          item.cadastralReference === feature.cadastralReference ||
+                          item.parcelReference === feature.parcelReference
+                        );
+                        if (match) handleMatchSelect(match);
+                      }}
                       isLoading={isMapLoading}
                     />
                   </div>

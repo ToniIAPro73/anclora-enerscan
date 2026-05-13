@@ -48,6 +48,10 @@ describe('Catastro Street Autocomplete', () => {
       municipality: 'PALMA'
     });
     expect(streets[1].name).toBe('MIQUEL ANGEL COLOMAR');
+    const requestedUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(requestedUrl).toContain('/COVCCallejero.svc/rest/ConsultaVia?');
+    expect(requestedUrl).toContain('TipoVia=');
+    expect(requestedUrl).toContain('NombreVia=MIQUEL');
   });
 
   it('should handle fetch errors', async () => {
