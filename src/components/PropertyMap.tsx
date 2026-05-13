@@ -397,9 +397,12 @@ export default function PropertyMap({
         onTogglePitch={handleTogglePitch}
       />
 
-      {lat && lng && (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[15] -translate-x-1/2 -translate-y-full text-[#1976B8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.45)]">
-          <MapPin className="h-10 w-10 fill-current stroke-white stroke-[1.5]" />
+      {hasExplicitCenter && (
+        <div data-map-center-marker="true" className="pointer-events-none absolute left-1/2 top-1/2 z-[25] -translate-x-1/2 -translate-y-full drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]" aria-hidden="true">
+          <div className="relative h-10 w-10">
+            <div className="absolute left-1/2 top-0 h-9 w-9 -translate-x-1/2 rounded-full rounded-bl-none border-[3px] border-white bg-[#1976B8] shadow-lg rotate-[-45deg]" />
+            <div className="absolute left-1/2 top-[9px] h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-white shadow-inner" />
+          </div>
         </div>
       )}
 

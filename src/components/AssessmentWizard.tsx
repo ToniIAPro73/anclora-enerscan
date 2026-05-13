@@ -210,6 +210,9 @@ export default function AssessmentWizard() {
   const handleLocationChange = useCallback((province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
     if (coords) {
+      const feature = createSelectedMapFeature(coords.lat, coords.lng);
+      setSelectedMapFeature(feature);
+      setSelectedCadastralReference(feature.id);
       setMapCenter({ lat: coords.lat, lng: coords.lng });
       setMapZoom(coords.zoom || 14);
       setMapSourceLabel(municipality ? t.wizardMapLocationMunicipality : t.wizardMapLocationProvince);
