@@ -63,7 +63,7 @@ export default function AssessmentWizard() {
   const [autofillNotice, setAutofillNotice] = useState<boolean>(false);
   const [areaNotice, setAreaNotice] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | undefined>();
-  const [mapZoom, setMapZoom] = useState<number>(15);
+  const [mapZoom, setMapZoom] = useState<number>(6);
   const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | undefined>();
   const [mapSourceLabel, setMapSourceLabel] = useState<string | undefined>();
   const [isMapLoading, setIsMapLoading] = useState(false);

@@ -35,22 +35,18 @@
 
 ## Comandos ejecutados
 
-- `git pull --ff-only`
 - `git checkout -b feat/energyscan-plan-end-to-end`
 - `npm test -- --runInBand`
-- `npx tsc --noEmit`
-- `npm test`
 - `npm run lint`
 - `npm run build`
-- `npx prisma generate`
-- `npx prisma validate`
 
 ## Resultado de validación
 
-- `npm test`: PASS
-- `npm run build`: PASS (validado tras 18 intentos de ajuste de configuración Prisma/Next.js)
-- `npx prisma generate`: PASS
-- Demo PDF end-to-end: PASS.
+- `npm test -- --runInBand`: PASS (`20` suites, `84` tests).
+- `npm run lint`: PASS con avisos existentes en `src/components/PropertyMap.tsx` sobre dependencias de `useEffect`.
+- `npm run build`: PASS.
+
+No se ejecutó `git pull --ff-only` porque el árbol local ya tenía cambios ajenos sin commitear (`Captura1.png` y un prompt no trackeado) y se priorizó no interferir con trabajo local existente.
 
 ## Riesgos pendientes
 

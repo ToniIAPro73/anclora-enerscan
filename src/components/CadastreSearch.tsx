@@ -16,6 +16,15 @@ interface CadastreSearchProps {
   onReset?: () => void;
 }
 
+function normalizeStreetText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
 export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onAddressChange, onResults, externalResults, onReset }: CadastreSearchProps) {
   const { dictionary: t, formatArea } = usePreferences();
   const [mode, setMode] = useState<'rc' | 'address'>('rc');
@@ -33,6 +42,8 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
   const [selectedMunicipality, setSelectedMunicipality] = useState('');
   const [streetQuery, setStreetQuery] = useState('');
   const [streetSuggestions, setStreetSuggestions] = useState<CatastroStreetSuggestion[]>([]);
+  const [streetSuggestionCache, setStreetSuggestionCache] = useState<Record<string, CatastroStreetSuggestion[]>>({});
+  const [streetError, setStreetError] = useState<string | null>(null);
   const [selectedStreet, setSelectedStreet] = useState<CatastroStreetSuggestion | null>(null);
   const [streetLoading, setStreetLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -144,29 +155,53 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
 
   // Street autocomplete debounce
   useEffect(() => {
-    if (streetQuery.length < 3 || selectedStreet || !selectedProvince || !selectedMunicipality) {
+    const normalizedQuery = normalizeStreetText(streetQuery);
+
+    if (normalizedQuery.length < 3 || selectedStreet || !selectedProvince || !selectedMunicipality) {
       setStreetSuggestions([]);
+      setStreetError(null);
+      return;
+    }
+
+    const prefix = normalizedQuery.slice(0, 3);
+    const cacheKey = `${selectedProvince}|${selectedMunicipality}|${prefix}`;
+    const cachedSuggestions = streetSuggestionCache[cacheKey];
+
+    if (cachedSuggestions) {
+      setStreetSuggestions(cachedSuggestions.filter((street) => normalizeStreetText(street.name).includes(normalizedQuery)));
+      setStreetError(null);
+      setShowSuggestions(true);
       return;
     }
 
     const timer = setTimeout(async () => {
       setStreetLoading(true);
+      setStreetError(null);
       try {
-        const res = await fetch(`/api/catastro/streets?province=${encodeURIComponent(selectedProvince)}&municipality=${encodeURIComponent(selectedMunicipality)}&query=${encodeURIComponent(streetQuery)}`);
+        const res = await fetch(`/api/catastro/streets?province=${encodeURIComponent(selectedProvince)}&municipality=${encodeURIComponent(selectedMunicipality)}&query=${encodeURIComponent(prefix)}`);
         if (res.ok) {
-          const data = await res.json();
-          setStreetSuggestions(data);
+          const data: CatastroStreetSuggestion[] = await res.json();
+          setStreetSuggestionCache((current) => ({ ...current, [cacheKey]: data }));
+          setStreetSuggestions(data.filter((street) => normalizeStreetText(street.name).includes(normalizedQuery)));
           setShowSuggestions(true);
+        } else {
+          const data = await res.json().catch(() => null);
+          setStreetSuggestions([]);
+          setShowSuggestions(true);
+          setStreetError(data?.error || t.wizardCatastroErrorService);
         }
       } catch (err) {
         console.error('Failed to fetch streets', err);
+        setStreetSuggestions([]);
+        setShowSuggestions(true);
+        setStreetError(t.wizardCatastroErrorService);
       } finally {
         setStreetLoading(false);
       }
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [streetQuery, selectedStreet, selectedProvince, selectedMunicipality]);
+  }, [streetQuery, selectedStreet, selectedProvince, selectedMunicipality, streetSuggestionCache, t.wizardCatastroErrorService]);
 
   async function handleSearch() {
     setLoading(true);
@@ -373,6 +408,11 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                         <span className="ml-2 text-[10px] opacity-60">({s.type})</span>
                       </button>
                     ))}
+                  </div>
+                )}
+                {showSuggestions && streetSuggestions.length === 0 && !streetLoading && streetQuery.length >= 3 && (
+                  <div className="absolute z-50 w-full mt-1 bg-[#1A1A1A] border border-[#262626] rounded-xl shadow-2xl p-3 text-xs text-muted">
+                    {streetError || t.wizardCatastroStreetNoResults}
                   </div>
                 )}
               </div>
