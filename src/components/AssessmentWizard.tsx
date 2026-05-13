@@ -505,9 +505,9 @@ export default function AssessmentWizard() {
   };
 
   return (
-    <div className={`mx-auto py-8 ${step === 2 ? 'w-full max-w-none px-4 sm:px-8 lg:px-12' : 'max-w-3xl px-4'}`}>
-      <div className={`${step === 2 ? 'w-full mx-auto' : ''}`}>
-        <div className="mb-8">
+    <div className={`mx-auto ${step === 2 ? 'h-full w-full max-w-none px-4 py-4 sm:px-8 lg:px-12 lg:overflow-hidden' : 'max-w-3xl px-4 py-8 lg:h-full lg:overflow-y-auto custom-scrollbar'}`}>
+      <div className={`${step === 2 ? 'flex h-full min-h-0 w-full flex-col' : ''}`}>
+        <div className={step === 2 ? 'mb-4 shrink-0' : 'mb-8'}>
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-[#00DC82] font-heading font-semibold uppercase tracking-wider">{t.wizardStep} {step} {t.wizardOf} 5</p>
             <div className="flex gap-1">
@@ -524,7 +524,7 @@ export default function AssessmentWizard() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className={step === 2 ? 'flex min-h-0 flex-1 flex-col' : 'space-y-8'}>
         {/* STEP 1: OBJECTIVE */}
         {step === 1 && (
           <div className="space-y-6">
@@ -556,8 +556,8 @@ export default function AssessmentWizard() {
 
         {/* STEP 2: BASIC DATA */}
         {step === 2 && (
-          <div className="space-y-6 min-h-[calc(100vh-12rem)] flex flex-col">
-            <div className="flex items-center justify-between gap-4">
+          <div className="flex min-h-0 flex-1 flex-col space-y-4">
+            <div className="flex shrink-0 items-center justify-between gap-4">
               <h2 className="font-heading font-bold text-2xl text-premium">{t.wizardPropertyData}</h2>
               {autofillNotice && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00DC82]/10 border border-[#00DC82]/20 text-[#00DC82] text-[10px] font-bold uppercase animate-in fade-in zoom-in duration-300">
@@ -567,8 +567,8 @@ export default function AssessmentWizard() {
               )}
             </div>
             
-            <div className="grid lg:grid-cols-12 gap-8 flex-1">
-              <div className={`${isDataPanelCollapsed ? 'hidden' : 'lg:col-span-3'} space-y-6 overflow-y-auto max-h-[75vh] lg:max-h-none pr-2 custom-scrollbar`}>
+            <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-12">
+              <div className={`${isDataPanelCollapsed ? 'hidden' : 'lg:col-span-3'} min-h-0 space-y-6 overflow-y-auto pr-2 custom-scrollbar`}>
                 <CadastreSearch 
                   onConfirm={handleCadastreConfirm} 
                   onLocationChange={handleLocationChange} 
@@ -639,8 +639,8 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div className={`${isDataPanelCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'} space-y-4 h-full flex flex-col min-h-[400px] transition-[grid-column] duration-300`}>
-                <div className="flex flex-col h-full flex-1">
+              <div className={`${isDataPanelCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'} flex h-full min-h-0 flex-col space-y-4 transition-[grid-column] duration-300`}>
+                <div className="flex min-h-0 flex-1 flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <button
@@ -660,7 +660,7 @@ export default function AssessmentWizard() {
                       </span>
                     )}
                   </div>
-                  <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative min-h-[400px]">
+                  <div className="relative min-h-[340px] flex-1 overflow-hidden rounded-2xl border border-white/10 shadow-2xl lg:min-h-0">
                     <PropertyMap 
                       lat={mapCenter?.lat || lat} 
                       lng={mapCenter?.lng || lng} 

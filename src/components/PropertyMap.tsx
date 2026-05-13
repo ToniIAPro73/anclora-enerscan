@@ -52,7 +52,7 @@ const FEATURE_LINE_LAYER_ID = 'catastro-feature-line';
 const FEATURE_POINT_LAYER_ID = 'catastro-feature-point';
 const CATASTRO_WMS_SOURCE_ID = 'catastro-wms-viewport';
 const CATASTRO_WMS_LAYER_ID = 'catastro-wms-viewport-layer';
-const CATASTRO_WMS_MIN_ZOOM = 15.5;
+const CATASTRO_WMS_MIN_ZOOM = 5;
 
 function boundsToPolygon(bounds: [[number, number], [number, number]]): [Array<[number, number]>] {
   const [[south, west], [north, east]] = bounds;
@@ -164,25 +164,17 @@ function buildCatastroWmsUrl(map: maplibregl.Map) {
   const width = Math.max(256, Math.min(1600, Math.round(canvas.clientWidth)));
   const height = Math.max(256, Math.min(1200, Math.round(canvas.clientHeight)));
   const params = new URLSearchParams({
-    SERVICE: 'WMS',
-    VERSION: '1.1.1',
-    REQUEST: 'GetMap',
-    LAYERS: 'Catastro',
-    STYLES: 'Default',
-    FORMAT: 'image/png',
-    TRANSPARENT: 'true',
-    SRS: 'EPSG:4326',
-    BBOX: [
+    bbox: [
       bounds.getWest(),
       bounds.getSouth(),
       bounds.getEast(),
       bounds.getNorth(),
     ].join(','),
-    WIDTH: String(width),
-    HEIGHT: String(height),
+    width: String(width),
+    height: String(height),
   });
 
-  return `https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?${params.toString()}`;
+  return `/api/catastro/wms?${params.toString()}`;
 }
 
 function getViewportCoordinates(map: maplibregl.Map): [[number, number], [number, number], [number, number], [number, number]] {
