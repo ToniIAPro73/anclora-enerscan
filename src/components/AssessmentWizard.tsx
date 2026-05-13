@@ -90,7 +90,6 @@ export default function AssessmentWizard() {
   const [selectedMapFeature, setSelectedMapFeature] = useState<CadastralMapFeature | undefined>();
   const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   useEffect(() => {
@@ -100,18 +99,6 @@ export default function AssessmentWizard() {
     }, 260);
     return () => window.clearTimeout(resizeTimer);
   }, [isDataPanelCollapsed, step]);
-
-  // Ensure map is in view when it updates or when zooming
-  useEffect(() => {
-    if (step === 2 && (mapCenter || mapBounds) && mapContainerRef.current) {
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      const isVisible = rect.top >= 0 && rect.top <= window.innerHeight * 0.5;
-      
-      if (!isVisible && window.innerWidth >= 1024) {
-        mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    }
-  }, [mapCenter, mapBounds, step]);
 
   const assessmentSchema = useMemo(() => z.object({
     objective: z.string().min(1, t.wizardSelectObjective),
@@ -649,7 +636,7 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div ref={mapContainerRef} className={`${isDataPanelCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'} space-y-4 h-full flex flex-col min-h-[400px] transition-[grid-column] duration-300`}>
+              <div className={`${isDataPanelCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'} space-y-4 h-full flex flex-col min-h-[400px] transition-[grid-column] duration-300`}>
                 <div className="flex flex-col h-full flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
