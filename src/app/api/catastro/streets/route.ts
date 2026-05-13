@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStreets } from '@/lib/catastro/client';
+import { CatastroStreetServiceError, getStreets } from '@/lib/catastro/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,23 @@ export async function GET(request: NextRequest) {
     const streets = await getStreets({ province, municipality, query });
     return NextResponse.json(streets);
   } catch (error) {
-    console.error('Error fetching streets:', error);
-    return NextResponse.json({ error: 'Failed to fetch streets' }, { status: 500 });
+    const status = error instanceof CatastroStreetServiceError ? error.status : 500;
+    const isRateLimited = error instanceof CatastroStreetServiceError && error.status === 403;
+    console.error('Error fetching streets:', {
+      status,
+      province,
+      municipality,
+      query,
+      response: error instanceof CatastroStreetServiceError ? error.responseText?.slice(0, 240) : undefined,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      {
+        error: isRateLimited
+          ? 'El servicio de Catastro ha limitado temporalmente las consultas. Inténtalo más tarde.'
+          : 'Failed to fetch streets',
+      },
+      { status: isRateLimited ? 503 : status }
+    );
   }
 }

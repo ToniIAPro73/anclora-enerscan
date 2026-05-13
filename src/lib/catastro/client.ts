@@ -44,29 +44,68 @@ export type CatastroStreetSuggestion = {
   municipality: string;
 };
 
+export class CatastroStreetServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly responseText?: string,
+  ) {
+    super(message);
+    this.name = 'CatastroStreetServiceError';
+  }
+}
+
+const streetCache = new Map<string, CatastroStreetSuggestion[]>();
+
+function normalizeStreetQuery(query: string) {
+  return query
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
+function buildStreetCacheKey(province: string, municipality: string, query: string) {
+  return [province, municipality, normalizeStreetQuery(query)].join('|');
+}
+
 export async function getStreets(params: {
   province: string;
   municipality: string;
   query: string;
 }): Promise<CatastroStreetSuggestion[]> {
   const { province, municipality, query } = params;
-  const url = `${BASE_URL}/ConsultaVia?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&TipoVia=&NombreVia=${encodeURIComponent(query)}`;
+  const normalizedQuery = normalizeStreetQuery(query);
+  const cacheKey = buildStreetCacheKey(province, municipality, normalizedQuery);
+  const cached = streetCache.get(cacheKey);
+  if (cached) return cached;
+
+  const url = `${BASE_URL}/ConsultaVia?Provincia=${encodeURIComponent(province)}&Municipio=${encodeURIComponent(municipality)}&TipoVia=&NombreVia=${encodeURIComponent(normalizedQuery)}`;
   
   const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error('Failed to fetch streets');
+  if (!response.ok) {
+    const responseText = typeof response.text === 'function'
+      ? await response.text().catch(() => undefined)
+      : undefined;
+    throw new CatastroStreetServiceError('Failed to fetch streets', response.status, responseText);
+  }
   
   const xml = await response.text();
   
   // Extract street data using a more specific regex since they are inside <calle>
   const streetBlocks = xml.match(/<calle>[\s\S]*?<\/calle>/gi) || [];
   
-  return streetBlocks.map(block => ({
+  const streets = streetBlocks.map(block => ({
     id: extractTagValue(block, 'cv'),
     name: extractTagValue(block, 'nv'),
     type: extractTagValue(block, 'tv'),
     province,
     municipality
   }));
+
+  streetCache.set(cacheKey, streets);
+  return streets;
 }
 
 export async function resolveByCadastralReference(rc: string): Promise<CadastralMatch[]> {
