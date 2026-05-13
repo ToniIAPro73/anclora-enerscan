@@ -1,5 +1,6 @@
 import type { CadastralMatch, Province, Municipality } from './types';
 import { extractTagsValues, parseCadastralList, extractTagValue, parseCoordinateList } from './normalize';
+import { getFallbackMunicipalities, getFallbackProvinces } from '@/lib/location/spanish-admin';
 
 const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
 const CALLEJERO_CODIGOS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejeroCodigos.svc/rest';
@@ -25,27 +26,46 @@ async function fetchCatastroXml(url: string, errorMessage: string) {
 }
 
 export async function getProvinces(): Promise<Province[]> {
-  const xml = await fetchCatastroXml(`${CALLEJERO_REST_URL}/ConsultaProvincia`, 'Failed to fetch provinces');
-  const names = extractTagsValues(xml, 'np');
+  try {
+    const xml = await fetchCatastroXml(`${CALLEJERO_REST_URL}/ConsultaProvincia`, 'Failed to fetch provinces');
+    const names = extractTagsValues(xml, 'np');
+    if (names.length === 0) return getFallbackProvinces();
   
-  return names.map((name) => ({
-    id: name, // Catastro often uses the name as ID in these queries
-    name: name,
-  }));
+    return names.map((name) => ({
+      id: name, // Catastro often uses the name as ID in these queries
+      name: name,
+    }));
+  } catch (error) {
+    console.warn('Using fallback provinces after Catastro province lookup failed:', getCatastroFallbackReason(error));
+    return getFallbackProvinces();
+  }
 }
 
 export async function getMunicipalities(province: string): Promise<Municipality[]> {
-  const xml = await fetchCatastroXml(buildUrl(CALLEJERO_REST_URL, 'ConsultaMunicipio', {
-    Provincia: province,
-    Municipio: '',
-  }), 'Failed to fetch municipalities');
-  const names = extractTagsValues(xml, 'nm');
+  try {
+    const xml = await fetchCatastroXml(buildUrl(CALLEJERO_REST_URL, 'ConsultaMunicipio', {
+      Provincia: province,
+      Municipio: '',
+    }), 'Failed to fetch municipalities');
+    const names = extractTagsValues(xml, 'nm');
+    if (names.length === 0) return getFallbackMunicipalities(province);
   
-  return names.map((name) => ({
-    id: name,
-    name: name,
-    provinceId: province,
-  }));
+    return names.map((name) => ({
+      id: name,
+      name: name,
+      provinceId: province,
+    }));
+  } catch (error) {
+    console.warn('Using fallback municipalities after Catastro municipality lookup failed:', getCatastroFallbackReason(error));
+    return getFallbackMunicipalities(province);
+  }
+}
+
+function getCatastroFallbackReason(error: unknown) {
+  if (error instanceof CatastroStreetServiceError) {
+    return `${error.status} ${error.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
 }
 
 export type CatastroStreetSuggestion = {
