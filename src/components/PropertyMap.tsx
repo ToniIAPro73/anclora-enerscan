@@ -50,6 +50,9 @@ const FEATURE_SOURCE_ID = 'catastro-search-features';
 const FEATURE_FILL_LAYER_ID = 'catastro-feature-fill';
 const FEATURE_LINE_LAYER_ID = 'catastro-feature-line';
 const FEATURE_POINT_LAYER_ID = 'catastro-feature-point';
+const CATASTRO_WMS_SOURCE_ID = 'catastro-wms-viewport';
+const CATASTRO_WMS_LAYER_ID = 'catastro-wms-viewport-layer';
+const CATASTRO_WMS_MIN_ZOOM = 15.5;
 
 function boundsToPolygon(bounds: [[number, number], [number, number]]): [Array<[number, number]>] {
   const [[south, west], [north, east]] = bounds;
@@ -155,6 +158,87 @@ function addFeatureLayers(map: maplibregl.Map, data: MapGeoJson) {
   }
 }
 
+function buildCatastroWmsUrl(map: maplibregl.Map) {
+  const bounds = map.getBounds();
+  const canvas = map.getCanvas();
+  const width = Math.max(256, Math.min(1600, Math.round(canvas.clientWidth)));
+  const height = Math.max(256, Math.min(1200, Math.round(canvas.clientHeight)));
+  const params = new URLSearchParams({
+    SERVICE: 'WMS',
+    VERSION: '1.1.1',
+    REQUEST: 'GetMap',
+    LAYERS: 'Catastro',
+    STYLES: 'Default',
+    FORMAT: 'image/png',
+    TRANSPARENT: 'true',
+    SRS: 'EPSG:4326',
+    BBOX: [
+      bounds.getWest(),
+      bounds.getSouth(),
+      bounds.getEast(),
+      bounds.getNorth(),
+    ].join(','),
+    WIDTH: String(width),
+    HEIGHT: String(height),
+  });
+
+  return `https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?${params.toString()}`;
+}
+
+function getViewportCoordinates(map: maplibregl.Map): [[number, number], [number, number], [number, number], [number, number]] {
+  const bounds = map.getBounds();
+  const west = bounds.getWest();
+  const east = bounds.getEast();
+  const south = bounds.getSouth();
+  const north = bounds.getNorth();
+  return [
+    [west, north],
+    [east, north],
+    [east, south],
+    [west, south],
+  ];
+}
+
+function removeCatastroWmsOverlay(map: maplibregl.Map) {
+  if (map.getLayer(CATASTRO_WMS_LAYER_ID)) {
+    map.removeLayer(CATASTRO_WMS_LAYER_ID);
+  }
+  if (map.getSource(CATASTRO_WMS_SOURCE_ID)) {
+    map.removeSource(CATASTRO_WMS_SOURCE_ID);
+  }
+}
+
+function updateCatastroWmsOverlay(map: maplibregl.Map, enabled: boolean) {
+  if (!enabled || map.getZoom() < CATASTRO_WMS_MIN_ZOOM) {
+    removeCatastroWmsOverlay(map);
+    return;
+  }
+
+  const url = buildCatastroWmsUrl(map);
+  const coordinates = getViewportCoordinates(map);
+  const source = map.getSource(CATASTRO_WMS_SOURCE_ID) as maplibregl.ImageSource | undefined;
+
+  if (source) {
+    source.updateImage({ url, coordinates });
+    return;
+  }
+
+  map.addSource(CATASTRO_WMS_SOURCE_ID, {
+    type: 'image',
+    url,
+    coordinates,
+  });
+  map.addLayer({
+    id: CATASTRO_WMS_LAYER_ID,
+    type: 'raster',
+    source: CATASTRO_WMS_SOURCE_ID,
+    paint: {
+      'raster-opacity': 0.92,
+      'raster-fade-duration': 160,
+    },
+  });
+}
+
 function MapToolbar({
   map,
   styleIndex,
@@ -239,6 +323,7 @@ export default function PropertyMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const loadedRef = useRef(false);
   const featureByIdRef = useRef(new Map<string, CadastralMapFeature>());
+  const showParcelsRef = useRef(showParcels);
   const latestHandlersRef = useRef({
     onFeatureSelect,
     onParcelSelect,
@@ -256,6 +341,10 @@ export default function PropertyMap({
   const initialCenterRef = useRef(center);
   const initialZoomRef = useRef(hasExplicitCenter ? zoom : SPAIN_ZOOM);
   const initialGeoJsonRef = useRef(geoJson);
+
+  useEffect(() => {
+    showParcelsRef.current = showParcels;
+  }, [showParcels]);
 
   useEffect(() => {
     latestHandlersRef.current = {
@@ -284,8 +373,11 @@ export default function PropertyMap({
     map.touchZoomRotate.disableRotation();
     map.on('load', () => {
       loadedRef.current = true;
+      updateCatastroWmsOverlay(map, showParcelsRef.current);
       addFeatureLayers(map, initialGeoJsonRef.current);
     });
+
+    map.on('moveend', () => updateCatastroWmsOverlay(map, showParcelsRef.current));
 
     map.on('click', (event) => {
       const renderedFeatures = map.queryRenderedFeatures(event.point, {
@@ -338,6 +430,7 @@ export default function PropertyMap({
     if (!map || !loadedRef.current) return;
 
     const restore = () => {
+      updateCatastroWmsOverlay(map, showParcels);
       addFeatureLayers(map, geoJson);
       const source = map.getSource(FEATURE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
       if (source) {
@@ -347,7 +440,13 @@ export default function PropertyMap({
 
     map.setStyle(OPEN_VECTOR_STYLES[styleIndex]);
     map.once('styledata', restore);
-  }, [geoJson, styleIndex]);
+  }, [geoJson, showParcels, styleIndex]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    updateCatastroWmsOverlay(map, showParcels);
+  }, [showParcels]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -360,6 +459,7 @@ export default function PropertyMap({
         padding: 40,
         maxZoom: 18,
       });
+      window.setTimeout(() => updateCatastroWmsOverlay(map, showParcelsRef.current), 900);
       return;
     }
 
@@ -369,6 +469,7 @@ export default function PropertyMap({
         zoom: Math.min(zoom, 18),
         duration: 800,
       });
+      window.setTimeout(() => updateCatastroWmsOverlay(map, showParcelsRef.current), 900);
     }
   }, [bounds, center, hasExplicitCenter, zoom]);
 
