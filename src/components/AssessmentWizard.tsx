@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { upload } from '@vercel/blob/client';
-import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2, Info } from 'lucide-react';
+import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2, Info, Menu } from 'lucide-react';
 import { CadastreSearch } from './CadastreSearch';
 import type { CadastralMatch } from '@/lib/catastro/types';
 import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
@@ -70,9 +70,18 @@ export default function AssessmentWizard() {
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [mapResults, setMapResults] = useState<CadastralMatch[] | undefined>();
   const [selectedCadastralReference, setSelectedCadastralReference] = useState<string | undefined>();
+  const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
+
+  useEffect(() => {
+    if (step !== 2) return;
+    const resizeTimer = window.setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 260);
+    return () => window.clearTimeout(resizeTimer);
+  }, [isDataPanelCollapsed, step]);
 
   // Ensure map is in view when it updates or when zooming
   useEffect(() => {
@@ -531,7 +540,7 @@ export default function AssessmentWizard() {
             </div>
             
             <div className="grid lg:grid-cols-12 gap-8 flex-1">
-              <div className="lg:col-span-3 space-y-6 overflow-y-auto max-h-[75vh] lg:max-h-none pr-2 custom-scrollbar">
+              <div className={`${isDataPanelCollapsed ? 'hidden' : 'lg:col-span-3'} space-y-6 overflow-y-auto max-h-[75vh] lg:max-h-none pr-2 custom-scrollbar`}>
                 <CadastreSearch 
                   onConfirm={handleCadastreConfirm} 
                   onLocationChange={handleLocationChange} 
@@ -602,10 +611,21 @@ export default function AssessmentWizard() {
                 </div>
               </div>
 
-              <div ref={mapContainerRef} className="lg:col-span-9 space-y-4 h-full flex flex-col min-h-[400px]">
+              <div ref={mapContainerRef} className={`${isDataPanelCollapsed ? 'lg:col-span-12' : 'lg:col-span-9'} space-y-4 h-full flex flex-col min-h-[400px] transition-[grid-column] duration-300`}>
                 <div className="flex flex-col h-full flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsDataPanelCollapsed((current) => !current)}
+                        className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-[#F0EDE8] hover:bg-white/10 transition"
+                        aria-label={isDataPanelCollapsed ? 'Expandir panel de datos' : 'Contraer panel de datos'}
+                        title={isDataPanelCollapsed ? 'Expandir panel de datos' : 'Contraer panel de datos'}
+                      >
+                        <Menu className="h-5 w-5" />
+                      </button>
+                      <span className="text-[10px] font-bold uppercase text-[#7A7A7A]">{t.wizardMapTitle}</span>
+                    </div>
                     {mapSourceLabel && (
                       <span className="text-[9px] font-bold text-[#00DC82] uppercase px-2 py-0.5 rounded bg-[#00DC82]/10 border border-[#00DC82]/20">
                         {mapSourceLabel}
