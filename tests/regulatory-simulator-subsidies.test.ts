@@ -47,6 +47,22 @@ describe('simulator v1.1', () => {
       expect.stringMatching(/fotovoltaica/i),
     ]));
   });
+
+  it('adapts scenario focus to the assessment objective', () => {
+    const score = calculateScoreV2(property);
+    const targetScenarios = generateScenarios({ ...property, objective: 'target_letter', targetLetter: 'C' }, score);
+    const saleScenarios = generateScenarios({ ...property, objective: 'sale_rent' }, score);
+    const diagnosticScenarios = generateScenarios({ ...property, objective: 'current_state' }, score);
+
+    expect(targetScenarios[0].objective).toContain('letra C');
+    expect(targetScenarios[0].estimatedScoreDelta).toBeGreaterThanOrEqual(targetScenarios[targetScenarios.length - 1].estimatedScoreDelta ?? 0);
+    expect(saleScenarios[0].objective).toMatch(/venta o alquiler/i);
+    expect(saleScenarios[0].dependencies).toEqual(expect.arrayContaining([
+      expect.stringMatching(/documentaci[oó]n de mejoras/i),
+    ]));
+    expect(diagnosticScenarios[0].id).toBe('basic');
+    expect(diagnosticScenarios[0].objective).toMatch(/situaci[oó]n energ[eé]tica actual/i);
+  });
 });
 
 describe('subsidies', () => {

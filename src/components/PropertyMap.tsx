@@ -12,7 +12,7 @@ interface PropertyMapProps {
   zoom?: number;
   bounds?: [[number, number], [number, number]];
   onPositionChange?: (pos: { lat: number; lng: number }) => void;
-  onParcelSelect?: (lat: number, lng: number) => void;
+  onParcelSelect?: (lat: number, lng: number, zoom: number) => void;
   features?: CadastralMapFeature[];
   onFeatureSelect?: (feature: CadastralMapFeature) => void;
   readOnly?: boolean;
@@ -384,7 +384,7 @@ export default function PropertyMap({
 
       if (latestHandlersRef.current.readOnly) return;
       if (latestHandlersRef.current.onParcelSelect) {
-        latestHandlersRef.current.onParcelSelect(event.lngLat.lat, event.lngLat.lng);
+        latestHandlersRef.current.onParcelSelect(event.lngLat.lat, event.lngLat.lng, map.getZoom());
       } else {
         latestHandlersRef.current.onPositionChange?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
       }

@@ -129,33 +129,6 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
     onLocationChange?.(selectedProvince, selectedMunicipality);
   }, [selectedMunicipality, selectedProvince, onLocationChange]);
 
-  useEffect(() => {
-    if (selectedProvince && selectedMunicipality && (selectedStreet || streetQuery.length >= 3) && number) {
-      let street = selectedStreet ? selectedStreet.name : streetQuery;
-      let sigla = selectedStreet ? selectedStreet.type : '';
-
-      // Try to extract sigla from manual query if it looks like "STREET NAME (TYPE)"
-      if (!selectedStreet && streetQuery.includes('(') && streetQuery.includes(')')) {
-        const match = streetQuery.match(/^(.*)\s\((.*)\)$/);
-        if (match) {
-          street = match[1].trim();
-          sigla = match[2].trim();
-        }
-      }
-
-      onAddressChange?.({
-        province: selectedProvince,
-        municipality: selectedMunicipality,
-        street,
-        number,
-        sigla,
-        provinceCode: selectedStreet?.provinceCode,
-        municipalityCode: selectedStreet?.municipalityCode,
-        streetCode: selectedStreet?.streetCode,
-      });
-    }
-  }, [selectedProvince, selectedMunicipality, selectedStreet, streetQuery, number, onAddressChange]);
-
   // Street autocomplete debounce
   useEffect(() => {
     const normalizedQuery = normalizeStreetText(streetQuery);
@@ -206,6 +179,30 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
     return () => clearTimeout(timer);
   }, [streetQuery, selectedStreet, selectedProvince, selectedMunicipality, streetSuggestionCache, t.wizardCatastroErrorService]);
 
+  function getAddressPayload() {
+    let street = selectedStreet ? selectedStreet.name : streetQuery;
+    let sigla = selectedStreet ? selectedStreet.type : '';
+
+    if (!selectedStreet && streetQuery.includes('(') && streetQuery.includes(')')) {
+      const match = streetQuery.match(/^(.*)\s\((.*)\)$/);
+      if (match) {
+        street = match[1].trim();
+        sigla = match[2].trim();
+      }
+    }
+
+    return {
+      province: selectedProvince,
+      municipality: selectedMunicipality,
+      street,
+      sigla,
+      provinceCode: selectedStreet?.provinceCode,
+      municipalityCode: selectedStreet?.municipalityCode,
+      streetCode: selectedStreet?.streetCode,
+      number,
+    };
+  }
+
   async function handleSearch() {
     setLoading(true);
     setError(null);
@@ -213,18 +210,16 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
     setDetailMatch(null);
     
     try {
+      const addressPayload = mode === 'address' ? getAddressPayload() : null;
+      if (addressPayload) {
+        onAddressChange?.(addressPayload);
+      }
+
       const body = mode === 'rc' 
         ? { mode: 'rc', rc }
         : { 
             mode: 'address', 
-            province: selectedProvince, 
-            municipality: selectedMunicipality, 
-            street: selectedStreet ? selectedStreet.name : streetQuery,
-            sigla: selectedStreet ? selectedStreet.type : '',
-            provinceCode: selectedStreet?.provinceCode,
-            municipalityCode: selectedStreet?.municipalityCode,
-            streetCode: selectedStreet?.streetCode,
-            number,
+            ...addressPayload,
             block,
             staircase,
             floor,

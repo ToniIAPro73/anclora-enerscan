@@ -1,7 +1,23 @@
-import { ImprovementScenario, PropertyDataV2, ScoreResultV2 } from "./domain/energy-assessment";
+import { EnergyLetter, ImprovementScenario, PropertyDataV2, ScoreResultV2 } from "./domain/energy-assessment";
 import { calculateScenarioCostEstimate } from "./costs/cost-engine";
 import { mapPropertyType } from "./costs/quantity-resolver";
 import { measuresForSimulatorScenario } from "./costs/scenario-matrix";
+
+const LETTER_SCORE_CEILING: Record<EnergyLetter, number> = {
+  A: 15,
+  B: 30,
+  C: 45,
+  D: 60,
+  E: 75,
+  F: 90,
+  G: 100,
+};
+
+const PRIORITY_RANK: Record<NonNullable<ImprovementScenario["priority"]>, number> = {
+  recommended: 0,
+  optional: 1,
+  long_term: 2,
+};
 
 function estimateLetterImpact(result: ScoreResultV2, delta: number) {
   const projected = Math.max(0, Math.min(100, result.score - delta));
@@ -16,6 +32,91 @@ function estimateLetterImpact(result: ScoreResultV2, delta: number) {
 
 function isExposedProperty(propertyData: PropertyDataV2) {
   return ["house", "terraced", "penthouse", "ground_floor"].includes(propertyData.propertyType);
+}
+
+function projectedScore(result: ScoreResultV2, scenario: ImprovementScenario) {
+  return Math.max(0, result.score - (scenario.estimatedScoreDelta ?? 0));
+}
+
+function reachesTargetLetter(result: ScoreResultV2, scenario: ImprovementScenario, targetLetter?: EnergyLetter) {
+  if (!targetLetter) return false;
+  return projectedScore(result, scenario) <= LETTER_SCORE_CEILING[targetLetter];
+}
+
+function appendUnique(values: string[], addition: string) {
+  return values.includes(addition) ? values : [...values, addition];
+}
+
+function sortScenarios(scenarios: ImprovementScenario[], rank: Record<string, number>) {
+  return [...scenarios].sort((a, b) => {
+    const priorityDiff = PRIORITY_RANK[a.priority ?? "optional"] - PRIORITY_RANK[b.priority ?? "optional"];
+    if (priorityDiff !== 0) return priorityDiff;
+    return (rank[a.id] ?? 99) - (rank[b.id] ?? 99);
+  });
+}
+
+function applyObjectiveFocus(
+  scenarios: ImprovementScenario[],
+  propertyData: PropertyDataV2,
+  result: ScoreResultV2
+): ImprovementScenario[] {
+  if (propertyData.objective === "target_letter") {
+    const targetLetter = propertyData.targetLetter;
+    const targetText = targetLetter ? `la letra ${targetLetter}` : "la letra objetivo";
+    const focused = scenarios.map((scenario) => {
+      const reachesTarget = reachesTargetLetter(result, scenario, targetLetter);
+      const isHighImpact = ["envelope", "systems", "deep"].includes(scenario.id);
+
+      return {
+        ...scenario,
+        objective: `Avanzar hacia ${targetText} priorizando las actuaciones con mayor salto energético.`,
+        priority: reachesTarget || isHighImpact ? "recommended" : "optional",
+        rationale: `${scenario.rationale ?? ""} Enfoque seleccionado: alcanzar una letra concreta, por lo que se ordenan antes los paquetes con mayor reducción de demanda y penalizaciones del scoring.`,
+        warnings: reachesTarget
+          ? scenario.warnings
+          : appendUnique(scenario.warnings, `Este paquete puede no ser suficiente por sí solo para alcanzar ${targetText}; conviene validarlo con técnico y CEE final.`),
+      } satisfies ImprovementScenario;
+    });
+
+    return [...focused].sort((a, b) => {
+      const aReaches = reachesTargetLetter(result, a, targetLetter) ? 0 : 1;
+      const bReaches = reachesTargetLetter(result, b, targetLetter) ? 0 : 1;
+      if (aReaches !== bReaches) return aReaches - bReaches;
+      const deltaDiff = (b.estimatedScoreDelta ?? 0) - (a.estimatedScoreDelta ?? 0);
+      if (deltaDiff !== 0) return deltaDiff;
+      return PRIORITY_RANK[a.priority ?? "optional"] - PRIORITY_RANK[b.priority ?? "optional"];
+    });
+  }
+
+  if (propertyData.objective === "sale_rent") {
+    const rank = { basic: 0, envelope: 1, systems: 2, renewables: 3, deep: 4 };
+    const focused = scenarios.map((scenario) => {
+      const commercialPriority = ["basic", "envelope", "systems"].includes(scenario.id);
+      return {
+        ...scenario,
+        objective: "Preparar la vivienda para venta o alquiler con mejoras explicables, documentables y comparables.",
+        priority: commercialPriority ? "recommended" : "optional",
+        rationale: `${scenario.rationale ?? ""} Enfoque seleccionado: venta o alquiler, por lo que se priorizan medidas visibles en confort, documentación energética y reducción de objeciones del comprador o inquilino.`,
+        dependencies: appendUnique(scenario.dependencies, "Actualizar CEE y documentación de mejoras antes de comercializar el inmueble"),
+        warnings: appendUnique(scenario.warnings, "Conviene contrastar coste de obra y efecto comercial antes de acometer una reforma de alto importe."),
+      } satisfies ImprovementScenario;
+    });
+    return sortScenarios(focused, rank);
+  }
+
+  if (propertyData.objective === "current_state" || propertyData.objective === "unknown" || !propertyData.objective) {
+    const rank = { basic: 0, envelope: 1, systems: 2, renewables: 3, deep: 4 };
+    const focused = scenarios.map((scenario) => ({
+      ...scenario,
+      objective: "Entender la situación energética actual y detectar actuaciones proporcionadas antes de decidir inversión.",
+      priority: scenario.id === "deep" ? "long_term" : scenario.priority,
+      rationale: `${scenario.rationale ?? ""} Enfoque seleccionado: diagnóstico de situación actual, por lo que se presenta como una ruta progresiva de menor a mayor intervención.`,
+      dependencies: appendUnique(scenario.dependencies, "Completar o contrastar datos con visita técnica si se va a tomar una decisión de inversión"),
+    } satisfies ImprovementScenario));
+    return sortScenarios(focused, rank);
+  }
+
+  return scenarios;
 }
 
 export function generateScenarios(propertyData: PropertyDataV2, result: ScoreResultV2): ImprovementScenario[] {
@@ -165,7 +266,7 @@ export function generateScenarios(propertyData: PropertyDataV2, result: ScoreRes
     providerCategories: ["aislamiento", "ventanas", "climatización", "fotovoltaica", "certificador", "reforma"],
   });
 
-  return scenarios.map((scenario) => {
+  return applyObjectiveFocus(scenarios, propertyData, result).map((scenario) => {
     try {
       const propertyType = mapPropertyType(propertyData.propertyType);
       const template = measuresForSimulatorScenario({

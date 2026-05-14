@@ -23,6 +23,7 @@ const PropertyMap = dynamic(() => import('./PropertyMap'), { ssr: false, loading
 
 const DIRECT_UPLOAD_FALLBACK_LIMIT = 4 * 1024 * 1024;
 const SELECTED_MAP_FEATURE_OFFSET = 0.00022;
+const MAP_PARCEL_SELECTION_MIN_ZOOM = 16;
 
 const fieldSteps: Partial<Record<string, number>> = {
   objective: 1,
@@ -122,6 +123,7 @@ export default function AssessmentWizard() {
   const [selectedCadastralReference, setSelectedCadastralReference] = useState<string | undefined>();
   const [selectedMapFeature, setSelectedMapFeature] = useState<CadastralMapFeature | undefined>();
   const [pendingMapMatch, setPendingMapMatch] = useState<CadastralMatch | null>(null);
+  const [mapSelectionMessage, setMapSelectionMessage] = useState<string | null>(null);
   const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const ceeFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -203,6 +205,7 @@ export default function AssessmentWizard() {
   const applyCadastralMatch = useCallback((match: CadastralMatch) => {
     setConfirmedMatch(match);
     setPendingMapMatch(null);
+    setMapSelectionMessage(null);
     setSelectedMapFeature(undefined);
     setSelectedCadastralReference(getMatchReference(match));
     const autofill = mapCadastralMatchToWizardFields(match);
@@ -235,6 +238,7 @@ export default function AssessmentWizard() {
 
   const requestMapMatchReplacement = useCallback((match: CadastralMatch) => {
     setPendingMapMatch(match);
+    setMapSelectionMessage(null);
     setSelectedMapFeature(undefined);
     setSelectedCadastralReference(getMatchReference(match));
     if (match.lat && match.lng) {
@@ -245,15 +249,16 @@ export default function AssessmentWizard() {
   }, [t.wizardMapLocationCatastro]);
 
   const selectMapMatch = useCallback((match: CadastralMatch) => {
-    if (confirmedMatch && !isSameCadastralMatch(confirmedMatch, match)) {
-      requestMapMatchReplacement(match);
+    if (confirmedMatch && isSameCadastralMatch(confirmedMatch, match)) {
+      setSelectedCadastralReference(getMatchReference(match));
       return;
     }
-    applyCadastralMatch(match);
-  }, [applyCadastralMatch, confirmedMatch, requestMapMatchReplacement]);
+    requestMapMatchReplacement(match);
+  }, [confirmedMatch, requestMapMatchReplacement]);
 
   const cancelPendingMapMatch = useCallback(() => {
     setPendingMapMatch(null);
+    setMapSelectionMessage(null);
     if (confirmedMatch) {
       setSelectedCadastralReference(getMatchReference(confirmedMatch));
       if (confirmedMatch.lat && confirmedMatch.lng) {
@@ -405,10 +410,22 @@ export default function AssessmentWizard() {
     setMapSourceLabel(t.wizardMapLocationManual);
   }, [setValue, t.wizardMapLocationManual]);
 
-  const handleParcelSelect = useCallback(async (plat: number, plng: number) => {
+  const handleParcelSelect = useCallback(async (plat: number, plng: number, currentZoom = MAP_PARCEL_SELECTION_MIN_ZOOM) => {
+    if (currentZoom < MAP_PARCEL_SELECTION_MIN_ZOOM) {
+      const nextZoom = currentZoom < 10 ? 12.5 : currentZoom < 13 ? 14 : MAP_PARCEL_SELECTION_MIN_ZOOM;
+      setSelectedMapFeature(undefined);
+      setSelectedCadastralReference(undefined);
+      setMapSelectionMessage(null);
+      setMapCenter({ lat: plat, lng: plng });
+      setMapZoom(nextZoom);
+      setMapSourceLabel(t.wizardMapLocationManual);
+      return;
+    }
+
     const fallbackFeature = createSelectedMapFeature(plat, plng);
     setSelectedMapFeature(fallbackFeature);
     setSelectedCadastralReference(fallbackFeature.id);
+    setMapSelectionMessage(null);
     setMapCenter({ lat: plat, lng: plng });
     setMapZoom(18);
     if (!confirmedMatch) {
@@ -430,22 +447,20 @@ export default function AssessmentWizard() {
         showResolvedMapMatches(matches);
         const firstMatch = matches[0];
         if (firstMatch) {
-          if (confirmedMatch && !isSameCadastralMatch(confirmedMatch, firstMatch)) {
-            requestMapMatchReplacement(firstMatch);
-          } else {
-            applyCadastralMatch(firstMatch);
-          }
+          requestMapMatchReplacement(firstMatch);
         }
       } else {
         setMapSourceLabel(t.wizardMapLocationManual);
+        setMapSelectionMessage('No se han podido obtener datos catastrales de ese punto. Acércate más y pulsa dentro del contorno de la finca.');
       }
     } catch (err) {
       console.error('Parcel select failed:', err);
       setMapSourceLabel(t.wizardMapLocationManual);
+      setMapSelectionMessage('Catastro no ha devuelto datos para ese punto. Inténtalo de nuevo o usa referencia catastral/dirección.');
     } finally {
       setIsMapLoading(false);
     }
-  }, [t.wizardMapLocationManual, confirmedMatch, requestMapMatchReplacement, applyCadastralMatch, setValue, showResolvedMapMatches]);
+  }, [t.wizardMapLocationManual, confirmedMatch, requestMapMatchReplacement, setValue, showResolvedMapMatches]);
 
   const restoreFileDialogScroll = () => {
     const position = fileDialogScrollRef.current;
@@ -1311,17 +1326,24 @@ export default function AssessmentWizard() {
 	                      }}
 	                      isLoading={isMapLoading}
 	                    />
-                    {pendingMapMatch && (
-                      <div className="absolute inset-x-4 bottom-4 z-[30] rounded-2xl border border-[#00DC82]/30 bg-[#07140f]/95 p-4 shadow-2xl backdrop-blur">
-                        <p className="font-heading text-sm font-bold text-premium">¿Usar los datos de la finca seleccionada?</p>
-                        <p className="mt-1 text-xs text-muted">
-                          Se sustituirán la referencia, la dirección y los datos catastrales aplicados anteriormente por los de esta finca.
-                        </p>
-                        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
-                          <p className="font-bold text-premium">{pendingMapMatch.address}</p>
-                          <p>{pendingMapMatch.municipality}, {pendingMapMatch.province}</p>
-                          <p className="mt-1 font-mono text-[11px] text-[#00DC82]">{pendingMapMatch.cadastralReference || pendingMapMatch.parcelReference}</p>
-                        </div>
+	                    {pendingMapMatch && (
+	                      <div className="absolute inset-x-4 bottom-4 z-[30] rounded-2xl border border-[#00DC82]/30 bg-[#07140f]/95 p-4 shadow-2xl backdrop-blur">
+	                        <p className="font-heading text-sm font-bold text-premium">¿Usar los datos de la finca seleccionada?</p>
+	                        <p className="mt-1 text-xs text-muted">
+	                          {confirmedMatch
+	                            ? 'Se sustituirán la referencia, la dirección y los datos catastrales aplicados anteriormente por los de esta finca.'
+	                            : 'Se volcarán la referencia, la dirección y los datos catastrales de esta finca en el formulario.'}
+	                        </p>
+	                        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
+	                          <p className="font-bold text-premium">{pendingMapMatch.address}</p>
+	                          <p>{pendingMapMatch.municipality}, {pendingMapMatch.province}</p>
+	                          <p className="mt-1 font-mono text-[11px] text-[#00DC82]">{pendingMapMatch.cadastralReference || pendingMapMatch.parcelReference}</p>
+	                          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+	                            {pendingMapMatch.surfaceBuiltM2 && <span>{pendingMapMatch.surfaceBuiltM2} m² construidos</span>}
+	                            {pendingMapMatch.yearBuilt && <span>Año {pendingMapMatch.yearBuilt}</span>}
+	                            {pendingMapMatch.propertyUse && <span>{pendingMapMatch.propertyUse}</span>}
+	                          </div>
+	                        </div>
                         <div className="mt-4 flex gap-3">
                           <button
                             type="button"
@@ -1337,10 +1359,25 @@ export default function AssessmentWizard() {
                           >
                             Mantener anterior
                           </button>
-                        </div>
-                      </div>
-                    )}
-	                  </div>
+	                        </div>
+	                      </div>
+	                    )}
+	                    {mapSelectionMessage && !pendingMapMatch && (
+	                      <div className="absolute inset-x-4 bottom-4 z-[30] rounded-2xl border border-amber-400/30 bg-[#171208]/95 p-4 text-xs text-amber-100 shadow-2xl backdrop-blur">
+	                        <div className="flex items-start justify-between gap-3">
+	                          <p>{mapSelectionMessage}</p>
+	                          <button
+	                            type="button"
+	                            onClick={() => setMapSelectionMessage(null)}
+	                            className="rounded-full p-1 text-amber-100/70 transition hover:bg-white/10 hover:text-amber-100"
+	                            aria-label="Cerrar aviso"
+	                          >
+	                            <X className="h-4 w-4" />
+	                          </button>
+	                        </div>
+	                      </div>
+	                    )}
+		                  </div>
                 </div>
               </div>
             </div>

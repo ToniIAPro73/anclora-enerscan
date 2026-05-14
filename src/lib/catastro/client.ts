@@ -291,7 +291,7 @@ async function resolveAddressFromUrl(url: string): Promise<CadastralMatch[]> {
   }));
 }
 
-export async function resolveByCoordinates(lat: number, lng: number): Promise<CadastralMatch[]> {
+async function resolveCoordinatesOnce(lat: number, lng: number): Promise<CadastralMatch[]> {
   const url = buildUrl(COORDENADAS_REST_URL, 'Consulta_RCCOOR', {
     SRS: 'EPSG:4326',
     Coordenada_X: lng,
@@ -323,6 +323,29 @@ export async function resolveByCoordinates(lat: number, lng: number): Promise<Ca
   }));
 
   return enriched.flat();
+}
+
+export async function resolveByCoordinates(lat: number, lng: number): Promise<CadastralMatch[]> {
+  const directMatches = await resolveCoordinatesOnce(lat, lng);
+  if (directMatches.length > 0) return directMatches;
+
+  const latOffset = 4 / 111_320;
+  const lngOffset = 4 / Math.max(1, 111_320 * Math.cos((lat * Math.PI) / 180));
+  const nearbyPoints = [
+    [lat + latOffset, lng],
+    [lat - latOffset, lng],
+    [lat, lng + lngOffset],
+    [lat, lng - lngOffset],
+    [lat + latOffset, lng + lngOffset],
+    [lat - latOffset, lng - lngOffset],
+  ] as const;
+
+  for (const [nearbyLat, nearbyLng] of nearbyPoints) {
+    const matches = await resolveCoordinatesOnce(nearbyLat, nearbyLng).catch(() => []);
+    if (matches.length > 0) return matches;
+  }
+
+  return [];
 }
 
 async function getCoordinatesByCadastralReference(rc: string): Promise<{ lat: number; lng: number } | null> {
