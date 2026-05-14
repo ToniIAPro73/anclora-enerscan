@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 const CATASTRO_WMS_URL = 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx';
 const MAX_WIDTH = 1600;
 const MAX_HEIGHT = 1200;
+const TRANSPARENT_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lz0nGAAAAABJRU5ErkJggg==',
+  'base64'
+);
 
 function clampImageSize(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value || '', 10);
@@ -46,26 +50,38 @@ export async function GET(request: NextRequest) {
     HEIGHT: String(height),
   });
 
-  const response = await fetch(`${CATASTRO_WMS_URL}?${wmsParams.toString()}`, {
-    headers: {
-      Accept: 'image/png',
-      'User-Agent': 'Anclora EnergyScan/1.0 (+https://anclora-energyscan.vercel.app)',
-    },
-    next: { revalidate: 60 * 60 * 24 },
-  });
+  try {
+    const response = await fetch(`${CATASTRO_WMS_URL}?${wmsParams.toString()}`, {
+      headers: {
+        Accept: 'image/png',
+        'User-Agent': 'Anclora EnergyScan/1.0 (+https://anclora-energyscan.vercel.app)',
+      },
+      next: { revalidate: 60 * 60 * 24 },
+    });
 
-  if (!response.ok) {
-    return NextResponse.json(
-      { error: 'Failed to fetch cadastral map layer' },
-      { status: response.status }
-    );
+    if (!response.ok) {
+      console.warn('Catastro WMS unavailable:', response.status);
+      return transparentImageResponse();
+    }
+
+    const image = await response.arrayBuffer();
+    return new NextResponse(image, {
+      headers: {
+        'Content-Type': response.headers.get('content-type') || 'image/png',
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+      },
+    });
+  } catch (error) {
+    console.warn('Catastro WMS fetch failed:', error instanceof Error ? error.message : String(error));
+    return transparentImageResponse();
   }
+}
 
-  const image = await response.arrayBuffer();
-  return new NextResponse(image, {
+function transparentImageResponse() {
+  return new NextResponse(TRANSPARENT_PNG, {
     headers: {
-      'Content-Type': response.headers.get('content-type') || 'image/png',
-      'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=60, s-maxage=300',
     },
   });
 }

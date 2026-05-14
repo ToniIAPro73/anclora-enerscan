@@ -6,6 +6,8 @@ import { getFallbackStreets } from '@/lib/location/open-address';
 const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
 const CALLEJERO_CODIGOS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejeroCodigos.svc/rest';
 const COORDENADAS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/rest';
+const CATASTRO_FETCH_TIMEOUT_MS = 10_000;
+const CATASTRO_FETCH_ATTEMPTS = 3;
 
 function buildUrl(baseUrl: string, endpoint: string, params: Record<string, string | number | undefined>) {
   const searchParams = new URLSearchParams();
@@ -15,15 +17,54 @@ function buildUrl(baseUrl: string, endpoint: string, params: Record<string, stri
   return `${baseUrl}/${endpoint}?${searchParams.toString()}`;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
 async function fetchCatastroXml(url: string, errorMessage: string) {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) {
-    const responseText = typeof response.text === 'function'
-      ? await response.text().catch(() => undefined)
-      : undefined;
-    throw new CatastroStreetServiceError(errorMessage, response.status, responseText);
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= CATASTRO_FETCH_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CATASTRO_FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (response.ok) {
+        return response.text();
+      }
+
+      const responseText = typeof response.text === 'function'
+        ? await response.text().catch(() => undefined)
+        : undefined;
+      const error = new CatastroStreetServiceError(errorMessage, response.status, responseText);
+
+      if (!isRetryableStatus(response.status) || attempt === CATASTRO_FETCH_ATTEMPTS) {
+        throw error;
+      }
+      lastError = error;
+    } catch (error) {
+      lastError = error;
+      if (attempt === CATASTRO_FETCH_ATTEMPTS || error instanceof CatastroStreetServiceError) {
+        break;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    await sleep(250 * attempt);
   }
-  return response.text();
+
+  if (lastError instanceof CatastroStreetServiceError) throw lastError;
+  throw new CatastroStreetServiceError(
+    errorMessage,
+    503,
+    lastError instanceof Error ? lastError.message : String(lastError)
+  );
 }
 
 export async function getProvinces(): Promise<Province[]> {
