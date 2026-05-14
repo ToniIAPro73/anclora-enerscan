@@ -78,6 +78,13 @@ const labels = {
     cadastralReference: 'Referencia catastral',
     cadastralSource: 'Fuente catastral',
     cadastralVerified: 'Datos verificados mediante fuente oficial',
+    dataSourcesTitle: 'Fuentes de datos y trazabilidad',
+    ceeTitle: 'CEE importado',
+    budgetTitle: 'Presupuesto analizado',
+    source: 'Fuente',
+    value: 'Valor',
+    review: 'Revisión',
+    budgetImpactDisclaimer: 'El impacto energético estimado de las reformas presupuestadas es orientativo. La mejora real dependerá de proyecto, ejecución, materiales, sistemas existentes y cálculo técnico oficial.',
   },
   en: {
     title: 'Anclora EnergyScan Premium Report',
@@ -145,6 +152,13 @@ const labels = {
     cadastralReference: 'Cadastral reference',
     cadastralSource: 'Cadastral source',
     cadastralVerified: 'Verified data from official source',
+    dataSourcesTitle: 'Data sources and traceability',
+    ceeTitle: 'Imported EPC',
+    budgetTitle: 'Analysed quote',
+    source: 'Source',
+    value: 'Value',
+    review: 'Review',
+    budgetImpactDisclaimer: 'The estimated energy impact of quoted works is indicative. Real improvement depends on design, execution, materials, existing systems and official technical calculation.',
   },
   de: {
     title: 'Anclora EnergyScan Premium Report',
@@ -212,6 +226,13 @@ const labels = {
     cadastralReference: 'Katasternummer',
     cadastralSource: 'Katasterquelle',
     cadastralVerified: 'Verifizierte Daten aus offizieller Quelle',
+    dataSourcesTitle: 'Datenquellen und Nachvollziehbarkeit',
+    ceeTitle: 'Importierter Energieausweis',
+    budgetTitle: 'Analysiertes Angebot',
+    source: 'Quelle',
+    value: 'Wert',
+    review: 'Prüfung',
+    budgetImpactDisclaimer: 'Die geschätzte energetische Wirkung angebotener Arbeiten ist orientierend. Die tatsächliche Verbesserung hängt von Planung, Ausführung, Materialien, bestehenden Systemen und offizieller technischer Berechnung ab.',
   },
 } as const;
 
@@ -544,6 +565,36 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           </View>
         )}
       </View>
+
+      {(data.energyCertificates?.length || data.rehabBudgets?.length || data.dataFieldSources?.length) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.dataSourcesTitle}</Text>
+          {(data.dataFieldSources || []).slice(0, 8).map((field, index) => (
+            <View key={`${field.fieldName}-${index}`} style={styles.row}>
+              <Text style={styles.colLeft}>{field.fieldName}</Text>
+              <Text style={styles.colRight}>{String(field.value)} · {field.sourceLabel || field.sourceType} · {field.confidence ? `${Math.round(field.confidence * 100)}%` : t.review}</Text>
+            </View>
+          ))}
+          {(data.energyCertificates || []).map((certificate, index) => (
+            <View key={`certificate-${index}`} style={{ marginTop: 8, padding: 8, backgroundColor: '#f0fff4', borderRadius: 4 }}>
+              <Text style={{ ...styles.text, fontWeight: 'bold', color: '#22543d' }}>{t.ceeTitle}</Text>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.collectedLetter}</Text><Text style={styles.colRight}>{certificate.globalLetter || '-'}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>EPnr</Text><Text style={styles.colRight}>{certificate.nonRenewableEPKwhM2Year ?? '-'} kWh/m²·año</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>CO2</Text><Text style={styles.colRight}>{certificate.emissionsKgCO2M2Year ?? '-'} kgCO₂/m²·año</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.yearArea}</Text><Text style={styles.colRight}>{certificate.yearBuilt || '-'} / {certificate.usefulAreaM2 || certificate.builtAreaM2 || '-'} m²</Text></View>
+            </View>
+          ))}
+          {(data.rehabBudgets || []).map((budget, index) => (
+            <View key={`budget-${index}`} style={{ marginTop: 8, padding: 8, backgroundColor: '#fff8e1', borderRadius: 4 }}>
+              <Text style={{ ...styles.text, fontWeight: 'bold', color: '#856404' }}>{t.budgetTitle}</Text>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.investment}</Text><Text style={styles.colRight}>{budget.totalAmount ? `${budget.totalAmount.toLocaleString('es-ES')} ${budget.currency}` : '-'}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.jump}</Text><Text style={styles.colRight}>{budget.estimatedCurrentLetter || '-'} → {budget.estimatedPostBudgetLetter || '-'}</Text></View>
+              <Text style={styles.text}>{budget.analysisSummary}</Text>
+              <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>{t.budgetImpactDisclaimer}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.findings}</Text>

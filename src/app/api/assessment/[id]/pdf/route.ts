@@ -14,6 +14,8 @@ import { isBlobAttachmentPath, readAttachmentBytes } from '@/lib/blob-storage';
 import React from 'react';
 import { appendPdfAnnexes, PdfAnnex } from '@/lib/pdf/append-pdf-annex';
 import { getScenarioCostEstimate } from '@/lib/costs/cost-engine';
+import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
+import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 
 // Forzar dinamismo para evitar problemas de pre-renderizado con DB y librerías nativas
 export const dynamic = 'force-dynamic';
@@ -138,7 +140,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     } else {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.id },
-        include: { attachments: true, cadastralRecord: true }
+        include: { attachments: true, cadastralRecord: true, energyCertificates: true, rehabBudgets: true, dataFieldSources: true }
       });
 
       if (!assessment) {
@@ -203,6 +205,37 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         subsidies: getRelevantSubsidies(propertyData),
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
         attachments: rawAttachments,
+        energyCertificates: assessment.energyCertificates.map(prismaCertificateToDto),
+        rehabBudgets: assessment.rehabBudgets.map((budget) => ({
+          extractionStatus: budget.extractionStatus as RehabBudgetAnalysis['extractionStatus'],
+          extractionConfidence: budget.extractionConfidence || undefined,
+          providerName: budget.providerName || undefined,
+          budgetDate: budget.budgetDate?.toISOString(),
+          totalAmount: budget.totalAmount || undefined,
+          currency: (budget.currency || 'EUR') as RehabBudgetAnalysis['currency'],
+          vatIncluded: budget.vatIncluded || undefined,
+          lineItems: Array.isArray(budget.lineItemsJson) ? budget.lineItemsJson as RehabBudgetAnalysis['lineItems'] : [],
+          detectedMeasures: Array.isArray(budget.detectedMeasuresJson) ? budget.detectedMeasuresJson as RehabBudgetAnalysis['detectedMeasures'] : [],
+          estimatedCurrentLetter: budget.estimatedCurrentLetter as RehabBudgetAnalysis['estimatedCurrentLetter'],
+          estimatedPostBudgetLetter: budget.estimatedPostBudgetLetter as RehabBudgetAnalysis['estimatedPostBudgetLetter'],
+          targetLetter: budget.targetLetter as RehabBudgetAnalysis['targetLetter'],
+          targetReached: budget.targetReached || undefined,
+          impactConfidence: (budget.impactConfidence || 'LOW') as RehabBudgetAnalysis['impactConfidence'],
+          missingMeasures: Array.isArray(budget.missingMeasuresJson) ? budget.missingMeasuresJson as RehabBudgetAnalysis['missingMeasures'] : [],
+          analysisSummary: budget.analysisSummary || '',
+          summary: budget.analysisSummary || '',
+          assumptions: [],
+          warnings: [],
+        })),
+        dataFieldSources: assessment.dataFieldSources.map((source) => ({
+          fieldName: source.fieldName,
+          value: source.valueJson,
+          sourceType: source.sourceType as import('@/lib/ingestion/types').DataSourceType,
+          sourceLabel: source.sourceType,
+          confidence: source.confidence || undefined,
+          requiresReview: source.requiresReview,
+          appliedToWizard: source.appliedToWizard,
+        })),
         cadastralRecord: assessment.cadastralRecord ? {
           cadastralReference: assessment.cadastralRecord.cadastralReference || '',
           parcelReference: assessment.cadastralRecord.parcelReference || undefined,

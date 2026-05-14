@@ -34,6 +34,7 @@ export type CeeData = {
   expiryDate?: string;
   technicianName?: string;
   rawMatches?: Record<string, string>;
+  normalizedCertificate?: import('@/lib/ingestion/types').EnergyCertificateCEE;
 };
 
 export type BudgetData = {
@@ -48,6 +49,7 @@ export type BudgetData = {
     amount?: number;
   }>;
   detectedMeasures?: string[];
+  normalizedAnalysis?: import('@/lib/ingestion/types').RehabBudgetAnalysis;
 };
 
 export type ImageOcrData = {

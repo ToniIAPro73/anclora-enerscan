@@ -1,6 +1,7 @@
 export async function extractTextFromPdf(pdfBytes: Uint8Array): Promise<{
   fullText: string;
   pages: Array<{ pageNumber: number; text: string }>;
+  textQuality: 'good' | 'weak' | 'empty';
 }> {
   // Use dynamic import for pdfjs-dist to avoid issues in some environments
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -27,6 +28,22 @@ export async function extractTextFromPdf(pdfBytes: Uint8Array): Promise<{
     fullText += ` ${pageText}`;
   }
 
-  return { fullText: fullText.trim(), pages };
+  const trimmed = fullText.trim();
+  return { fullText: trimmed, pages, textQuality: assessPdfTextQuality(trimmed) };
 }
 
+export function assessPdfTextQuality(text: string): 'good' | 'weak' | 'empty' {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length < 40) return 'empty';
+  const anchors = [
+    /certificado\s+de\s+eficiencia\s+energ[eé]tica/i,
+    /calificaci[oó]n\s+de\s+eficiencia\s+energ[eé]tica/i,
+    /energ[ií]a\s+primaria\s+no\s+renovable/i,
+    /emisiones\s+de\s+di[oó]xido\s+de\s+carbono/i,
+    /presupuesto/i,
+    /importe\s+total/i,
+  ];
+  const anchorHits = anchors.filter((pattern) => pattern.test(normalized)).length;
+  if (normalized.length > 300 && anchorHits > 0) return 'good';
+  return 'weak';
+}
