@@ -5,7 +5,7 @@ import { getFallbackStreets } from '@/lib/location/open-address';
 
 const CALLEJERO_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/rest';
 const CALLEJERO_CODIGOS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejeroCodigos.svc/rest';
-const COORDENADAS_REST_URL = 'https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/rest';
+const COORDENADAS_REST_URL = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx';
 const CATASTRO_FETCH_TIMEOUT_MS = 10_000;
 const CATASTRO_FETCH_ATTEMPTS = 3;
 
@@ -356,7 +356,7 @@ async function getCoordinatesByCadastralReference(rc: string): Promise<{ lat: nu
     Provincia: '',
     Municipio: '',
     SRS: 'EPSG:4326',
-    RefCat: parcelRef,
+    RC: parcelRef,
   });
   const xml = await fetchCatastroXml(url, 'Failed to resolve cadastral coordinates');
   const matches = parseCoordinateList(xml);

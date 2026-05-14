@@ -61,7 +61,7 @@ describe('Catastro client endpoints', () => {
     expect(url).toContain('RefCat=6485534DD6768E0003QD');
   });
 
-  it('uses official Coordenadas REST endpoint for point selection', async () => {
+  it('uses official Coordenadas ASMX endpoint for point selection', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(EMPTY_COORD_XML),
@@ -70,7 +70,7 @@ describe('Catastro client endpoints', () => {
     await resolveByCoordinates(39.5696, 2.6502);
 
     const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
-    expect(url).toContain('/COVCCoordenadas.svc/rest/Consulta_RCCOOR?');
+    expect(url).toContain('/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?');
     expect(url).toContain('SRS=EPSG%3A4326');
     expect(url).toContain('Coordenada_X=2.6502');
     expect(url).toContain('Coordenada_Y=39.5696');
