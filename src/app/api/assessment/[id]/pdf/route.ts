@@ -119,6 +119,21 @@ async function getAttachmentBytes(attachment: AssessmentAttachment): Promise<Buf
   }
 }
 
+async function loadPremiumSourcesForAssessment(assessmentId: string) {
+  try {
+    const [energyCertificates, rehabBudgets, dataFieldSources] = await Promise.all([
+      prisma.energyCertificate.findMany({ where: { assessmentId }, orderBy: { createdAt: 'desc' } }),
+      prisma.rehabBudget.findMany({ where: { assessmentId }, orderBy: { createdAt: 'desc' } }),
+      prisma.dataFieldSource.findMany({ where: { assessmentId }, orderBy: { createdAt: 'desc' } }),
+    ]);
+
+    return { energyCertificates, rehabBudgets, dataFieldSources };
+  } catch (error) {
+    console.warn('Premium sources unavailable for PDF report:', error);
+    return { energyCertificates: [], rehabBudgets: [], dataFieldSources: [] };
+  }
+}
+
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const cookieHeader = req.headers.get('cookie') || '';
@@ -140,12 +155,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     } else {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.id },
-        include: { attachments: true, cadastralRecord: true, energyCertificates: true, rehabBudgets: true, dataFieldSources: true }
+        include: { attachments: true, cadastralRecord: true }
       });
 
       if (!assessment) {
         return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
       }
+
+      const premiumSources = await loadPremiumSourcesForAssessment(assessment.id);
 
       const propertyData: PropertyDataV2 = {
         year: assessment.year,
@@ -205,8 +222,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         subsidies: getRelevantSubsidies(propertyData),
         providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
         attachments: rawAttachments,
-        energyCertificates: assessment.energyCertificates.map(prismaCertificateToDto),
-        rehabBudgets: assessment.rehabBudgets.map((budget) => ({
+        energyCertificates: premiumSources.energyCertificates.map(prismaCertificateToDto),
+        rehabBudgets: premiumSources.rehabBudgets.map((budget) => ({
           extractionStatus: budget.extractionStatus as RehabBudgetAnalysis['extractionStatus'],
           extractionConfidence: budget.extractionConfidence || undefined,
           providerName: budget.providerName || undefined,
@@ -227,7 +244,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           assumptions: [],
           warnings: [],
         })),
-        dataFieldSources: assessment.dataFieldSources.map((source) => ({
+        dataFieldSources: premiumSources.dataFieldSources.map((source) => ({
           fieldName: source.fieldName,
           value: source.valueJson,
           sourceType: source.sourceType as import('@/lib/ingestion/types').DataSourceType,

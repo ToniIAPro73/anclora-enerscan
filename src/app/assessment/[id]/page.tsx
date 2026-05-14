@@ -22,6 +22,20 @@ import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 
 export const dynamic = 'force-dynamic';
 
+async function loadPremiumSourcesForAssessment(assessmentId: string) {
+  try {
+    const [energyCertificates, rehabBudgets] = await Promise.all([
+      prisma.energyCertificate.findMany({ where: { assessmentId }, orderBy: { createdAt: 'desc' } }),
+      prisma.rehabBudget.findMany({ where: { assessmentId }, orderBy: { createdAt: 'desc' } }),
+    ]);
+
+    return { energyCertificates, rehabBudgets };
+  } catch (error) {
+    console.warn('Premium sources unavailable for assessment results:', error);
+    return { energyCertificates: [], rehabBudgets: [] };
+  }
+}
+
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
   const cookieStore = cookies();
   const language = normalizeLanguage(cookieStore.get('enerscan-language')?.value);
@@ -33,8 +47,13 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },
-    include: { attachments: true, cadastralRecord: true, energyCertificates: true, rehabBudgets: true, dataFieldSources: true }
+    include: { attachments: true, cadastralRecord: true }
   });
+
+  const premiumSources = assessment ? await loadPremiumSourcesForAssessment(assessment.id) : {
+    energyCertificates: [],
+    rehabBudgets: [],
+  };
 
   if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
 
@@ -104,8 +123,8 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const exteriorCount = attachments.filter((attachment) => attachment.category === 'EXTERIOR').length;
   const interiorCount = attachments.filter((attachment) => attachment.category === 'INTERIOR').length;
   const ceeCount = attachments.filter((attachment) => attachment.category === 'CEE' || attachment.type === 'application/pdf').length;
-  const energyCertificates = assessment?.energyCertificates.map(prismaCertificateToDto) || [];
-  const rehabBudgets: RehabBudgetAnalysis[] = assessment?.rehabBudgets.map((budget) => ({
+  const energyCertificates = premiumSources.energyCertificates.map(prismaCertificateToDto);
+  const rehabBudgets: RehabBudgetAnalysis[] = premiumSources.rehabBudgets.map((budget) => ({
     extractionStatus: budget.extractionStatus as RehabBudgetAnalysis['extractionStatus'],
     extractionConfidence: budget.extractionConfidence || undefined,
     providerName: budget.providerName || undefined,
@@ -125,7 +144,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     summary: budget.analysisSummary || '',
     assumptions: [],
     warnings: [],
-  })) || [];
+  }));
 
   return (
     <div className="min-h-screen app-shell">
