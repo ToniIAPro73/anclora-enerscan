@@ -510,8 +510,8 @@ export default function AssessmentWizard() {
     const improvements = sections?.improvementMeasures || [];
 
     return (
-      <div className="fixed inset-0 z-[9500] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-6 sm:px-4 sm:py-8" role="dialog" aria-modal="true">
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
+      <div className="fixed inset-0 z-[9500] flex items-center justify-center overflow-hidden bg-black/75 px-3 py-4 sm:px-4 sm:py-6" role="dialog" aria-modal="true">
+        <div className="flex max-h-[82dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
           <div className="flex items-start justify-between gap-4 border-b border-white/10 p-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#00DC82]">{t.wizardCeeDetailSource}</p>
@@ -522,7 +522,7 @@ export default function AssessmentWizard() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="max-h-[calc(100dvh-132px)] space-y-4 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
             <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <h4 className="mb-3 text-sm font-bold text-premium">{t.wizardCeeDetailIdentification}</h4>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
