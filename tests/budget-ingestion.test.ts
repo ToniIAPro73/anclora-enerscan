@@ -14,6 +14,8 @@ describe('budget ingestion', () => {
 
   it('parses currency and total', () => {
     expect(parseCurrencyAmount('18.450,00 €')).toBe(18450);
+    expect(parseCurrencyAmount('2,277.65 €')).toBe(2277.65);
+    expect(parseCurrencyAmount('1,031.25 €')).toBe(1031.25);
     expect(detectBudgetTotal(text)).toBe(18450);
   });
 
@@ -43,5 +45,27 @@ describe('budget ingestion', () => {
   it('returns low confidence without a base letter', () => {
     const impact = analyzeBudgetImpact({ detectedMeasures: [{ category: 'WINDOWS', description: 'Ventanas' }] });
     expect(impact.impactConfidence).toBe('LOW');
+  });
+
+  it('parses mixed-format renovation quote lines', () => {
+    const renovationQuote = `
+      Pintura Especial Interiores en Paredes
+      Pintado de parametro vertical 75 m2 13.75 €/m2 1,031.25 €
+      Pintura Especial Interiores en Techo
+      Lijado y Pintado 35 m2 19.30 €/m2 675.50 €
+      Ayudas Albañilería
+      Ayudas generales en los trabajos de albañilería 1 und. 150 € 150 €
+      BASE IMPONIBLE 2,277.65 €
+    `;
+
+    const analysis = parseBudgetAnalysisText(renovationQuote, { currentLetter: 'D', usefulAreaM2: 49 });
+    expect(analysis.totalAmount).toBe(2277.65);
+    expect(analysis.lineItems).toHaveLength(3);
+    expect(analysis.lineItems[0]).toMatchObject({
+      quantity: 75,
+      unitPrice: 13.75,
+      total: 1031.25,
+    });
+    expect(analysis.detectedMeasures.map((measure) => measure.category)).toContain('OTHER_NON_ENERGY');
   });
 });

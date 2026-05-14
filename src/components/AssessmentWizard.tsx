@@ -88,6 +88,8 @@ export default function AssessmentWizard() {
   const [ceeDetailsOpen, setCeeDetailsOpen] = useState(false);
   const [ceeAppliedNotice, setCeeAppliedNotice] = useState(false);
   const [budgetImport, setBudgetImport] = useState<ImportState<RehabBudgetAnalysis>>({ status: 'idle', warnings: [] });
+  const [budgetDetailsOpen, setBudgetDetailsOpen] = useState(false);
+  const [budgetAppliedNotice, setBudgetAppliedNotice] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [confirmedMatch, setConfirmedMatch] = useState<CadastralMatch | null>(null);
@@ -469,6 +471,7 @@ export default function AssessmentWizard() {
         data: result.budget,
         warnings: result.warnings || [],
       });
+      setBudgetAppliedNotice(false);
     } catch (error) {
       setBudgetImport({
         status: 'failed',
@@ -479,10 +482,39 @@ export default function AssessmentWizard() {
     }
   };
 
+  const applyBudgetData = () => {
+    const budget = budgetImport.data;
+    if (!budget) return;
+
+    if (budget.totalAmount !== undefined) {
+      if (budget.totalAmount < 3000) setValue('budgetRange', 'low');
+      else if (budget.totalAmount <= 10000) setValue('budgetRange', 'medium');
+      else setValue('budgetRange', 'high');
+    }
+
+    const categories = new Set(budget.detectedMeasures.map((measure) => measure.category));
+    if (categories.has('ENVELOPE_FACADE')) setValue('facadeInsulation', 'good');
+    if (categories.has('ENVELOPE_ROOF')) setValue('roofInsulation', 'good');
+    if (categories.has('WINDOWS')) setValue('windows', 'triple');
+    if (categories.has('PV')) setValue('renewables', categories.has('SOLAR_THERMAL') ? 'both' : 'photovoltaic');
+    else if (categories.has('SOLAR_THERMAL')) setValue('renewables', 'solar_thermal');
+
+    setBudgetAppliedNotice(true);
+  };
+
   const formatCeeMetric = (metric?: { value?: number; letter?: string; unit?: string }) => {
     if (!metric || (metric.value === undefined && !metric.letter)) return '---';
     return `${metric.value ?? '---'} ${metric.unit || ''}${metric.letter ? ` · ${metric.letter}` : ''}`.trim();
   };
+
+  const formatBudgetAmount = (amount?: number) => (
+    amount === undefined ? '---' : `${amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+  );
+
+  const formatBudgetCategory = (category: string) => category
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   const renderMetricRows = (
     title: string,
@@ -629,6 +661,111 @@ export default function AssessmentWizard() {
     );
   };
 
+  const renderBudgetDetailsModal = () => {
+    const budget = budgetImport.data;
+    if (!budgetDetailsOpen || !budget) return null;
+
+    return (
+      <div className="fixed inset-0 z-[9500] flex items-center justify-center overflow-hidden bg-black/75 px-3 py-4 sm:px-4 sm:py-6" role="dialog" aria-modal="true">
+        <div className="flex max-h-[82dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 p-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#00DC82]">{t.wizardSourceOcr}</p>
+              <h3 className="font-heading text-xl font-bold text-premium">{t.wizardBudgetDetailTitle}</h3>
+              <p className="mt-1 text-xs text-muted">{budgetImport.fileName || t.importedBudgetTitle}</p>
+            </div>
+            <button type="button" onClick={() => setBudgetDetailsOpen(false)} className="rounded-full border border-white/10 p-2 text-muted hover:text-premium" aria-label="Cerrar">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+            <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <h4 className="mb-3 text-sm font-bold text-premium">{t.wizardBudgetDetailSummary}</h4>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  [t.wizardBudgetTotal, formatBudgetAmount(budget.totalAmount)],
+                  [t.wizardBudgetDetailDate, budget.budgetDate || '---'],
+                  [t.importedConfidence, budget.impactConfidence],
+                  [t.wizardBudgetDetailStatus, budget.extractionStatus],
+                  [t.wizardBudgetDetailItems, String(budget.lineItems.length)],
+                  [t.wizardBudgetDetailVat, budget.vatIncluded === undefined ? '---' : budget.vatIncluded ? t.yes : t.no],
+                  [t.wizardBudgetDetailPostLetter, budget.estimatedPostBudgetLetter || '---'],
+                  [t.wizardBudgetDetailTargetReached, budget.targetReached === undefined ? '---' : budget.targetReached ? t.yes : t.no],
+                ].map(([label, value]) => (
+                  <div key={String(label)} className="rounded-lg bg-black/20 p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted">{label}</p>
+                    <p className="mt-1 break-words text-xs font-bold text-premium">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-muted">{budget.analysisSummary}</p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-sm font-bold text-premium">{t.wizardBudgetDetailMeasures}</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                {budget.detectedMeasures.map((measure) => (
+                  <div key={`${measure.category}-${measure.cost || 0}`} className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-[#00DC82]">{formatBudgetCategory(measure.category)}</p>
+                      <p className="font-bold text-premium">{formatBudgetAmount(measure.cost)}</p>
+                    </div>
+                    <p className="mt-2 text-muted">{measure.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {budget.lineItems.length > 0 && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-bold text-premium">{t.wizardBudgetDetailLineItems}</h4>
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full min-w-[760px] text-left text-xs">
+                    <thead className="bg-white/5 text-muted">
+                      <tr>
+                        <th className="p-2">{t.wizardCeeDetailName}</th>
+                        <th className="p-2">{t.wizardBudgetDetailQuantity}</th>
+                        <th className="p-2">{t.wizardBudgetDetailUnitPrice}</th>
+                        <th className="p-2">{t.wizardCeeDetailTotal}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {budget.lineItems.map((item, index) => (
+                        <tr key={`${item.description}-${index}`} className="border-t border-white/10">
+                          <td className="p-2 text-premium">{item.description}</td>
+                          <td className="p-2">{item.quantity ?? '---'} {item.unit || ''}</td>
+                          <td className="p-2">{formatBudgetAmount(item.unitPrice)}</td>
+                          <td className="p-2">{formatBudgetAmount(item.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {(budget.assumptions.length > 0 || budget.warnings.length > 0 || budget.missingMeasures.length > 0) && (
+              <section className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                  <p className="font-bold text-premium">{t.wizardBudgetDetailAssumptions}</p>
+                  {budget.assumptions.map((item) => <p key={item} className="mt-2 text-muted">{item}</p>)}
+                </div>
+                <div className="rounded-xl border border-[#FFB020]/20 bg-[#FFB020]/5 p-3 text-xs">
+                  <p className="font-bold text-premium">{t.wizardBudgetMissingMeasures}</p>
+                  <p className="mt-2 text-[#FFB020]">{budget.missingMeasures.map(formatBudgetCategory).join(', ') || '---'}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                  <p className="font-bold text-premium">{t.wizardBudgetDetailWarnings}</p>
+                  {[...budget.warnings, ...budgetImport.warnings].map((warning) => <p key={warning} className="mt-2 text-muted">{warning}</p>)}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCeeImportBlock = () => (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
       <div>
@@ -730,7 +867,16 @@ export default function AssessmentWizard() {
           {budgetImport.data.missingMeasures.length > 0 && (
             <p className="mt-2 text-[10px] text-[#FFB020]">{t.wizardBudgetMissingMeasures}: {budgetImport.data.missingMeasures.join(', ')}</p>
           )}
+          {budgetAppliedNotice && <p className="mt-2 rounded-lg border border-[#00DC82]/20 bg-[#00DC82]/10 px-2 py-1 text-[10px] font-semibold text-[#00DC82]">{t.wizardBudgetApplied}</p>}
           {budgetImport.warnings.map((warning) => <p key={warning} className="mt-1 text-[10px] text-[#FFB020]">{warning}</p>)}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={applyBudgetData} className="rounded-full bg-[#00DC82] px-3 py-1.5 text-[11px] font-bold text-[#0A0A0A]">
+              {t.wizardBudgetUseData}
+            </button>
+            <button type="button" onClick={() => setBudgetDetailsOpen(true)} className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-bold text-muted hover:text-premium">
+              {t.wizardBudgetReviewData}
+            </button>
+          </div>
         </div>
       )}
       {budgetImport.status === 'failed' && <p className="text-xs text-[#EF4444]">{budgetImport.error || t.wizardBudgetFailed}</p>}
@@ -1285,6 +1431,7 @@ export default function AssessmentWizard() {
         )}
       </form>
       {renderCeeDetailsModal()}
+      {renderBudgetDetailsModal()}
       </div>
     </div>
   );

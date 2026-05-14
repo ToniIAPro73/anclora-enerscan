@@ -4,12 +4,23 @@ import { classifyBudgetLineItems } from '@/lib/ingestion/budget-classifier';
 import { analyzeBudgetImpact } from '@/lib/ingestion/budget-impact-engine';
 
 export function parseCurrencyAmount(value: string): number | undefined {
-  const normalized = value
-    .replace(/\s/g, '')
-    .replace(/[€£]/g, '')
-    .replace(/\.(?=\d{3}(?:\D|$))/g, '')
-    .replace(',', '.')
-    .replace(/[^\d.-]/g, '');
+  const raw = value.replace(/\s/g, '').replace(/[€£]/g, '').replace(/[^\d,.-]/g, '');
+  const lastComma = raw.lastIndexOf(',');
+  const lastDot = raw.lastIndexOf('.');
+  let normalized = raw;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? ',' : '.';
+    const thousandSeparator = decimalSeparator === ',' ? '.' : ',';
+    normalized = raw
+      .replace(new RegExp(`\\${thousandSeparator}`, 'g'), '')
+      .replace(decimalSeparator, '.');
+  } else if (lastComma >= 0) {
+    normalized = /\d+,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+  } else if (lastDot >= 0) {
+    normalized = /\d+\.\d{1,2}$/.test(raw) ? raw : raw.replace(/\./g, '');
+  }
+
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
@@ -18,33 +29,81 @@ function isBudgetTotalLine(line: string): boolean {
   return /^(?:total|importe\s+total|total\s+presupuesto|a\s+pagar|base\s+imponible)\b/i.test(line.trim());
 }
 
+const AMOUNT_PATTERN = String.raw`\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?|\d+(?:[.,]\d{2})?`;
+const UNIT_PATTERN = String.raw`m2|m²|ml|m(?!\d)|ud\.?|uds\.?|und\.?|unidad|unidades|h|kg|kwp`;
+const QUANTITY_PATTERN = new RegExp(String.raw`\b(\d+(?:[,.]\d+)?)\s*(${UNIT_PATTERN})\b`, 'i');
+const UNIT_PRICE_PATTERN = new RegExp(String.raw`\b(${AMOUNT_PATTERN})\s*€\s*\/?\s*(${UNIT_PATTERN})\b`, 'i');
+
+function isTableNoise(line: string): boolean {
+  return /^(?:cantidad|precio|importe|resumen\s+por\s+cap[ií]tulos)\b/i.test(line.trim());
+}
+
 export function parseBudgetLineItems(text: string): BudgetLineItem[] {
-  return text
-    .split(/\r?\n|(?<=€)\s+(?=[A-ZÁÉÍÓÚÑ0-9])/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 8)
-    .filter((line) => !isBudgetTotalLine(line))
-    .map((line): BudgetLineItem | null => {
-      const totalMatch = line.match(/(\d{1,3}(?:\.\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€\s*$/);
-      if (!totalMatch) return null;
-      const total = parseCurrencyAmount(totalMatch[1]);
-      if (!total) return null;
-      const quantityMatch = line.match(/\b(\d+(?:[,.]\d+)?)\s*(m2|m²|ud|uds|unidad|unidades|h|kg|kwp)\b/i);
-      const unitPriceMatch = line.match(/\b(\d{1,3}(?:\.\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€\s*\/?\s*(m2|m²|ud|uds|unidad|unidades|h|kg|kwp)\b/i);
-      return {
-        description: line.replace(totalMatch[0], '').trim(),
-        quantity: quantityMatch ? parseCurrencyAmount(quantityMatch[1]) : undefined,
-        unit: quantityMatch?.[2],
-        unitPrice: unitPriceMatch ? parseCurrencyAmount(unitPriceMatch[1]) : undefined,
-        total,
-        confidence: 0.75,
-      } satisfies BudgetLineItem;
-    })
-    .filter((item): item is BudgetLineItem => item !== null);
+  const items: BudgetLineItem[] = [];
+  let pendingDescription = '';
+  let inSummary = false;
+
+  for (const rawLine of text.split(/\r?\n|(?<=€)\s+(?=[A-ZÁÉÍÓÚÑ])/)) {
+    const line = rawLine
+      .replace(/\bpartida\s+cantidad\s+precio\s+importe\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!line || line.length <= 2) continue;
+    if (/^resumen\s+por\s+cap[ií]tulos\b/i.test(line)) {
+      inSummary = true;
+      pendingDescription = '';
+      continue;
+    }
+    if (/^tipo\s+de\s+contrato\b/i.test(line)) inSummary = false;
+    if (inSummary || isTableNoise(line) || isBudgetTotalLine(line)) continue;
+
+    const totalMatch = line.match(new RegExp(String.raw`(${AMOUNT_PATTERN})\s*€\s*$`));
+    const quantityMatch = line.match(QUANTITY_PATTERN);
+
+    if (!totalMatch || !quantityMatch) {
+      if (!/[€]/.test(line) && !/^(?:presupuesto|cliente|direcci[oó]n|c[oó]digo postal|fecha|nota|desde\b|llame\b|hemos\b|de nuevo\b)/i.test(line)) {
+        pendingDescription = pendingDescription ? `${pendingDescription} ${line}` : line;
+      }
+      continue;
+    }
+
+    const total = parseCurrencyAmount(totalMatch[1]);
+    if (!total) {
+      pendingDescription = '';
+      continue;
+    }
+
+    const descriptionLine = line.replace(totalMatch[0], '').trim();
+    const unitPriceMatch = descriptionLine.match(UNIT_PRICE_PATTERN);
+    const currencyMatches = Array.from(descriptionLine.matchAll(new RegExp(String.raw`(${AMOUNT_PATTERN})\s*€(?:\s*\/?\s*(?:${UNIT_PATTERN}))?`, 'gi')));
+    const unitPrice = unitPriceMatch
+      ? parseCurrencyAmount(unitPriceMatch[1])
+      : currencyMatches.length > 0
+        ? parseCurrencyAmount(currencyMatches[currencyMatches.length - 1][1])
+        : undefined;
+    const description = `${pendingDescription} ${descriptionLine}`
+      .replace(QUANTITY_PATTERN, '')
+      .replace(UNIT_PRICE_PATTERN, '')
+      .replace(new RegExp(String.raw`\b${AMOUNT_PATTERN}\s*€(?:\s*\/?\s*(?:${UNIT_PATTERN}))?`, 'gi'), '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    items.push({
+      description: description || descriptionLine,
+      quantity: parseCurrencyAmount(quantityMatch[1]),
+      unit: quantityMatch[2].replace(/\.$/, ''),
+      unitPrice,
+      total,
+      confidence: pendingDescription ? 0.82 : 0.72,
+    });
+    pendingDescription = '';
+  }
+
+  return items;
 }
 
 export function detectBudgetTotal(text: string, lineItems: BudgetLineItem[] = []): number | undefined {
-  const totalMatch = text.match(/(?:TOTAL|IMPORTE\s+TOTAL|TOTAL\s+PRESUPUESTO|A\s+PAGAR|BASE\s+IMPONIBLE)[^\d]{0,40}(\d{1,3}(?:\.\d{3})*(?:,\d{2})|\d+(?:,\d{2})?)\s*€?/i);
+  const totalMatch = text.match(new RegExp(String.raw`(?:TOTAL|IMPORTE\s+TOTAL|TOTAL\s+PRESUPUESTO|A\s+PAGAR|BASE\s+IMPONIBLE)[^\d]{0,40}(${AMOUNT_PATTERN})\s*€?`, 'i'));
   if (totalMatch) return parseCurrencyAmount(totalMatch[1]);
   const sum = lineItems.reduce((total, item) => total + (item.total || 0), 0);
   return sum > 0 ? Number(sum.toFixed(2)) : undefined;
@@ -126,6 +185,7 @@ export function parseBudgetAnalysisText(text: string, input: {
     extractionStatus: extractionConfidence >= 0.65 ? 'PARSED' : 'NEEDS_REVIEW',
     extractionConfidence,
     providerName: legacy.providerName,
+    budgetDate: detectBudgetDate(text),
     totalAmount,
     currency: 'EUR',
     lineItems,
@@ -133,4 +193,33 @@ export function parseBudgetAnalysisText(text: string, input: {
     targetLetter: input.targetLetter,
     analysisSummary: impact.summary,
   };
+}
+
+function detectBudgetDate(text: string): string | undefined {
+  const spanishMonths: Record<string, string> = {
+    enero: '01',
+    febrero: '02',
+    marzo: '03',
+    abril: '04',
+    mayo: '05',
+    junio: '06',
+    julio: '07',
+    agosto: '08',
+    septiembre: '09',
+    setiembre: '09',
+    octubre: '10',
+    noviembre: '11',
+    diciembre: '12',
+  };
+  const longDate = text.match(/fecha:\s*(\d{1,2})\s+de\s+([a-záéíóú]+)\s+del?\s+(\d{4})/i);
+  if (longDate) {
+    const month = spanishMonths[longDate[2].toLowerCase()];
+    if (month) return `${longDate[3]}-${month}-${longDate[1].padStart(2, '0')}`;
+  }
+  const shortDate = text.match(/fecha:\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/i);
+  if (shortDate) {
+    const year = shortDate[3].length === 2 ? `20${shortDate[3]}` : shortDate[3];
+    return `${year}-${shortDate[2].padStart(2, '0')}-${shortDate[1].padStart(2, '0')}`;
+  }
+  return undefined;
 }
