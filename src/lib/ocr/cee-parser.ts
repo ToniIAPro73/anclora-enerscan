@@ -288,6 +288,7 @@ export function parseCeeText(text: string): CeeData {
   // Standard full length: 20 chars
   const cadastralMatch = cleanText.match(/Referencia\s+catastral\s*:\s*([A-Z0-9]+)/i) ||
                          cleanText.match(/Ref\.\s*Catastral\s*:\s*([A-Z0-9]+)/i) ||
+                         cleanText.match(/Referencia\/s\s+catastral\/es\s+([A-Z0-9]{14,20})/i) ||
                          cleanText.match(/Referencia\s+catastral\s+([A-Z0-9]{14,20})/i);
   if (cadastralMatch) {
     data.cadastralReference = cadastralMatch[1].toUpperCase();
@@ -346,6 +347,7 @@ export function parseCeeToCertificate(text: string, options: { sourceFormat?: En
     /superficie\s+construida(?:\s*\(m[²2]\))?\s*:?\s*(\d{1,5}(?:[.,]\d+)?)/i,
   ]);
   const yearMatch = firstMatch(cleanText, [
+    /a[nñ]o\s+construcci[oó]n\s*:?\s*(\d{4})/i,
     /a[nñ]o\s+de\s+construcci[oó]n\s*:?\s*(\d{4})/i,
     /construido\s+en\s+(\d{4})/i,
   ]);
@@ -357,6 +359,7 @@ export function parseCeeToCertificate(text: string, options: { sourceFormat?: En
     /tipo\s+de\s+edificio\s*:?\s*([A-ZÁÉÍÓÚÑa-záéíóúñ ]{3,50})/i,
   ]);
   const rcMatch = firstMatch(cleanText, [
+    /referencia\/s\s+catastral\/es\s*:?\s*([A-Z0-9]{14,20})/i,
     /referencia\s+catastral\s*:?\s*([A-Z0-9]{14,20})/i,
   ]);
   const postalMatch = cleanText.match(/\b(\d{5})\b/);

@@ -86,6 +86,7 @@ export default function AssessmentWizard() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [ceeImport, setCeeImport] = useState<ImportState<EnergyCertificateCEE>>({ status: 'idle', warnings: [] });
   const [ceeDetailsOpen, setCeeDetailsOpen] = useState(false);
+  const [ceeAppliedNotice, setCeeAppliedNotice] = useState(false);
   const [budgetImport, setBudgetImport] = useState<ImportState<RehabBudgetAnalysis>>({ status: 'idle', warnings: [] });
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -405,6 +406,7 @@ export default function AssessmentWizard() {
         data: result.certificate,
         warnings: result.warnings || [],
       });
+      setCeeAppliedNotice(false);
     } catch (error) {
       setCeeImport({
         status: 'failed',
@@ -423,6 +425,7 @@ export default function AssessmentWizard() {
     if (certificate.postalCode) setValue('zipcode', certificate.postalCode);
     if (certificate.globalLetter) setValue('targetLetter', certificate.globalLetter);
     setAreaNotice(Boolean(certificate.builtAreaM2 && !certificate.usefulAreaM2));
+    setCeeAppliedNotice(true);
   };
 
   const analyzeBudgetFile = async (file: File) => {
@@ -507,8 +510,8 @@ export default function AssessmentWizard() {
     const improvements = sections?.improvementMeasures || [];
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true">
-        <div className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
+      <div className="fixed inset-0 z-[9500] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-6 sm:px-4 sm:py-8" role="dialog" aria-modal="true">
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
           <div className="flex items-start justify-between gap-4 border-b border-white/10 p-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#00DC82]">{t.wizardCeeDetailSource}</p>
@@ -519,7 +522,7 @@ export default function AssessmentWizard() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="max-h-[calc(88vh-88px)] space-y-4 overflow-y-auto p-4">
+          <div className="max-h-[calc(100dvh-132px)] space-y-4 overflow-y-auto p-4">
             <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <h4 className="mb-3 text-sm font-bold text-premium">{t.wizardCeeDetailIdentification}</h4>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -644,6 +647,7 @@ export default function AssessmentWizard() {
             <span>{t.wizardCeeIssueDate}: <b className="text-premium">{ceeImport.data.issueDate || '---'}</b></span>
           </div>
           <p className="mt-2 text-[10px] text-[#FFB020]">{t.wizardCeeNeedsReview}</p>
+          {ceeAppliedNotice && <p className="mt-2 rounded-lg border border-[#00DC82]/20 bg-[#00DC82]/10 px-2 py-1 text-[10px] font-semibold text-[#00DC82]">{t.wizardCeeApplied}</p>}
           {ceeImport.warnings.map((warning) => <p key={warning} className="mt-1 text-[10px] text-[#FFB020]">{warning}</p>)}
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={applyCeeData} className="rounded-full bg-[#00DC82] px-3 py-1.5 text-[11px] font-bold text-[#0A0A0A]">

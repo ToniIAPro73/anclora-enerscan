@@ -53,6 +53,8 @@ describe('premium CEE parser', () => {
   it('extracts CEX annex data with habitable area and detailed sections', () => {
     const certificate = parseCeeToCertificate(`
       CALIFICACIÓN ENERGÉTICA OBTENIDA:
+      Año construcción 1983
+      Referencia/s catastral/es 0006310VK4700E0008ZW
       CONSUMO DE ENERGÍA EMISIONES DE DIÓXIDO DE PRIMARIA NO RENOVABLE CARBONO [kWh/m² año] [kgCO2/ m² año]
       A < 37.1 B 37.1-60.1 C 60.1-93.2 126.8 D D 93.2-143.3
       A < 8.4 B 8.4-13.6 C 13.6-21.1 24.8 D D 21.1-32.4
@@ -66,6 +68,8 @@ describe('premium CEE parser', () => {
     `);
 
     expect(certificate.usefulAreaM2).toBe(49);
+    expect(certificate.yearBuilt).toBe(1983);
+    expect(certificate.cadastralReference).toBe('0006310VK4700E0008ZW');
     expect(certificate.nonRenewableEPKwhM2Year).toBe(126.8);
     expect(certificate.emissionsKgCO2M2Year).toBe(24.8);
     expect(certificate.extractedSections?.envelope?.opaqueElements).toHaveLength(1);
