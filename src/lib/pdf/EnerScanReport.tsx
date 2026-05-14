@@ -566,7 +566,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         )}
       </View>
 
-      {(data.energyCertificates?.length || data.rehabBudgets?.length || data.dataFieldSources?.length) && (
+      {Boolean(data.energyCertificates?.length || data.rehabBudgets?.length || data.dataFieldSources?.length) && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.dataSourcesTitle}</Text>
           {(data.dataFieldSources || []).slice(0, 8).map((field, index) => (
