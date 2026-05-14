@@ -516,8 +516,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const subsidies = localizeSubsidies(data.subsidies || [], language);
   const attachments = data.attachments || [];
   const imageAttachments = attachments.filter((attachment) => attachment.previewDataUri);
-  const isPdfAttachment = (attachment: AssessmentAttachment) => attachment.type === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf');
-  const isCeeAttachment = (attachment: AssessmentAttachment) => attachment.category === 'CEE' || isPdfAttachment(attachment);
+  const isCeeAttachment = (attachment: AssessmentAttachment) => attachment.category === 'CEE';
   const ceeAttachments = attachments.filter(isCeeAttachment);
   const otherAttachments = attachments.filter((attachment) => !attachment.previewDataUri && !isCeeAttachment(attachment));
   const imagePages = chunkPairs(imageAttachments);

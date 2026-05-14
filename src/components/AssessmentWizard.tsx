@@ -54,8 +54,15 @@ type UploadedAttachment = {
   url: string;
 };
 
+type SourceDocumentCategory = 'CEE' | 'BUDGET';
+
+type UploadedSourceDocument = UploadedAttachment & {
+  category: SourceDocumentCategory;
+};
+
 type ImportState<T> = {
   fileName?: string;
+  sourceFile?: File;
   data?: T;
   warnings: string[];
   error?: string;
@@ -415,6 +422,7 @@ export default function AssessmentWizard() {
       setCeeImport({
         status: 'ready',
         fileName: file.name,
+        sourceFile: file,
         data: result.certificate,
         warnings: result.warnings || [],
       });
@@ -458,6 +466,7 @@ export default function AssessmentWizard() {
       setBudgetImport({
         status: 'ready',
         fileName: file.name,
+        sourceFile: file,
         data: result.budget,
         warnings: result.warnings || [],
       });
@@ -885,13 +894,32 @@ export default function AssessmentWizard() {
     };
   };
 
-  const uploadAttachments = async (): Promise<UploadedAttachment[]> => {
-    const uploaded: UploadedAttachment[] = [];
-    const batchId = crypto.randomUUID();
+  const getSourceDocuments = () => [
+    ...(ceeImport.status === 'ready' && ceeImport.data && ceeImport.sourceFile
+      ? [{ file: ceeImport.sourceFile, category: 'CEE' as const }]
+      : []),
+    ...(budgetImport.status === 'ready' && budgetImport.data && budgetImport.sourceFile
+      ? [{ file: budgetImport.sourceFile, category: 'BUDGET' as const }]
+      : []),
+  ];
 
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const pathname = `assessment-drafts/${batchId}/${index + 1}-${sanitizeFilename(file.name)}`;
+  const uploadAttachments = async (): Promise<{
+    uploadedAttachments: UploadedAttachment[];
+    uploadedSourceDocuments: UploadedSourceDocument[];
+  }> => {
+    const uploadedAttachments: UploadedAttachment[] = [];
+    const uploadedSourceDocuments: UploadedSourceDocument[] = [];
+    const batchId = crypto.randomUUID();
+    const uploadItems = [
+      ...files.map((file, index) => ({ file, index, kind: 'photo' as const })),
+      ...getSourceDocuments().map((source, index) => ({ ...source, index, kind: 'source' as const })),
+    ];
+
+    for (let index = 0; index < uploadItems.length; index += 1) {
+      const item = uploadItems[index];
+      const file = item.file;
+      const prefix = item.kind === 'source' ? `source-${item.category.toLowerCase()}` : 'photo';
+      const pathname = `assessment-drafts/${batchId}/${prefix}-${item.index + 1}-${sanitizeFilename(file.name)}`;
       const blob = await upload(pathname, file, {
         access: 'private',
         handleUploadUrl: '/api/blob/upload',
@@ -903,29 +931,40 @@ export default function AssessmentWizard() {
           size: file.size,
         }),
         onUploadProgress: ({ percentage }) => {
-          setUploadProgress(Math.round(((index + percentage / 100) / files.length) * 100));
+          setUploadProgress(Math.round(((index + percentage / 100) / uploadItems.length) * 100));
         },
       });
 
-      uploaded.push({
+      const uploaded = {
         name: file.name,
         type: file.type || blob.contentType || 'application/octet-stream',
         size: file.size,
         pathname: blob.pathname,
         url: blob.url,
-      });
+      };
+
+      if (item.kind === 'source') {
+        uploadedSourceDocuments.push({ ...uploaded, category: item.category });
+      } else {
+        uploadedAttachments.push(uploaded);
+      }
     }
 
-    return uploaded;
+    return { uploadedAttachments, uploadedSourceDocuments };
   };
 
-  const submitAssessmentJson = async (data: AssessmentFormValues, uploadedAttachments: UploadedAttachment[]) => {
+  const submitAssessmentJson = async (
+    data: AssessmentFormValues,
+    uploadedAttachments: UploadedAttachment[],
+    uploadedSourceDocuments: UploadedSourceDocument[]
+  ) => {
     return fetch('/api/assessment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...data,
         uploadedAttachments,
+        uploadedSourceDocuments,
         cadastralData: confirmedMatch,
         energyCertificate: ceeImport.data,
         rehabBudget: budgetImport.data,
@@ -942,6 +981,12 @@ export default function AssessmentWizard() {
       }
     });
     files.forEach((file) => formData.append('attachments', file));
+    if (ceeImport.status === 'ready' && ceeImport.data && ceeImport.sourceFile) {
+      formData.append('ceeSourceDocument', ceeImport.sourceFile);
+    }
+    if (budgetImport.status === 'ready' && budgetImport.data && budgetImport.sourceFile) {
+      formData.append('budgetSourceDocument', budgetImport.sourceFile);
+    }
     if (confirmedMatch) {
       formData.append('cadastralData', JSON.stringify(confirmedMatch));
     }
@@ -959,22 +1004,23 @@ export default function AssessmentWizard() {
   };
 
   const canUseDirectUploadFallback = () =>
-    files.reduce((total, file) => total + file.size, 0) <= DIRECT_UPLOAD_FALLBACK_LIMIT;
+    [...files, ...getSourceDocuments().map((source) => source.file)].reduce((total, file) => total + file.size, 0) <= DIRECT_UPLOAD_FALLBACK_LIMIT;
 
   const onSubmit = async (data: AssessmentFormValues) => {
     setIsSubmitting(true);
     setFileError(null);
     setFormError(null);
-    setUploadProgress(files.length > 0 ? 0 : null);
+    const sourceDocuments = getSourceDocuments();
+    setUploadProgress(files.length + sourceDocuments.length > 0 ? 0 : null);
 
     try {
       let response: Response;
-      if (files.length === 0) {
-        response = await submitAssessmentJson(data, []);
+      if (files.length === 0 && sourceDocuments.length === 0) {
+        response = await submitAssessmentJson(data, [], []);
       } else {
         try {
-          const uploadedAttachments = await uploadAttachments();
-          response = await submitAssessmentJson(data, uploadedAttachments);
+          const { uploadedAttachments, uploadedSourceDocuments } = await uploadAttachments();
+          response = await submitAssessmentJson(data, uploadedAttachments, uploadedSourceDocuments);
         } catch (uploadError) {
           if (!canUseDirectUploadFallback()) throw uploadError;
           setUploadProgress(null);
