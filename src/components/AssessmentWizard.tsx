@@ -85,6 +85,7 @@ export default function AssessmentWizard() {
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [ceeImport, setCeeImport] = useState<ImportState<EnergyCertificateCEE>>({ status: 'idle', warnings: [] });
+  const [ceeDetailsOpen, setCeeDetailsOpen] = useState(false);
   const [budgetImport, setBudgetImport] = useState<ImportState<RehabBudgetAnalysis>>({ status: 'idle', warnings: [] });
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -456,6 +457,156 @@ export default function AssessmentWizard() {
     }
   };
 
+  const formatCeeMetric = (metric?: { value?: number; letter?: string; unit?: string }) => {
+    if (!metric || (metric.value === undefined && !metric.letter)) return '---';
+    return `${metric.value ?? '---'} ${metric.unit || ''}${metric.letter ? ` · ${metric.letter}` : ''}`.trim();
+  };
+
+  const renderMetricRows = (
+    title: string,
+    partial?: EnergyCertificateCEE['extractedSections'] extends infer T
+      ? T extends { indicators?: infer I }
+        ? I extends Record<string, infer M>
+          ? M
+          : never
+        : never
+      : never
+  ) => {
+    if (!partial) return null;
+    const rows = [
+      [t.wizardCeeDetailTotal, partial.total],
+      [t.wizardCeeDetailHeating, partial.heating],
+      [t.wizardCeeDetailCooling, partial.cooling],
+      [t.wizardCeeDetailDhw, partial.dhw],
+      [t.wizardCeeDetailLighting, partial.lighting],
+    ].filter(([, value]) => value);
+
+    if (rows.length === 0) return null;
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+        <h4 className="mb-2 text-xs font-bold uppercase text-[#00DC82]">{title}</h4>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {rows.map(([label, value]) => (
+            <div key={String(label)} className="rounded-lg bg-white/5 p-2">
+              <p className="text-[10px] font-bold uppercase text-muted">{label as string}</p>
+              <p className="text-xs font-bold text-premium">{formatCeeMetric(value as { value?: number; letter?: string; unit?: string })}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCeeDetailsModal = () => {
+    const certificate = ceeImport.data;
+    if (!ceeDetailsOpen || !certificate) return null;
+    const sections = certificate.extractedSections;
+    const opaqueElements = sections?.envelope?.opaqueElements || [];
+    const openings = sections?.envelope?.openings || [];
+    const systems = sections?.systems || [];
+    const improvements = sections?.improvementMeasures || [];
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true">
+        <div className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#101512] shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 p-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#00DC82]">{t.wizardCeeDetailSource}</p>
+              <h3 className="font-heading text-xl font-bold text-premium">{t.wizardCeeDetailTitle}</h3>
+              <p className="mt-1 text-xs text-muted">{ceeImport.fileName || t.wizardSourceCee}</p>
+            </div>
+            <button type="button" onClick={() => setCeeDetailsOpen(false)} className="rounded-full border border-white/10 p-2 text-muted hover:text-premium" aria-label="Cerrar">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="max-h-[calc(88vh-88px)] space-y-4 overflow-y-auto p-4">
+            <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <h4 className="mb-3 text-sm font-bold text-premium">{t.wizardCeeDetailIdentification}</h4>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  [t.wizardCeeProgram, certificate.sourceProgram || 'UNKNOWN'],
+                  [t.wizardCeeEnergyLetter, certificate.globalLetter || '---'],
+                  [t.wizardCeeUsefulArea, certificate.usefulAreaM2 ? `${certificate.usefulAreaM2} ${t.unitArea}` : '---'],
+                  [t.wizardCeeDetailClimateZone, certificate.climateZone || '---'],
+                  [t.wizardCeeDetailYearBuilt, certificate.yearBuilt || '---'],
+                  [t.wizardZipcode, certificate.postalCode || '---'],
+                  [t.cadastralReference, certificate.cadastralReference || '---'],
+                  [t.wizardCeeIssueDate, certificate.issueDate || '---'],
+                ].map(([label, value]) => (
+                  <div key={String(label)} className="rounded-lg bg-black/20 p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted">{label}</p>
+                    <p className="mt-1 break-words text-xs font-bold text-premium">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {certificate.addressLine && <p className="mt-3 text-xs text-muted">{certificate.addressLine}</p>}
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-sm font-bold text-premium">{t.wizardCeeDetailRating}</h4>
+              <div className="grid gap-3 lg:grid-cols-3">
+                {renderMetricRows(t.wizardCeeNonRenewableEnergy, sections?.indicators?.primaryEnergy)}
+                {renderMetricRows(t.wizardCeeEmissions, sections?.indicators?.emissions)}
+                {renderMetricRows(t.wizardCeeDetailDemand, sections?.indicators?.demand)}
+              </div>
+            </section>
+
+            {(opaqueElements.length > 0 || openings.length > 0) && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-bold text-premium">{t.wizardCeeDetailEnvelope}</h4>
+                {opaqueElements.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border border-white/10">
+                    <table className="w-full min-w-[560px] text-left text-xs">
+                      <thead className="bg-white/5 text-muted"><tr><th className="p-2">{t.wizardCeeDetailName}</th><th className="p-2">{t.wizardPropertyType}</th><th className="p-2">{t.wizardCeeDetailArea}</th><th className="p-2">{t.wizardCeeDetailTransmittance}</th><th className="p-2">{t.wizardCeeDetailSource}</th></tr></thead>
+                      <tbody>{opaqueElements.map((item) => <tr key={`${item.name}-${item.areaM2}`} className="border-t border-white/10"><td className="p-2 text-premium">{item.name}</td><td className="p-2">{item.type}</td><td className="p-2">{item.areaM2 ?? '---'}</td><td className="p-2">{item.transmittanceWm2K ?? '---'}</td><td className="p-2">{item.source || '---'}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                )}
+                {openings.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border border-white/10">
+                    <table className="w-full min-w-[640px] text-left text-xs">
+                      <thead className="bg-white/5 text-muted"><tr><th className="p-2">{t.wizardCeeDetailName}</th><th className="p-2">{t.wizardCeeDetailArea}</th><th className="p-2">{t.wizardCeeDetailTransmittance}</th><th className="p-2">{t.wizardCeeDetailSolarFactor}</th><th className="p-2">{t.wizardCeeDetailSource}</th></tr></thead>
+                      <tbody>{openings.map((item) => <tr key={`${item.name}-${item.areaM2}`} className="border-t border-white/10"><td className="p-2 text-premium">{item.name}</td><td className="p-2">{item.areaM2 ?? '---'}</td><td className="p-2">{item.transmittanceWm2K ?? '---'}</td><td className="p-2">{item.solarFactor ?? '---'}</td><td className="p-2">{item.source || '---'}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {systems.length > 0 && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-bold text-premium">{t.wizardCeeDetailSystems}</h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {systems.map((system, index) => (
+                    <div key={`${system.section}-${index}`} className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                      <p className="font-bold text-[#00DC82]">{system.name}</p>
+                      <p className="mt-1 text-premium">{system.type || '---'}</p>
+                      <p className="mt-1 text-muted">{system.energyType || '---'} · {system.seasonalEfficiencyPct ?? system.nominalPowerKw ?? '---'}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {improvements.length > 0 && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-bold text-premium">{t.wizardCeeDetailImprovements}</h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {improvements.map((item) => (
+                    <div key={item.title} className="rounded-xl border border-[#FFB020]/20 bg-[#FFB020]/5 p-3 text-xs">
+                      <p className="font-bold text-premium">{item.title}</p>
+                      <p className="mt-1 text-[#FFB020]">{item.costEstimateEur ? `${item.costEstimateEur.toLocaleString('es-ES')} EUR` : '---'}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCeeImportBlock = () => (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
       <div>
@@ -498,7 +649,7 @@ export default function AssessmentWizard() {
             <button type="button" onClick={applyCeeData} className="rounded-full bg-[#00DC82] px-3 py-1.5 text-[11px] font-bold text-[#0A0A0A]">
               {t.wizardCeeUseData}
             </button>
-            <button type="button" className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-bold text-muted">
+            <button type="button" onClick={() => setCeeDetailsOpen(true)} className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-bold text-muted hover:text-premium">
               {t.wizardCeeReviewManually}
             </button>
           </div>
@@ -1083,6 +1234,7 @@ export default function AssessmentWizard() {
           </div>
         )}
       </form>
+      {renderCeeDetailsModal()}
       </div>
     </div>
   );

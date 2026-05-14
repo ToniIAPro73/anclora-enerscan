@@ -16,6 +16,64 @@ export type ExtractedField<T = unknown> = {
   appliedToWizard?: boolean;
 };
 
+export type CeeEnergyMetric = {
+  value?: number;
+  letter?: EnergyLetter;
+  unit: string;
+};
+
+export type CeePartialMetric = {
+  heating?: CeeEnergyMetric;
+  cooling?: CeeEnergyMetric;
+  dhw?: CeeEnergyMetric;
+  lighting?: CeeEnergyMetric;
+  total?: CeeEnergyMetric;
+};
+
+export type CeeEnvelopeElement = {
+  name: string;
+  type: string;
+  areaM2?: number;
+  transmittanceWm2K?: number;
+  solarFactor?: number;
+  source?: string;
+};
+
+export type CeeThermalSystem = {
+  section: 'HEATING' | 'COOLING' | 'DHW';
+  name: string;
+  type?: string;
+  nominalPowerKw?: number;
+  seasonalEfficiencyPct?: number;
+  energyType?: string;
+  source?: string;
+};
+
+export type CeeImprovementMeasure = {
+  title: string;
+  primaryEnergyKwhM2Year?: number;
+  emissionsKgCO2M2Year?: number;
+  costEstimateEur?: number;
+  summary?: string;
+};
+
+export type CeeExtractedSections = {
+  envelope?: {
+    opaqueElements: CeeEnvelopeElement[];
+    openings: CeeEnvelopeElement[];
+  };
+  systems?: CeeThermalSystem[];
+  indicators?: {
+    primaryEnergy?: CeePartialMetric;
+    emissions?: CeePartialMetric;
+    demand?: CeePartialMetric;
+    finalEnergy?: CeePartialMetric;
+  };
+  improvementMeasures?: CeeImprovementMeasure[];
+  visitDate?: string;
+  technicianComments?: string;
+};
+
 export type EnergyCertificateCEE = {
   sourceProgram?: 'CE3X' | 'HULC' | 'CERMA' | 'UNKNOWN';
   sourceFormat: 'PDF_TEXT' | 'PDF_OCR' | 'XML';
@@ -40,6 +98,7 @@ export type EnergyCertificateCEE = {
   coolingDemandKwhM2Year?: number;
   acsDemandKwhM2Year?: number;
   recommendations?: Array<{ title?: string; rawText: string; category?: string }>;
+  extractedSections?: CeeExtractedSections;
   rawTextHash?: string;
   rawXmlStored?: boolean;
   extractedFields?: ExtractedField[];

@@ -1,16 +1,23 @@
 import crypto from 'crypto';
 import type { CeeData } from './types';
-import type { EnergyCertificateCEE, EnergyLetter, ExtractedField } from '@/lib/ingestion/types';
+import type {
+  CeeEnergyMetric,
+  CeeExtractedSections,
+  CeePartialMetric,
+  CeeThermalSystem,
+  EnergyCertificateCEE,
+  EnergyLetter,
+  ExtractedField,
+} from '@/lib/ingestion/types';
 
 export function parseSpanishNumber(value: string): number | undefined {
   if (!value) return undefined;
-  const firstNumber = value.match(/-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:[.,]\d+)?/);
+  const firstNumber = value.match(/-?\d[\d.]*,\d+|-?\d[\d,]*\.\d+|-?\d+/);
   if (!firstNumber) return undefined;
-  const normalized = firstNumber[0]
-    .replace(/\s/g, '')
-    .replace(/\.(?=\d{3}(?:\D|$))/g, '')
-    .replace(',', '.')
-    .replace(/[^\d.-]/g, '');
+  const raw = firstNumber[0].replace(/\s/g, '');
+  const normalized = raw.includes(',')
+    ? raw.replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.').replace(/[^\d.-]/g, '')
+    : raw.replace(/,(?=\d{3}(?:\D|$))/g, '').replace(/[^\d.-]/g, '');
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
@@ -95,6 +102,149 @@ function extractedField<T>(
   }];
 }
 
+function metric(value: number | undefined, letter: EnergyLetter | undefined, unit: string): CeeEnergyMetric | undefined {
+  if (value === undefined && !letter) return undefined;
+  return { value, letter, unit };
+}
+
+function parseLetter(value: string | undefined): EnergyLetter | undefined {
+  const normalized = value?.trim().toUpperCase();
+  return normalized && /^[A-G]$/.test(normalized) ? normalized as EnergyLetter : undefined;
+}
+
+function parseFirstGlobalRatings(text: string) {
+  const match = text.match(
+    /CALIFICACI[ÓO]N\s+ENERG[ÉE]TICA\s+OBTENIDA:[\s\S]{0,900}?C\s+\d{1,4}(?:[.,]\d+)?-\d{1,4}(?:[.,]\d+)?\s+(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\2[\s\S]{0,280}?C\s+\d{1,4}(?:[.,]\d+)?-\d{1,4}(?:[.,]\d+)?\s+(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\4/i
+  );
+  if (!match) return {};
+  return {
+    primaryEnergy: parseEnergyIntensity(match[1]),
+    primaryLetter: parseLetter(match[2]),
+    emissions: parseEmissions(match[3]),
+    emissionsLetter: parseLetter(match[4]),
+  };
+}
+
+function parseEnergySections(text: string): CeeExtractedSections['indicators'] {
+  const emissionsHeatingAcs = text.match(/Emisiones\s+calefacci[oó]n\s+\[kgCO2\/m²\s+año\]\s+([A-G])\s+Emisiones\s+ACS\s+\[kgCO2\/m²\s+año\]\s+([A-G])\s+(\d{1,4}(?:[.,]\d+)?)\s+(\d{1,4}(?:[.,]\d+)?)/i);
+  const emissionsCooling = text.match(/Emisiones\s+globales\s+\[kgCO2\/m²\s+año\]\s+Emisiones\s+refrigeraci[oó]n\s+\[kgCO2\/m²\s+año\]\s+([A-G])\s+Emisiones\s+iluminaci[oó]n[\s\S]{0,80}?-\s+(\d{1,4}(?:[.,]\d+)?)/i);
+  const emissionsGlobal = text.match(/INDICADOR\s+GLOBAL[\s\S]{0,220}?C\s+\d{1,4}(?:[.,]\d+)?-\d{1,4}(?:[.,]\d+)?\s+(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\2/i);
+
+  const primaryHeatingAcs = text.match(/Energ[ií]a\s+primaria\s+calefacci[oó]n\s+\[kWh\/m²año\]\s+([A-G])\s+Energ[ií]a\s+primaria\s+ACS\s+\[kWh\/m²\s+año\]\s+([A-G])\s+(\d{1,4}(?:[.,]\d+)?)\s+(\d{1,4}(?:[.,]\d+)?)/i);
+  const primaryCooling = text.match(/Consumo\s+global\s+de\s+energ[ií]a\s+primaria\s+no\s+renovable\s+\[kWh\/m²\s+año\]\s+Energ[ií]a\s+primaria\s+refrigeraci[oó]n\s+\[kWh\/m²\s+año\]\s+([A-G])[\s\S]{0,120}?(\d{1,4}(?:[.,]\d+)?)/i);
+  const primaryGlobal = text.match(/2\.\s+CALIFICACI[ÓO]N\s+ENERG[ÉE]TICA[\s\S]{0,500}?C\s+\d{1,4}(?:[.,]\d+)?-\d{1,4}(?:[.,]\d+)?\s+(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\2/i);
+
+  const demand = text.match(/DEMANDA\s+DE\s+CALEFACCI[ÓO]N\s+DEMANDA\s+DE\s+REFRIGERACI[ÓO]N[\s\S]{0,220}?(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\2[\s\S]{0,220}?(\d{1,4}(?:[.,]\d+)?)\s+([A-G])\s+\4/i);
+
+  const indicators: CeeExtractedSections['indicators'] = {};
+  const emissions: CeePartialMetric = {
+    total: metric(parseEmissions(emissionsGlobal?.[1] || ''), parseLetter(emissionsGlobal?.[2]), 'kgCO2/m² año'),
+    heating: metric(parseEmissions(emissionsHeatingAcs?.[3] || ''), parseLetter(emissionsHeatingAcs?.[1]), 'kgCO2/m² año'),
+    dhw: metric(parseEmissions(emissionsHeatingAcs?.[4] || ''), parseLetter(emissionsHeatingAcs?.[2]), 'kgCO2/m² año'),
+    cooling: metric(parseEmissions(emissionsCooling?.[2] || ''), parseLetter(emissionsCooling?.[1]), 'kgCO2/m² año'),
+  };
+  const primaryEnergy: CeePartialMetric = {
+    total: metric(parseEnergyIntensity(primaryGlobal?.[1] || ''), parseLetter(primaryGlobal?.[2]), 'kWh/m² año'),
+    heating: metric(parseEnergyIntensity(primaryHeatingAcs?.[3] || ''), parseLetter(primaryHeatingAcs?.[1]), 'kWh/m² año'),
+    dhw: metric(parseEnergyIntensity(primaryHeatingAcs?.[4] || ''), parseLetter(primaryHeatingAcs?.[2]), 'kWh/m² año'),
+    cooling: metric(parseEnergyIntensity(primaryCooling?.[2] || ''), parseLetter(primaryCooling?.[1]), 'kWh/m² año'),
+  };
+  const demandMetrics: CeePartialMetric = {
+    heating: metric(parseEnergyIntensity(demand?.[1] || ''), parseLetter(demand?.[2]), 'kWh/m² año'),
+    cooling: metric(parseEnergyIntensity(demand?.[3] || ''), parseLetter(demand?.[4]), 'kWh/m² año'),
+  };
+
+  if (Object.values(emissions).some(Boolean)) indicators.emissions = emissions;
+  if (Object.values(primaryEnergy).some(Boolean)) indicators.primaryEnergy = primaryEnergy;
+  if (Object.values(demandMetrics).some(Boolean)) indicators.demand = demandMetrics;
+  return indicators;
+}
+
+function parseEnvelopeSections(text: string): CeeExtractedSections['envelope'] {
+  const opaqueElements = Array.from(text.matchAll(/\b([A-Z]\s+[A-Z]\s+\d{2})\s+(Fachada|Cubierta|Suelo|Medianera)\s+(\d{1,4}(?:[.,]\d+)?)\s+(\d{1,3}(?:[.,]\d+)?)\s+(Estimad[ao]s?|Conocid[ao]s?)/gi))
+    .map((match) => ({
+      name: match[1].replace(/\s+/g, ' '),
+      type: match[2],
+      areaM2: parseAreaM2(match[3]),
+      transmittanceWm2K: parseSpanishNumber(match[4]),
+      source: match[5],
+    }));
+
+  const openings = Array.from(text.matchAll(/\b([A-Z]{1,2}\s+\d+\s+[A-ZÁÉÍÓÚÑ ]{3,30})\s+Hueco\s+(\d{1,4}(?:[.,]\d+)?)\s+(\d{1,3}(?:[.,]\d+)?)\s+(\d{1,2}(?:[.,]\d+)?)\s+(Estimad[ao]s?)\s+(Estimad[ao]s?)/gi))
+    .slice(0, 20)
+    .map((match) => ({
+      name: match[1].replace(/\s+/g, ' ').trim(),
+      type: 'Hueco',
+      areaM2: parseAreaM2(match[2]),
+      transmittanceWm2K: parseSpanishNumber(match[3]),
+      solarFactor: parseSpanishNumber(match[4]),
+      source: `${match[5]} / ${match[6]}`,
+    }));
+
+  return opaqueElements.length > 0 || openings.length > 0 ? { opaqueElements, openings } : undefined;
+}
+
+function parseThermalSystems(text: string): CeeThermalSystem[] | undefined {
+  const systems: CeeThermalSystem[] = [];
+  const heatPump = text.match(/Calefacci[oó]n\s+y\s+refrigeraci[oó]n\s+(Bomba\s+de\s+Calor[^0-9]+)\s+(\d{1,4}(?:[.,]\d+)?)\s+Electricidad\s+(Estimad[ao])/i);
+  if (heatPump) {
+    systems.push({
+      section: 'HEATING',
+      name: 'Calefacción y refrigeración',
+      type: heatPump[1].trim(),
+      seasonalEfficiencyPct: parseSpanishNumber(heatPump[2]),
+      energyType: 'Electricidad',
+      source: heatPump[3],
+    });
+    systems.push({
+      section: 'COOLING',
+      name: 'Calefacción y refrigeración',
+      type: heatPump[1].trim(),
+      seasonalEfficiencyPct: parseSpanishNumber(heatPump[2]),
+      energyType: 'Electricidad',
+      source: heatPump[3],
+    });
+  }
+  const boiler = text.match(/Calefacci[oó]n\s+y\s+ACS\s+(Caldera\s+Est[aá]ndar)\s+(\d{1,4}(?:[.,]\d+)?)\s+(\d{1,4}(?:[.,]\d+)?)\s+Gas\s+Natural\s+(Estimad[ao])/i);
+  if (boiler) {
+    systems.push({
+      section: 'DHW',
+      name: 'Calefacción y ACS',
+      type: boiler[1],
+      nominalPowerKw: parseSpanishNumber(boiler[2]),
+      seasonalEfficiencyPct: parseSpanishNumber(boiler[3]),
+      energyType: 'Gas Natural',
+      source: boiler[4],
+    });
+  }
+  return systems.length > 0 ? systems : undefined;
+}
+
+function parseImprovementMeasures(text: string): CeeExtractedSections['improvementMeasures'] {
+  return Array.from(text.matchAll(/DESCRIPCI[ÓO]N\s+DE\s+LA\s+MEDIDA\s+DE\s+MEJORA[\s\S]{0,260}?Caracter[ií]sticas[^)]*\)\s+(.+?)\s+Coste\s+estimado\s+de\s+la\s+medida\s+(\d{1,6}(?:[.,]\d+)?)\s*€/gi))
+    .slice(0, 6)
+    .map((match) => ({
+      title: match[1].replace(/\s+/g, ' ').trim(),
+      costEstimateEur: parseSpanishNumber(match[2]),
+      summary: match[1].replace(/\s+/g, ' ').trim(),
+    }));
+}
+
+function parseExtractedSections(text: string): CeeExtractedSections | undefined {
+  const sections: CeeExtractedSections = {
+    envelope: parseEnvelopeSections(text),
+    systems: parseThermalSystems(text),
+    indicators: parseEnergySections(text),
+    improvementMeasures: parseImprovementMeasures(text),
+    visitDate: parseDate(firstMatch(text, [/Fecha\s+de\s+realizaci[oó]n\s+de\s+la\s+visita\s+del\s+t[eé]cnico\s+certificador\s+(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i])?.[1] || ''),
+    technicianComments: firstMatch(text, [/COMENTARIOS\s+DEL\s+T[EÉ]CNICO\s+CERTIFICADOR\s+(.+?)\s+DOCUMENTACION\s+ADJUNTA/i])?.[1]?.trim(),
+  };
+
+  return sections.envelope || sections.systems?.length || sections.indicators || sections.improvementMeasures?.length
+    ? sections
+    : undefined;
+}
+
 export function parseCeeText(text: string): CeeData {
   const data: CeeData = {};
   const rawMatches: Record<string, string> = {};
@@ -175,7 +325,8 @@ export function parseCeeToCertificate(text: string, options: { sourceFormat?: En
   const cleanText = text.replace(/\s+/g, ' ').trim();
   const rawTextHash = crypto.createHash('sha256').update(cleanText).digest('hex');
   const sourceProgram = detectCertificateProgram(cleanText);
-  const globalLetter = parseEnergyLetter(cleanText);
+  const globalRatings = parseFirstGlobalRatings(cleanText);
+  const globalLetter = globalRatings.primaryLetter || parseEnergyLetter(cleanText);
 
   const primaryEnergyMatch = firstMatch(cleanText, [
     /energ[ií]a\s+primaria\s+no\s+renovable[\s\S]{0,80}?(\d{1,4}(?:[.,]\d+)?)/i,
@@ -186,8 +337,10 @@ export function parseCeeToCertificate(text: string, options: { sourceFormat?: En
     /kg\s*co2[^\]]*\]\s*(\d{1,4}(?:[.,]\d+)?)/i,
   ]);
   const usefulAreaMatch = firstMatch(cleanText, [
-    /superficie\s+[uú]til(?:\s+habitable)?(?:\s*\(m[²2]\))?\s*:?\s*(\d{1,5}(?:[.,]\d+)?)/i,
+    /superficie\s+habitable\s*\[[^\]]*m[²2][^\]]*\]\s*(\d{1,5}(?:[.,]\d+)?)/i,
     /superficie\s+habitable(?:\s*\(m[²2]\))?\s*:?\s*(\d{1,5}(?:[.,]\d+)?)/i,
+    /superficie\s+[uú]til\s+habitable\s*\[[^\]]*m[²2][^\]]*\]\s*(\d{1,5}(?:[.,]\d+)?)/i,
+    /superficie\s+[uú]til(?:\s+habitable)?(?:\s*\(m[²2]\))?\s*:?\s*(\d{1,5}(?:[.,]\d+)?)/i,
   ]);
   const builtAreaMatch = firstMatch(cleanText, [
     /superficie\s+construida(?:\s*\(m[²2]\))?\s*:?\s*(\d{1,5}(?:[.,]\d+)?)/i,
@@ -247,12 +400,13 @@ export function parseCeeToCertificate(text: string, options: { sourceFormat?: En
     usefulAreaM2: usefulAreaMatch ? parseAreaM2(usefulAreaMatch[1]) : undefined,
     builtAreaM2: builtAreaMatch ? parseAreaM2(builtAreaMatch[1]) : undefined,
     globalLetter,
-    nonRenewableEPKwhM2Year: primaryEnergyMatch ? parseEnergyIntensity(primaryEnergyMatch[1]) : undefined,
-    emissionsKgCO2M2Year: emissionsMatch ? parseEmissions(emissionsMatch[1]) : undefined,
+    nonRenewableEPKwhM2Year: globalRatings.primaryEnergy ?? (primaryEnergyMatch ? parseEnergyIntensity(primaryEnergyMatch[1]) : undefined),
+    emissionsKgCO2M2Year: globalRatings.emissions ?? (emissionsMatch ? parseEmissions(emissionsMatch[1]) : undefined),
     heatingDemandKwhM2Year: heatingDemandMatch ? parseEnergyIntensity(heatingDemandMatch[1]) : undefined,
     coolingDemandKwhM2Year: coolingDemandMatch ? parseEnergyIntensity(coolingDemandMatch[1]) : undefined,
     acsDemandKwhM2Year: acsDemandMatch ? parseEnergyIntensity(acsDemandMatch[1]) : undefined,
     recommendations: recommendations.length > 0 ? recommendations : undefined,
+    extractedSections: parseExtractedSections(cleanText),
     rawTextHash,
     rawXmlStored: false,
   };
