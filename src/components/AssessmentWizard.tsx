@@ -69,6 +69,17 @@ type ImportState<T> = {
   status: 'idle' | 'processing' | 'ready' | 'failed';
 };
 
+function getMatchReference(match: Pick<CadastralMatch, 'cadastralReference' | 'parcelReference'> | null | undefined) {
+  return match?.cadastralReference || match?.parcelReference;
+}
+
+function isSameCadastralMatch(first: CadastralMatch | null | undefined, second: CadastralMatch | null | undefined) {
+  const firstReference = getMatchReference(first);
+  const secondReference = getMatchReference(second);
+  if (firstReference && secondReference) return firstReference === secondReference;
+  return Boolean(first?.lat && first?.lng && second?.lat && second?.lng && Math.abs(first.lat - second.lat) < 0.000001 && Math.abs(first.lng - second.lng) < 0.000001);
+}
+
 function createSelectedMapFeature(lat: number, lng: number): CadastralMapFeature {
   const id = `selected-map-${lat.toFixed(6)}-${lng.toFixed(6)}`;
   return {
@@ -110,6 +121,7 @@ export default function AssessmentWizard() {
   const [mapResults, setMapResults] = useState<CadastralMatch[] | undefined>();
   const [selectedCadastralReference, setSelectedCadastralReference] = useState<string | undefined>();
   const [selectedMapFeature, setSelectedMapFeature] = useState<CadastralMapFeature | undefined>();
+  const [pendingMapMatch, setPendingMapMatch] = useState<CadastralMatch | null>(null);
   const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const ceeFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -188,9 +200,11 @@ export default function AssessmentWizard() {
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
-  const handleCadastreConfirm = useCallback((match: CadastralMatch) => {
+  const applyCadastralMatch = useCallback((match: CadastralMatch) => {
     setConfirmedMatch(match);
-    setSelectedCadastralReference(match.cadastralReference || match.parcelReference);
+    setPendingMapMatch(null);
+    setSelectedMapFeature(undefined);
+    setSelectedCadastralReference(getMatchReference(match));
     const autofill = mapCadastralMatchToWizardFields(match);
     
     if (autofill.year) setValue('year', autofill.year);
@@ -215,6 +229,43 @@ export default function AssessmentWizard() {
     }, 8000);
   }, [setValue, t.wizardMapLocationCatastro]);
 
+  const handleCadastreConfirm = useCallback((match: CadastralMatch) => {
+    applyCadastralMatch(match);
+  }, [applyCadastralMatch]);
+
+  const requestMapMatchReplacement = useCallback((match: CadastralMatch) => {
+    setPendingMapMatch(match);
+    setSelectedMapFeature(undefined);
+    setSelectedCadastralReference(getMatchReference(match));
+    if (match.lat && match.lng) {
+      setMapCenter({ lat: match.lat, lng: match.lng });
+      setMapZoom(18);
+      setMapSourceLabel(t.wizardMapLocationCatastro);
+    }
+  }, [t.wizardMapLocationCatastro]);
+
+  const selectMapMatch = useCallback((match: CadastralMatch) => {
+    if (confirmedMatch && !isSameCadastralMatch(confirmedMatch, match)) {
+      requestMapMatchReplacement(match);
+      return;
+    }
+    applyCadastralMatch(match);
+  }, [applyCadastralMatch, confirmedMatch, requestMapMatchReplacement]);
+
+  const cancelPendingMapMatch = useCallback(() => {
+    setPendingMapMatch(null);
+    if (confirmedMatch) {
+      setSelectedCadastralReference(getMatchReference(confirmedMatch));
+      if (confirmedMatch.lat && confirmedMatch.lng) {
+        setMapCenter({ lat: confirmedMatch.lat, lng: confirmedMatch.lng });
+        setMapZoom(18);
+        setMapSourceLabel(t.wizardMapLocationCatastro);
+      }
+      return;
+    }
+    setSelectedCadastralReference(undefined);
+  }, [confirmedMatch, t.wizardMapLocationCatastro]);
+
   const handleMatchSelect = useCallback((match: CadastralMatch | null) => {
     setSelectedCadastralReference(match?.cadastralReference || match?.parcelReference);
     if (match?.lat && match?.lng) {
@@ -225,13 +276,16 @@ export default function AssessmentWizard() {
   }, [t.wizardMapLocationCatastro]);
 
   const mapFeatures = useMemo(() => {
-    const matches = confirmedMatch ? [confirmedMatch] : mapResults || [];
+    const matches = [
+      ...(confirmedMatch ? [confirmedMatch] : mapResults || []),
+      ...(pendingMapMatch && !isSameCadastralMatch(confirmedMatch, pendingMapMatch) ? [pendingMapMatch] : []),
+    ];
     const features = mapMatchesToFeatures(matches, selectedCadastralReference);
     if (selectedMapFeature && !features.some((feature) => feature.id === selectedMapFeature.id)) {
       features.push(selectedMapFeature);
     }
     return features;
-  }, [confirmedMatch, mapResults, selectedCadastralReference, selectedMapFeature]);
+  }, [confirmedMatch, mapResults, pendingMapMatch, selectedCadastralReference, selectedMapFeature]);
 
   const handleLocationChange = useCallback((province: string, municipality: string) => {
     const coords = getCoordinatesForLocation(province, municipality);
@@ -318,6 +372,27 @@ export default function AssessmentWizard() {
     }
   }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro, setValue]);
 
+  const showResolvedMapMatches = useCallback((matches: CadastralMatch[]) => {
+    setMapResults(matches);
+    if (matches.length > 0) setSelectedMapFeature(undefined);
+    const validCoords = matches.filter((match) => match.lat && match.lng);
+    if (validCoords.length > 1) {
+      const lats = validCoords.map((match) => match.lat!);
+      const lngs = validCoords.map((match) => match.lng!);
+      setMapBounds([
+        [Math.min(...lats), Math.min(...lngs)],
+        [Math.max(...lats), Math.max(...lngs)]
+      ]);
+      setMapSourceLabel(t.wizardMapLocationAddress);
+    } else if (validCoords.length === 1) {
+      const match = validCoords[0];
+      setSelectedCadastralReference(getMatchReference(match));
+      setMapCenter({ lat: match.lat!, lng: match.lng! });
+      setMapZoom(18);
+      setMapSourceLabel(t.wizardMapLocationCatastro);
+    }
+  }, [t.wizardMapLocationAddress, t.wizardMapLocationCatastro]);
+
   const handleMapClick = useCallback((pos: { lat: number; lng: number }) => {
     const feature = createSelectedMapFeature(pos.lat, pos.lng);
     setSelectedMapFeature(feature);
@@ -336,9 +411,11 @@ export default function AssessmentWizard() {
     setSelectedCadastralReference(fallbackFeature.id);
     setMapCenter({ lat: plat, lng: plng });
     setMapZoom(18);
-    setValue('latitude', plat);
-    setValue('longitude', plng);
-    setValue('locationSource', 'manual');
+    if (!confirmedMatch) {
+      setValue('latitude', plat);
+      setValue('longitude', plng);
+      setValue('locationSource', 'manual');
+    }
     setIsMapLoading(true);
     try {
       const res = await fetch('/api/catastro/resolve', {
@@ -350,20 +427,15 @@ export default function AssessmentWizard() {
       const data = await res.json();
       if (data.ok && data.data?.matches?.length > 0) {
         const matches = data.data.matches;
-        setSelectedMapFeature(undefined);
-        // If it's a direct match or a small list, we let the Search component handle the list
-        // but we update the map viewport to center on the selected point
-        setMapCenter({ lat: plat, lng: plng });
-        setMapZoom(18);
-        setMapSourceLabel(t.wizardMapLocationCatastro);
-        
-        // Update form coordinates
-        setValue('latitude', plat);
-        setValue('longitude', plng);
-        setValue('locationSource', 'catastro');
-        
-        // Pass results back to the search component to show the list/detail
-        handleSearchResults(matches);
+        showResolvedMapMatches(matches);
+        const firstMatch = matches[0];
+        if (firstMatch) {
+          if (confirmedMatch && !isSameCadastralMatch(confirmedMatch, firstMatch)) {
+            requestMapMatchReplacement(firstMatch);
+          } else {
+            applyCadastralMatch(firstMatch);
+          }
+        }
       } else {
         setMapSourceLabel(t.wizardMapLocationManual);
       }
@@ -373,7 +445,7 @@ export default function AssessmentWizard() {
     } finally {
       setIsMapLoading(false);
     }
-  }, [t.wizardMapLocationCatastro, t.wizardMapLocationManual, handleSearchResults, setValue]);
+  }, [t.wizardMapLocationManual, confirmedMatch, requestMapMatchReplacement, applyCadastralMatch, setValue, showResolvedMapMatches]);
 
   const restoreFileDialogScroll = () => {
     const position = fileDialogScrollRef.current;
@@ -1228,18 +1300,47 @@ export default function AssessmentWizard() {
                       bounds={mapBounds}
                       onPositionChange={handleMapClick}
                       onParcelSelect={handleParcelSelect}
-                      features={mapFeatures}
-                      onFeatureSelect={(feature) => {
-                        setSelectedCadastralReference(feature.cadastralReference || feature.parcelReference || feature.id);
-                        const match = (mapResults || []).find((item) =>
-                          item.cadastralReference === feature.cadastralReference ||
-                          item.parcelReference === feature.parcelReference
-                        );
-                        if (match) handleMatchSelect(match);
-                      }}
-                      isLoading={isMapLoading}
-                    />
-                  </div>
+	                      features={mapFeatures}
+	                      onFeatureSelect={(feature) => {
+	                        setSelectedCadastralReference(feature.cadastralReference || feature.parcelReference || feature.id);
+	                        const match = (mapResults || []).find((item) =>
+	                          item.cadastralReference === feature.cadastralReference ||
+	                          item.parcelReference === feature.parcelReference
+	                        );
+	                        if (match) selectMapMatch(match);
+	                      }}
+	                      isLoading={isMapLoading}
+	                    />
+                    {pendingMapMatch && (
+                      <div className="absolute inset-x-4 bottom-4 z-[30] rounded-2xl border border-[#00DC82]/30 bg-[#07140f]/95 p-4 shadow-2xl backdrop-blur">
+                        <p className="font-heading text-sm font-bold text-premium">¿Usar los datos de la finca seleccionada?</p>
+                        <p className="mt-1 text-xs text-muted">
+                          Se sustituirán la referencia, la dirección y los datos catastrales aplicados anteriormente por los de esta finca.
+                        </p>
+                        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
+                          <p className="font-bold text-premium">{pendingMapMatch.address}</p>
+                          <p>{pendingMapMatch.municipality}, {pendingMapMatch.province}</p>
+                          <p className="mt-1 font-mono text-[11px] text-[#00DC82]">{pendingMapMatch.cadastralReference || pendingMapMatch.parcelReference}</p>
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => applyCadastralMatch(pendingMapMatch)}
+                            className="flex-1 rounded-full bg-[#00DC82] px-4 py-2 text-xs font-bold text-[#07140f] transition hover:brightness-110"
+                          >
+                            Sí, usar esta finca
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelPendingMapMatch}
+                            className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-premium transition hover:border-[#00DC82]/40"
+                          >
+                            Mantener anterior
+                          </button>
+                        </div>
+                      </div>
+                    )}
+	                  </div>
                 </div>
               </div>
             </div>
