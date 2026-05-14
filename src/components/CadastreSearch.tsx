@@ -537,7 +537,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                         )}
                       </p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-                        {match.surfaceBuiltM2 && (
+                        {Boolean(match.surfaceBuiltM2 && match.surfaceBuiltM2 > 0) && (
                           <span className="text-[10px] text-muted font-semibold">🏠 {match.surfaceBuiltM2} m²</span>
                         )}
                         {match.yearBuilt && (
@@ -609,16 +609,21 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                   <p className="text-sm font-bold text-premium">{detailMatch.postalCode}</p>
                 </div>
               )}
-              {detailMatch.surfaceDwellingM2 && detailMatch.surfaceBuiltM2 && (
+              {Boolean(
+                detailMatch.surfaceDwellingM2 &&
+                detailMatch.surfaceDwellingM2 > 0 &&
+                detailMatch.surfaceBuiltM2 &&
+                detailMatch.surfaceBuiltM2 > 0
+              ) && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1 col-span-1">
                   <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailBuiltArea}</p>
-                  <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfaceBuiltM2)}</p>
+                  <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfaceBuiltM2!)}</p>
                 </div>
               )}
-              {detailMatch.surfacePlotM2 && (
+              {Boolean(detailMatch.surfacePlotM2 && detailMatch.surfacePlotM2 > 0) && (
                 <div className="p-3 rounded-xl bg-black/20 border border-white/5 space-y-1">
                   <p className="text-[9px] font-bold text-muted uppercase">{t.wizardCatastroDetailPlotArea}</p>
-                  <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfacePlotM2)}</p>
+                  <p className="text-sm font-bold text-premium">{formatArea(detailMatch.surfacePlotM2!)}</p>
                 </div>
               )}
               {detailMatch.propertyUse && (
