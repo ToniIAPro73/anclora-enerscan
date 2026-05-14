@@ -103,6 +103,10 @@ export default function AssessmentWizard() {
   const [selectedMapFeature, setSelectedMapFeature] = useState<CadastralMapFeature | undefined>();
   const [isDataPanelCollapsed, setIsDataPanelCollapsed] = useState(false);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const ceeFileInputRef = useRef<HTMLInputElement | null>(null);
+  const budgetFileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentFileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileDialogScrollRef = useRef<{ x: number; y: number } | null>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
 
   useEffect(() => {
@@ -362,6 +366,21 @@ export default function AssessmentWizard() {
     }
   }, [t.wizardMapLocationCatastro, t.wizardMapLocationManual, handleSearchResults, setValue]);
 
+  const restoreFileDialogScroll = () => {
+    const position = fileDialogScrollRef.current;
+    if (!position) return;
+
+    window.requestAnimationFrame(() => window.scrollTo(position.x, position.y));
+    window.setTimeout(() => window.scrollTo(position.x, position.y), 0);
+    fileDialogScrollRef.current = null;
+  };
+
+  const openFileDialog = (input: HTMLInputElement | null) => {
+    if (!input) return;
+    fileDialogScrollRef.current = { x: window.scrollX, y: window.scrollY };
+    input.click();
+  };
+
   const addFiles = (incoming: FileList | File[]) => {
     setFileError(null);
     const nextFiles = [...files];
@@ -616,20 +635,28 @@ export default function AssessmentWizard() {
         <p className="font-heading text-sm font-bold text-premium">{t.wizardCeeTitle}</p>
         <p className="mt-1 text-xs text-muted">{t.wizardCeeDescription}</p>
       </div>
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10">
+      <input
+        ref={ceeFileInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          restoreFileDialogScroll();
+          if (file) analyzeCeeFile(file);
+          event.currentTarget.value = '';
+        }}
+      />
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => openFileDialog(ceeFileInputRef.current)}
+        className="inline-flex items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10"
+      >
         <UploadCloud className="h-4 w-4" />
         {ceeImport.status === 'processing' ? t.wizardCeeProcessing : t.wizardCeeUploadButton}
-        <input
-          type="file"
-          accept="application/pdf,.pdf"
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) analyzeCeeFile(file);
-            event.currentTarget.value = '';
-          }}
-        />
-      </label>
+      </button>
       {ceeImport.status === 'ready' && ceeImport.data && (
         <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -669,20 +696,28 @@ export default function AssessmentWizard() {
         <p className="font-heading text-sm font-bold text-premium">{t.wizardBudgetImportTitle}</p>
         <p className="mt-1 text-xs text-muted">{t.wizardBudgetImportDescription}</p>
       </div>
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10">
+      <input
+        ref={budgetFileInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          restoreFileDialogScroll();
+          if (file) analyzeBudgetFile(file);
+          event.currentTarget.value = '';
+        }}
+      />
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => openFileDialog(budgetFileInputRef.current)}
+        className="inline-flex items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10"
+      >
         <UploadCloud className="h-4 w-4" />
         {budgetImport.status === 'processing' ? t.wizardBudgetProcessing : t.wizardBudgetUploadButton}
-        <input
-          type="file"
-          accept="application/pdf,.pdf"
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) analyzeBudgetFile(file);
-            event.currentTarget.value = '';
-          }}
-        />
-      </label>
+      </button>
       {budgetImport.status === 'ready' && budgetImport.data && (
         <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -1170,18 +1205,29 @@ export default function AssessmentWizard() {
                 addFiles(event.dataTransfer.files);
               }}
             >
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
+              <input
+                ref={attachmentFileInputRef}
+                type="file"
+                multiple
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.md"
+                className="hidden"
+                tabIndex={-1}
+                onChange={(event) => {
+                  restoreFileDialogScroll();
+                  if (event.target.files) addFiles(event.target.files);
+                  event.currentTarget.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => openFileDialog(attachmentFileInputRef.current)}
+                className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 text-center"
+              >
                 <UploadCloud className="h-8 w-8 text-[#00DC82]" />
                 <span className="font-heading text-sm font-bold text-premium">{t.attachmentsHelp}</span>
                 <span className="text-xs text-muted">{t.attachmentsLimit}</span>
-                <input
-                  type="file"
-                  multiple
-                  accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.md"
-                  className="sr-only"
-                  onChange={(event) => event.target.files && addFiles(event.target.files)}
-                />
-              </label>
+              </button>
               {fileError && <p className="mt-3 text-xs text-[#EF4444]">{fileError}</p>}
               {uploadProgress !== null && (
                 <div className="mt-3 space-y-1">
