@@ -1,6 +1,7 @@
 import type { ScenarioCostEstimate } from '../costs/types';
 import type { AppCurrency, AppLanguage, MeasurementSystem } from '../preferences';
 import type { CadastralMatch } from '../catastro/types';
+import type { EnergyCertificateCEE, ExtractedField, RehabBudgetAnalysis } from '../ingestion/types';
 
 export type EnergyLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type ConfidenceLevel = "Alta" | "Media" | "Baja";
@@ -221,6 +222,9 @@ export interface PremiumReportData {
   providerCategories: string[];
   attachments?: AssessmentAttachment[];
   cadastralRecord?: CadastralMatch;
+  energyCertificates?: EnergyCertificateCEE[];
+  rehabBudgets?: RehabBudgetAnalysis[];
+  dataFieldSources?: ExtractedField[];
   logoDataUri?: string;
   language?: AppLanguage;
   currency?: AppCurrency;

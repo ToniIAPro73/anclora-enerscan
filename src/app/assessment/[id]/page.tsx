@@ -17,6 +17,8 @@ import { getPreferencesForLanguage, normalizeCurrency, normalizeLanguage, normal
 import { formatArea } from '@/lib/formatters';
 import { getDictionary, getLegalDisclaimer, formatValueLabel } from '@/lib/i18n';
 import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
+import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
+import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +33,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
     where: { id: params.id },
-    include: { attachments: true, cadastralRecord: true }
+    include: { attachments: true, cadastralRecord: true, energyCertificates: true, rehabBudgets: true, dataFieldSources: true }
   });
 
   if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
@@ -102,6 +104,28 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const exteriorCount = attachments.filter((attachment) => attachment.category === 'EXTERIOR').length;
   const interiorCount = attachments.filter((attachment) => attachment.category === 'INTERIOR').length;
   const ceeCount = attachments.filter((attachment) => attachment.category === 'CEE' || attachment.type === 'application/pdf').length;
+  const energyCertificates = assessment?.energyCertificates.map(prismaCertificateToDto) || [];
+  const rehabBudgets: RehabBudgetAnalysis[] = assessment?.rehabBudgets.map((budget) => ({
+    extractionStatus: budget.extractionStatus as RehabBudgetAnalysis['extractionStatus'],
+    extractionConfidence: budget.extractionConfidence || undefined,
+    providerName: budget.providerName || undefined,
+    budgetDate: budget.budgetDate?.toISOString(),
+    totalAmount: budget.totalAmount || undefined,
+    currency: (budget.currency || 'EUR') as RehabBudgetAnalysis['currency'],
+    vatIncluded: budget.vatIncluded || undefined,
+    lineItems: Array.isArray(budget.lineItemsJson) ? budget.lineItemsJson as RehabBudgetAnalysis['lineItems'] : [],
+    detectedMeasures: Array.isArray(budget.detectedMeasuresJson) ? budget.detectedMeasuresJson as RehabBudgetAnalysis['detectedMeasures'] : [],
+    estimatedCurrentLetter: budget.estimatedCurrentLetter as RehabBudgetAnalysis['estimatedCurrentLetter'],
+    estimatedPostBudgetLetter: budget.estimatedPostBudgetLetter as RehabBudgetAnalysis['estimatedPostBudgetLetter'],
+    targetLetter: budget.targetLetter as RehabBudgetAnalysis['targetLetter'],
+    targetReached: budget.targetReached || undefined,
+    impactConfidence: (budget.impactConfidence || 'LOW') as RehabBudgetAnalysis['impactConfidence'],
+    missingMeasures: Array.isArray(budget.missingMeasuresJson) ? budget.missingMeasuresJson as RehabBudgetAnalysis['missingMeasures'] : [],
+    analysisSummary: budget.analysisSummary || '',
+    summary: budget.analysisSummary || '',
+    assumptions: [],
+    warnings: [],
+  })) || [];
 
   return (
     <div className="min-h-screen app-shell">
@@ -241,6 +265,48 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               ))}
             </div>
           </section>
+
+          {(energyCertificates.length > 0 || rehabBudgets.length > 0) && (
+            <section className="surface border rounded-3xl p-6 lg:p-8 space-y-6">
+              <h2 className="font-heading text-2xl font-bold text-premium">{t.importedSourcesTitle}</h2>
+              {energyCertificates.map((certificate, index) => (
+                <div key={`cee-${index}`} className="rounded-2xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="font-heading text-lg font-bold text-premium">{t.importedCeeTitle}</h3>
+                    <span className="rounded-full bg-black/20 px-3 py-1 text-[10px] font-bold uppercase text-[#00DC82]">{certificate.extractionStatus}</span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                    <div><p className="text-[10px] uppercase text-muted">{t.wizardCeeProgram}</p><p className="font-bold text-premium">{certificate.sourceProgram || 'UNKNOWN'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.wizardCeeEnergyLetter}</p><p className="font-bold text-premium">{certificate.globalLetter || '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedEnergyPrimaryShort}</p><p className="font-bold text-premium">{certificate.nonRenewableEPKwhM2Year ?? '---'} kWh/m²·año</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.wizardCeeEmissions}</p><p className="font-bold text-premium">{certificate.emissionsKgCO2M2Year ?? '---'} kgCO₂/m²·año</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.wizardCeeUsefulArea}</p><p className="font-bold text-premium">{certificate.usefulAreaM2 || certificate.builtAreaM2 || '---'} m²</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedClimateZone}</p><p className="font-bold text-premium">{certificate.climateZone || '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedYear}</p><p className="font-bold text-premium">{certificate.yearBuilt || '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedConfidence}</p><p className="font-bold text-premium">{certificate.extractionConfidence ? Math.round(certificate.extractionConfidence * 100) : '---'}%</p></div>
+                  </div>
+                  <p className="mt-4 text-xs text-muted">{getLegalDisclaimer(language)}</p>
+                </div>
+              ))}
+
+              {rehabBudgets.map((budget, index) => (
+                <div key={`budget-${index}`} className="rounded-2xl border border-[#FFB020]/20 bg-[#FFB020]/5 p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="font-heading text-lg font-bold text-premium">{t.importedBudgetTitle}</h3>
+                    <span className="rounded-full bg-black/20 px-3 py-1 text-[10px] font-bold uppercase text-[#FFB020]">{budget.impactConfidence}</span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                    <div><p className="text-[10px] uppercase text-muted">{t.wizardBudgetTotal}</p><p className="font-bold text-premium">{budget.totalAmount ? `${budget.totalAmount.toLocaleString(language === 'en' ? 'en-US' : language === 'de' ? 'de-DE' : 'es-ES')} €` : '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedEstimatedLetter}</p><p className="font-bold text-premium">{budget.estimatedCurrentLetter || '---'} → {budget.estimatedPostBudgetLetter || '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedTarget}</p><p className="font-bold text-premium">{budget.targetLetter || '---'}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted">{t.importedTargetReached}</p><p className="font-bold text-premium">{budget.targetReached === undefined ? '---' : budget.targetReached ? t.importedYes : t.importedNo}</p></div>
+                  </div>
+                  <p className="mt-4 text-sm text-premium">{budget.analysisSummary}</p>
+                  <p className="mt-2 text-xs text-[#FFB020]">{t.importedMeasures}: {budget.detectedMeasures.map((measure) => measure.category).join(', ') || '---'}</p>
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* PENALTIES, STRENGTHS & GAPS */}
           <div className="grid md:grid-cols-3 gap-6">

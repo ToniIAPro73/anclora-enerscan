@@ -59,6 +59,9 @@ model Assessment {
   leads            Lead[]
   costEstimateRuns EstimateRun[]
   cadastralRecord  CadastralRecord?
+  energyCertificates EnergyCertificate[]
+  rehabBudgets        RehabBudget[]
+  dataFieldSources    DataFieldSource[]
 }
 
 model CadastralRecord {
@@ -111,6 +114,104 @@ model AssessmentAttachment {
   ocrData        Json?
   ocrProcessedAt DateTime?
   ocrError       String?
+
+  energyCertificates EnergyCertificate[]
+  rehabBudgets        RehabBudget[]
+}
+
+model EnergyCertificate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  attachmentId String?
+  attachment   AssessmentAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  sourceProgram        String?
+  sourceFormat         String
+  extractionStatus     String
+  extractionConfidence Float?
+
+  issueDate  DateTime?
+  validUntil DateTime?
+
+  addressLine         String?
+  cadastralReference  String?
+  postalCode          String?
+  municipality        String?
+  province            String?
+
+  useType      String?
+  climateZone  String?
+  yearBuilt    Int?
+  usefulAreaM2 Float?
+  builtAreaM2  Float?
+
+  globalLetter               String?
+  nonRenewableEPKwhM2Year    Float?
+  emissionsKgCO2M2Year       Float?
+  heatingDemandKwhM2Year     Float?
+  coolingDemandKwhM2Year     Float?
+  acsDemandKwhM2Year         Float?
+
+  recommendationsJson Json?
+  extractedFieldsJson Json?
+  rawTextHash         String?
+  rawXmlStored        Boolean @default(false)
+  reviewNotes         String?
+}
+
+model RehabBudget {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  attachmentId String?
+  attachment   AssessmentAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  sourceFormat         String
+  extractionStatus     String
+  extractionConfidence Float?
+
+  providerName String?
+  budgetDate   DateTime?
+  totalAmount  Float?
+  currency     String   @default("EUR")
+  vatIncluded  Boolean?
+
+  detectedCategoriesJson Json?
+  detectedMeasuresJson   Json?
+  lineItemsJson          Json?
+
+  estimatedCurrentLetter    String?
+  estimatedPostBudgetLetter String?
+  targetLetter              String?
+  targetReached             Boolean?
+  impactConfidence          String?
+  missingMeasuresJson       Json?
+  analysisSummary           String?
+}
+
+model DataFieldSource {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  fieldName       String
+  valueJson       Json
+  sourceType      String
+  sourceId        String?
+  confidence      Float?
+  requiresReview  Boolean @default(false)
+  appliedToWizard Boolean @default(false)
 }
 
 model Provider {

@@ -17,6 +17,7 @@ import { getCoordinatesForLocation } from '@/lib/location/geocoding';
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
+import type { EnergyCertificateCEE, RehabBudgetAnalysis } from '@/lib/ingestion/types';
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), { ssr: false, loading: () => <div className="w-full h-full min-h-[300px] bg-white/5 animate-pulse rounded-2xl" /> });
 
@@ -53,6 +54,14 @@ type UploadedAttachment = {
   url: string;
 };
 
+type ImportState<T> = {
+  fileName?: string;
+  data?: T;
+  warnings: string[];
+  error?: string;
+  status: 'idle' | 'processing' | 'ready' | 'failed';
+};
+
 function createSelectedMapFeature(lat: number, lng: number): CadastralMapFeature {
   const id = `selected-map-${lat.toFixed(6)}-${lng.toFixed(6)}`;
   return {
@@ -75,6 +84,8 @@ export default function AssessmentWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [ceeImport, setCeeImport] = useState<ImportState<EnergyCertificateCEE>>({ status: 'idle', warnings: [] });
+  const [budgetImport, setBudgetImport] = useState<ImportState<RehabBudgetAnalysis>>({ status: 'idle', warnings: [] });
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [confirmedMatch, setConfirmedMatch] = useState<CadastralMatch | null>(null);
@@ -370,6 +381,172 @@ export default function AssessmentWizard() {
     setFiles(nextFiles);
   };
 
+  const addAttachmentFile = (file: File) => {
+    setFiles((current) => {
+      if (current.some((item) => item.name === file.name && item.size === file.size)) return current;
+      if (current.length >= MAX_ATTACHMENTS) return current;
+      return [...current, file];
+    });
+  };
+
+  const analyzeCeeFile = async (file: File) => {
+    setCeeImport({ status: 'processing', fileName: file.name, warnings: [] });
+    addAttachmentFile(file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/ingestion/cee/analyze', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo analizar el CEE');
+      setCeeImport({
+        status: 'ready',
+        fileName: file.name,
+        data: result.certificate,
+        warnings: result.warnings || [],
+      });
+    } catch (error) {
+      setCeeImport({
+        status: 'failed',
+        fileName: file.name,
+        warnings: [],
+        error: error instanceof Error ? error.message : 'No se pudo analizar el CEE',
+      });
+    }
+  };
+
+  const applyCeeData = () => {
+    const certificate = ceeImport.data;
+    if (!certificate) return;
+    if (certificate.yearBuilt) setValue('year', certificate.yearBuilt);
+    if (certificate.usefulAreaM2 || certificate.builtAreaM2) setValue('area', Math.round(certificate.usefulAreaM2 || certificate.builtAreaM2 || 0));
+    if (certificate.postalCode) setValue('zipcode', certificate.postalCode);
+    if (certificate.globalLetter) setValue('targetLetter', certificate.globalLetter);
+    setAreaNotice(Boolean(certificate.builtAreaM2 && !certificate.usefulAreaM2));
+  };
+
+  const analyzeBudgetFile = async (file: File) => {
+    setBudgetImport({ status: 'processing', fileName: file.name, warnings: [] });
+    addAttachmentFile(file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (ceeImport.data?.globalLetter) formData.append('currentLetter', ceeImport.data.globalLetter);
+      if (ceeImport.data?.nonRenewableEPKwhM2Year) formData.append('currentNonRenewableEP', String(ceeImport.data.nonRenewableEPKwhM2Year));
+      if (ceeImport.data?.emissionsKgCO2M2Year) formData.append('currentEmissions', String(ceeImport.data.emissionsKgCO2M2Year));
+      if (ceeImport.data?.usefulAreaM2) formData.append('usefulAreaM2', String(ceeImport.data.usefulAreaM2));
+      const target = watch('targetLetter');
+      if (target) formData.append('targetLetter', target);
+      formData.append('propertyType', watch('propertyType'));
+      const response = await fetch('/api/ingestion/budget/analyze', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo analizar el presupuesto');
+      setBudgetImport({
+        status: 'ready',
+        fileName: file.name,
+        data: result.budget,
+        warnings: result.warnings || [],
+      });
+    } catch (error) {
+      setBudgetImport({
+        status: 'failed',
+        fileName: file.name,
+        warnings: [],
+        error: error instanceof Error ? error.message : 'No se pudo analizar el presupuesto',
+      });
+    }
+  };
+
+  const renderCeeImportBlock = () => (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <div>
+        <p className="font-heading text-sm font-bold text-premium">{t.wizardCeeTitle}</p>
+        <p className="mt-1 text-xs text-muted">{t.wizardCeeDescription}</p>
+      </div>
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10">
+        <UploadCloud className="h-4 w-4" />
+        {ceeImport.status === 'processing' ? t.wizardCeeProcessing : t.wizardCeeUploadButton}
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) analyzeCeeFile(file);
+            event.currentTarget.value = '';
+          }}
+        />
+      </label>
+      {ceeImport.status === 'ready' && ceeImport.data && (
+        <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="font-bold text-[#00DC82]">{t.wizardCeeDetected}</span>
+            <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-bold text-muted">
+              {ceeImport.data.extractionStatus === 'NEEDS_REVIEW' ? t.wizardSourceReviewRequired : t.wizardSourceCee}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-muted">
+            <span>{t.wizardCeeProgram}: <b className="text-premium">{ceeImport.data.sourceProgram || 'UNKNOWN'}</b></span>
+            <span>{t.wizardCeeEnergyLetter}: <b className="text-premium">{ceeImport.data.globalLetter || '---'}</b></span>
+            <span>{t.wizardCeeNonRenewableEnergy}: <b className="text-premium">{ceeImport.data.nonRenewableEPKwhM2Year ?? '---'}</b></span>
+            <span>{t.wizardCeeEmissions}: <b className="text-premium">{ceeImport.data.emissionsKgCO2M2Year ?? '---'}</b></span>
+            <span>{t.wizardCeeUsefulArea}: <b className="text-premium">{ceeImport.data.usefulAreaM2 || ceeImport.data.builtAreaM2 || '---'} {t.unitArea}</b></span>
+            <span>{t.wizardCeeIssueDate}: <b className="text-premium">{ceeImport.data.issueDate || '---'}</b></span>
+          </div>
+          <p className="mt-2 text-[10px] text-[#FFB020]">{t.wizardCeeNeedsReview}</p>
+          {ceeImport.warnings.map((warning) => <p key={warning} className="mt-1 text-[10px] text-[#FFB020]">{warning}</p>)}
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={applyCeeData} className="rounded-full bg-[#00DC82] px-3 py-1.5 text-[11px] font-bold text-[#0A0A0A]">
+              {t.wizardCeeUseData}
+            </button>
+            <button type="button" className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-bold text-muted">
+              {t.wizardCeeReviewManually}
+            </button>
+          </div>
+        </div>
+      )}
+      {ceeImport.status === 'failed' && <p className="text-xs text-[#EF4444]">{ceeImport.error || t.wizardCeeFailed}</p>}
+    </div>
+  );
+
+  const renderBudgetImportBlock = () => (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <div>
+        <p className="font-heading text-sm font-bold text-premium">{t.wizardBudgetImportTitle}</p>
+        <p className="mt-1 text-xs text-muted">{t.wizardBudgetImportDescription}</p>
+      </div>
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#00DC82]/30 px-4 py-2 text-xs font-bold text-[#00DC82] hover:bg-[#00DC82]/10">
+        <UploadCloud className="h-4 w-4" />
+        {budgetImport.status === 'processing' ? t.wizardBudgetProcessing : t.wizardBudgetUploadButton}
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) analyzeBudgetFile(file);
+            event.currentTarget.value = '';
+          }}
+        />
+      </label>
+      {budgetImport.status === 'ready' && budgetImport.data && (
+        <div className="rounded-xl border border-[#00DC82]/20 bg-[#00DC82]/5 p-3 text-xs">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="font-bold text-[#00DC82]">{t.wizardBudgetDetected}</span>
+            <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-bold text-muted">{budgetImport.data.impactConfidence}</span>
+          </div>
+          <p className="text-muted">{t.wizardBudgetTotal}: <b className="text-premium">{budgetImport.data.totalAmount ? `${budgetImport.data.totalAmount.toLocaleString('es-ES')} €` : '---'}</b></p>
+          <p className="mt-2 text-muted">{t.wizardBudgetDetectedMeasures}: <b className="text-premium">{budgetImport.data.detectedMeasures.map((measure) => measure.category).join(', ') || '---'}</b></p>
+          <p className="mt-2 text-premium">{t.wizardBudgetEstimatedImpact}: {budgetImport.data.analysisSummary}</p>
+          {budgetImport.data.missingMeasures.length > 0 && (
+            <p className="mt-2 text-[10px] text-[#FFB020]">{t.wizardBudgetMissingMeasures}: {budgetImport.data.missingMeasures.join(', ')}</p>
+          )}
+          {budgetImport.warnings.map((warning) => <p key={warning} className="mt-1 text-[10px] text-[#FFB020]">{warning}</p>)}
+        </div>
+      )}
+      {budgetImport.status === 'failed' && <p className="text-xs text-[#EF4444]">{budgetImport.error || t.wizardBudgetFailed}</p>}
+    </div>
+  );
+
   const parseAssessmentResponse = async (response: Response) => {
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
@@ -424,6 +601,8 @@ export default function AssessmentWizard() {
         ...data,
         uploadedAttachments,
         cadastralData: confirmedMatch,
+        energyCertificate: ceeImport.data,
+        rehabBudget: budgetImport.data,
         // The latitude/longitude/locationSource are already in 'data' because they are in the schema
       }),
     });
@@ -439,6 +618,12 @@ export default function AssessmentWizard() {
     files.forEach((file) => formData.append('attachments', file));
     if (confirmedMatch) {
       formData.append('cadastralData', JSON.stringify(confirmedMatch));
+    }
+    if (ceeImport.data) {
+      formData.append('energyCertificate', JSON.stringify(ceeImport.data));
+    }
+    if (budgetImport.data) {
+      formData.append('rehabBudget', JSON.stringify(budgetImport.data));
     }
 
     return fetch('/api/assessment', {
@@ -581,6 +766,9 @@ export default function AssessmentWizard() {
                     setSelectedCadastralReference(undefined);
                   }}
                 />
+
+                {renderCeeImportBlock()}
+                {renderBudgetImportBlock()}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">

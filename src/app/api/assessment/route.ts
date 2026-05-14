@@ -24,6 +24,9 @@ import {
   normalizeVentilationType,
   normalizeTimelineHorizon
 } from '@/lib/domain/normalizers';
+import { EnergyCertificateCEE, RehabBudgetAnalysis } from '@/lib/ingestion/types';
+import { budgetToPrismaCreate, certificateToPrismaCreate, fieldsToPrismaCreateMany } from '@/lib/ingestion/persistence';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +92,8 @@ async function readRequest(req: Request) {
       files: [] as File[],
       uploadedAttachments: Array.isArray(rawData.uploadedAttachments) ? rawData.uploadedAttachments : [],
       cadastralData: rawData.cadastralData,
+      energyCertificate: rawData.energyCertificate,
+      rehabBudget: rawData.rehabBudget,
     };
   }
 
@@ -98,6 +103,8 @@ async function readRequest(req: Request) {
   );
   const files = formData.getAll('attachments').filter((value): value is File => value instanceof File && value.size > 0);
   const cadastralDataRaw = formData.get('cadastralData');
+  const energyCertificateRaw = formData.get('energyCertificate');
+  const rehabBudgetRaw = formData.get('rehabBudget');
   let cadastralData = null;
   if (typeof cadastralDataRaw === 'string') {
     try {
@@ -106,7 +113,23 @@ async function readRequest(req: Request) {
       console.warn('Failed to parse cadastralData from multipart', e);
     }
   }
-  return { rawData, files, uploadedAttachments: [], cadastralData };
+  let energyCertificate = null;
+  if (typeof energyCertificateRaw === 'string') {
+    try {
+      energyCertificate = JSON.parse(energyCertificateRaw);
+    } catch (e) {
+      console.warn('Failed to parse energyCertificate from multipart', e);
+    }
+  }
+  let rehabBudget = null;
+  if (typeof rehabBudgetRaw === 'string') {
+    try {
+      rehabBudget = JSON.parse(rehabBudgetRaw);
+    } catch (e) {
+      console.warn('Failed to parse rehabBudget from multipart', e);
+    }
+  }
+  return { rawData, files, uploadedAttachments: [], cadastralData, energyCertificate, rehabBudget };
 }
 
 function validateAttachmentMetadata(files: File[]) {
@@ -181,7 +204,7 @@ function serializeAttachment(file: { name: string; type: string; size: number })
 export async function POST(req: Request) {
   try {
     const session = await auth().catch(() => null);
-    const { rawData, files, uploadedAttachments: rawUploadedAttachments, cadastralData: rawCadastralData } = await readRequest(req);
+    const { rawData, files, uploadedAttachments: rawUploadedAttachments, cadastralData: rawCadastralData, energyCertificate: rawEnergyCertificate, rehabBudget: rawRehabBudget } = await readRequest(req);
 
     const parseResult = assessmentSchema.safeParse(rawData);
     if (!parseResult.success) {
@@ -211,6 +234,13 @@ export async function POST(req: Request) {
         cadastralData = cadParse.data;
       }
     }
+
+    const energyCertificate = rawEnergyCertificate && typeof rawEnergyCertificate === 'object'
+      ? rawEnergyCertificate as EnergyCertificateCEE
+      : null;
+    const rehabBudget = rawRehabBudget && typeof rawRehabBudget === 'object'
+      ? rawRehabBudget as RehabBudgetAnalysis
+      : null;
 
     let assessment;
     try {
@@ -316,6 +346,27 @@ export async function POST(req: Request) {
       ];
       if (attachmentData.length > 0) {
         await prisma.assessmentAttachment.createMany({ data: attachmentData });
+      }
+
+      if (energyCertificate) {
+        const createdCertificate = await prisma.energyCertificate.create({
+          data: certificateToPrismaCreate({ assessmentId: assessment.id, certificate: energyCertificate }),
+        });
+        if (energyCertificate.extractedFields?.length) {
+          await prisma.dataFieldSource.createMany({
+            data: fieldsToPrismaCreateMany(
+              assessment.id,
+              createdCertificate.id,
+              energyCertificate.extractedFields.map((field) => ({ ...field, appliedToWizard: true }))
+            ),
+          });
+        }
+      }
+
+      if (rehabBudget) {
+        await prisma.rehabBudget.create({
+          data: budgetToPrismaCreate({ assessmentId: assessment.id, budget: rehabBudget }) as Prisma.RehabBudgetCreateInput,
+        });
       }
     } catch (attachmentError) {
       await prisma.assessment.delete({ where: { id: assessment.id } });

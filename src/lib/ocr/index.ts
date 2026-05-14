@@ -2,7 +2,8 @@ import { OcrResult } from './types';
 import { classifyAttachment } from './attachment-classifier';
 import { extractTextFromPdf } from './pdf-extractor';
 import { parseCeeText } from './cee-parser';
-import { parseBudgetText } from './budget-parser';
+import { parseCeeToCertificate } from './cee-parser';
+import { parseBudgetAnalysisText, parseBudgetText } from './budget-parser';
 import { extractTextFromImage } from './image-ocr';
 
 export async function processAttachmentOcr(input: {
@@ -41,28 +42,30 @@ export async function processAttachmentOcr(input: {
 
   try {
     if (sourceKind === 'cee_pdf') {
-      const { fullText, pages } = await extractTextFromPdf(new Uint8Array(bytes));
+      const { fullText, pages, textQuality } = await extractTextFromPdf(new Uint8Array(bytes));
       const extracted = parseCeeText(fullText);
+      extracted.normalizedCertificate = parseCeeToCertificate(fullText, { sourceFormat: textQuality === 'empty' ? 'PDF_OCR' : 'PDF_TEXT' });
       return {
         sourceKind,
-        status: 'done',
-        text: fullText,
+        status: extracted.normalizedCertificate.extractionStatus === 'FAILED' ? 'failed' : 'done',
         pages,
         extracted,
         processedAt,
+        warnings: textQuality === 'weak' ? ['PDF text extraction is weak; review extracted values.'] : undefined,
       };
     }
 
     if (sourceKind === 'budget_pdf') {
-      const { fullText, pages } = await extractTextFromPdf(new Uint8Array(bytes));
+      const { fullText, pages, textQuality } = await extractTextFromPdf(new Uint8Array(bytes));
       const extracted = parseBudgetText(fullText);
+      extracted.normalizedAnalysis = parseBudgetAnalysisText(fullText);
       return {
         sourceKind,
         status: 'done',
-        text: fullText,
         pages,
         extracted,
         processedAt,
+        warnings: textQuality === 'weak' ? ['PDF text extraction is weak; review extracted values.'] : undefined,
       };
     }
 
