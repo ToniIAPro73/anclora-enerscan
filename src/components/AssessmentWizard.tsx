@@ -14,7 +14,7 @@ import type { CadastralMapFeature, CadastralMatch } from '@/lib/catastro/types';
 import { mapCadastralMatchToWizardFields } from '@/lib/catastro/autofill';
 import { mapMatchesToFeatures } from '@/lib/catastro/map-features';
 import { getCoordinatesForLocation } from '@/lib/location/geocoding';
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedAttachment, sanitizeFilename } from '@/lib/attachments';
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedPhotoAttachment, sanitizeFilename } from '@/lib/attachments';
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 import type { EnergyCertificateCEE, RehabBudgetAnalysis } from '@/lib/ingestion/types';
@@ -395,8 +395,8 @@ export default function AssessmentWizard() {
         setFileError(`${file.name} supera el límite de ${formatFileSize(MAX_ATTACHMENT_SIZE)}.`);
         continue;
       }
-      if (!isAllowedAttachment(file)) {
-        setFileError(`${file.name} no es un tipo admitido.`);
+      if (!isAllowedPhotoAttachment(file)) {
+        setFileError(`${file.name} no es una foto admitida. Usa JPG, PNG o WEBP.`);
         continue;
       }
       nextFiles.push(file);
@@ -404,17 +404,8 @@ export default function AssessmentWizard() {
     setFiles(nextFiles);
   };
 
-  const addAttachmentFile = (file: File) => {
-    setFiles((current) => {
-      if (current.some((item) => item.name === file.name && item.size === file.size)) return current;
-      if (current.length >= MAX_ATTACHMENTS) return current;
-      return [...current, file];
-    });
-  };
-
   const analyzeCeeFile = async (file: File) => {
     setCeeImport({ status: 'processing', fileName: file.name, warnings: [] });
-    addAttachmentFile(file);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -451,7 +442,6 @@ export default function AssessmentWizard() {
 
   const analyzeBudgetFile = async (file: File) => {
     setBudgetImport({ status: 'processing', fileName: file.name, warnings: [] });
-    addAttachmentFile(file);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -1355,7 +1345,7 @@ export default function AssessmentWizard() {
                 ref={attachmentFileInputRef}
                 type="file"
                 multiple
-                accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.md"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                 className="hidden"
                 tabIndex={-1}
                 onChange={(event) => {

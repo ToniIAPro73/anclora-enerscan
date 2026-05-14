@@ -4,7 +4,7 @@ import { calculateScoreV2 } from '@/lib/scoring';
 import { z } from 'zod';
 import { PropertyDataV2 } from '@/lib/domain/energy-assessment';
 import { CadastralMatchSchema } from '@/lib/catastro/types';
-import { isAllowedAttachment, validateAttachments } from '@/lib/attachments';
+import { isAllowedPhotoAttachment, validatePhotoAttachments } from '@/lib/attachments';
 import { deleteStoredAttachment, saveAssessmentAttachment } from '@/lib/blob-storage';
 import { createStatelessAssessmentId, createStatelessPayload } from '@/lib/stateless-assessment';
 import { auth } from '@/auth';
@@ -72,10 +72,10 @@ const uploadedAttachmentSchema = z.object({
     });
   }
 
-  if (!isAllowedAttachment(attachment)) {
+  if (!isAllowedPhotoAttachment(attachment)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: `Tipo de archivo no admitido: ${attachment.name}`,
+      message: `Solo se admiten fotos JPG, PNG y WEBP: ${attachment.name}`,
       path: ['type'],
     });
   }
@@ -133,7 +133,7 @@ async function readRequest(req: Request) {
 }
 
 function validateAttachmentMetadata(files: File[]) {
-  const error = validateAttachments(files);
+  const error = validatePhotoAttachments(files);
   if (error) throw new Error(error);
 }
 
@@ -177,7 +177,7 @@ function validateUploadedAttachments(rawAttachments: unknown[]) {
     throw new Error('Adjunto subido no válido');
   }
 
-  const error = validateAttachments(parsed.data);
+  const error = validatePhotoAttachments(parsed.data);
   if (error) throw new Error(error);
 
   return parsed.data;
@@ -348,25 +348,29 @@ export async function POST(req: Request) {
         await prisma.assessmentAttachment.createMany({ data: attachmentData });
       }
 
-      if (energyCertificate) {
-        const createdCertificate = await prisma.energyCertificate.create({
-          data: certificateToPrismaCreate({ assessmentId: assessment.id, certificate: energyCertificate }),
-        });
-        if (energyCertificate.extractedFields?.length) {
-          await prisma.dataFieldSource.createMany({
-            data: fieldsToPrismaCreateMany(
-              assessment.id,
-              createdCertificate.id,
-              energyCertificate.extractedFields.map((field) => ({ ...field, appliedToWizard: true }))
-            ),
+      try {
+        if (energyCertificate) {
+          const createdCertificate = await prisma.energyCertificate.create({
+            data: certificateToPrismaCreate({ assessmentId: assessment.id, certificate: energyCertificate }),
+          });
+          if (energyCertificate.extractedFields?.length) {
+            await prisma.dataFieldSource.createMany({
+              data: fieldsToPrismaCreateMany(
+                assessment.id,
+                createdCertificate.id,
+                energyCertificate.extractedFields.map((field) => ({ ...field, appliedToWizard: true }))
+              ),
+            });
+          }
+        }
+
+        if (rehabBudget) {
+          await prisma.rehabBudget.create({
+            data: budgetToPrismaCreate({ assessmentId: assessment.id, budget: rehabBudget }) as Prisma.RehabBudgetCreateInput,
           });
         }
-      }
-
-      if (rehabBudget) {
-        await prisma.rehabBudget.create({
-          data: budgetToPrismaCreate({ assessmentId: assessment.id, budget: rehabBudget }) as Prisma.RehabBudgetCreateInput,
-        });
+      } catch (premiumSourceError) {
+        console.warn('Premium source persistence skipped:', premiumSourceError);
       }
     } catch (attachmentError) {
       await prisma.assessment.delete({ where: { id: assessment.id } });

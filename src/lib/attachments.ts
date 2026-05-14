@@ -13,6 +13,8 @@ export const ALLOWED_ATTACHMENT_MIME_TYPES = [
 export const ALLOWED_ATTACHMENT_TYPES = ALLOWED_ATTACHMENT_MIME_TYPES;
 
 export const ALLOWED_ATTACHMENT_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"] as const;
+export const ALLOWED_PHOTO_ATTACHMENT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const ALLOWED_PHOTO_ATTACHMENT_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"] as const;
 
 export function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
@@ -24,6 +26,13 @@ export function isAllowedAttachment(file: { name: string; type: string; size: nu
   const lowerName = file.name.toLowerCase();
   const hasValidExtension = ALLOWED_ATTACHMENT_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
   const hasValidMime = ALLOWED_ATTACHMENT_MIME_TYPES.includes(file.type as (typeof ALLOWED_ATTACHMENT_MIME_TYPES)[number]);
+  return hasValidExtension && hasValidMime;
+}
+
+export function isAllowedPhotoAttachment(file: { name: string; type: string; size: number }): boolean {
+  const lowerName = file.name.toLowerCase();
+  const hasValidExtension = ALLOWED_PHOTO_ATTACHMENT_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
+  const hasValidMime = ALLOWED_PHOTO_ATTACHMENT_MIME_TYPES.includes(file.type as (typeof ALLOWED_PHOTO_ATTACHMENT_MIME_TYPES)[number]);
   return hasValidExtension && hasValidMime;
 }
 
@@ -43,6 +52,28 @@ export function validateAttachments(files: { name: string; type: string; size: n
     }
     if (!isAllowedAttachment(file)) {
       return `Tipo de archivo no admitido: ${file.name}. Formatos permitidos: PDF, JPG, PNG y WEBP.`;
+    }
+  }
+
+  return null;
+}
+
+export function validatePhotoAttachments(files: { name: string; type: string; size: number }[]) {
+  if (files.length > MAX_ATTACHMENTS) {
+    return `Máximo ${MAX_ATTACHMENTS} fotos por valoración`;
+  }
+
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalSize > MAX_TOTAL_ATTACHMENT_SIZE_BYTES) {
+    return `El total de fotos supera el límite de ${formatFileSize(MAX_TOTAL_ATTACHMENT_SIZE_BYTES)}`;
+  }
+
+  for (const file of files) {
+    if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+      return `El archivo ${file.name} supera el límite de ${formatFileSize(MAX_ATTACHMENT_SIZE_BYTES)}`;
+    }
+    if (!isAllowedPhotoAttachment(file)) {
+      return `Tipo de archivo no admitido: ${file.name}. En esta sección solo se permiten fotos JPG, PNG y WEBP.`;
     }
   }
 
