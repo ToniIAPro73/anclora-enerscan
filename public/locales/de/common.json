@@ -40,5 +40,7 @@
   "privacy": "Datenschutzerklärung",
   "terms": "Nutzungsbedingungen",
   "legal": "Impressum",
-  "legalDisclaimer": "Anclora EnergyScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen."
+  "legalDisclaimer": "Anclora EnergyScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen.",
+  "providerHandoff.consent": "Ich stimme zu, dass Anclora meine Kontaktdaten und die technische Zusammenfassung meiner energetischen Voreinschätzung mit ausgewählten Anbietern oder Partnern teilen darf, damit sie mich zu den angefragten Leistungen kontaktieren können. Ich verstehe, dass Anclora EnergyScan keine offiziellen Energiezertifikate ausstellt und dass jede Zertifizierung von einer qualifizierten Fachperson durchgeführt werden muss.",
+  "providerHandoff.checkboxDefault": "false"
 }

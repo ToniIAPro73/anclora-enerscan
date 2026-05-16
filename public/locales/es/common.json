@@ -40,5 +40,7 @@
   "privacy": "Política de privacidad",
   "terms": "Términos del servicio",
   "legal": "Aviso legal",
-  "legalDisclaimer": "Anclora EnergyScan es un prediagnóstico orientativo. No sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente. Ahorros, costes y clasificaciones son estimaciones."
+  "legalDisclaimer": "Anclora EnergyScan es un prediagnóstico orientativo. No sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente. Ahorros, costes y clasificaciones son estimaciones.",
+  "providerHandoff.consent": "Acepto que Anclora comparta mis datos de contacto y el resumen técnico de mi prediagnóstico energético con proveedores o partners seleccionados para que puedan contactarme en relación con los servicios solicitados. Entiendo que Anclora EnergyScan no emite certificados energéticos oficiales y que cualquier certificación deberá realizarla un técnico habilitado.",
+  "providerHandoff.checkboxDefault": "false"
 }

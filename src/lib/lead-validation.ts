@@ -13,6 +13,9 @@ export const leadRequestSchema = z.object({
   zone: z.string().trim().max(80).optional(),
   source: z.string().trim().max(80).optional(),
   consentAccepted: z.boolean(),
+  consentVersion: z.string().trim().max(80).optional(),
+  consentTextSnapshot: z.string().trim().max(1000).optional(),
+  preferredLanguage: z.enum(["es", "en", "de"]).optional(),
   notes: z.string().trim().max(1000).optional(),
 }).superRefine((data, ctx) => {
   if (data.consentAccepted !== true) {

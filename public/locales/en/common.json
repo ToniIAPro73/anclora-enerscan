@@ -40,5 +40,7 @@
   "privacy": "Privacy policy",
   "terms": "Terms of service",
   "legal": "Legal notice",
-  "legalDisclaimer": "Anclora EnergyScan is an indicative pre-assessment. It does not replace the official Energy Performance Certificate or an inspection by a qualified technician. Savings, costs and ratings are estimates."
+  "legalDisclaimer": "Anclora EnergyScan is an indicative pre-assessment. It does not replace the official Energy Performance Certificate or an inspection by a qualified technician. Savings, costs and ratings are estimates.",
+  "providerHandoff.consent": "I agree that Anclora may share my contact details and the technical summary of my energy pre-assessment with selected providers or partners so they can contact me about the requested services. I understand that Anclora EnergyScan does not issue official energy certificates and that any certification must be performed by a qualified technician.",
+  "providerHandoff.checkboxDefault": "false"
 }

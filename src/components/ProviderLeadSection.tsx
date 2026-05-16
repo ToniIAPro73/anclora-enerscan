@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, Loader2, Star } from 'lucide-react';
 import { formatProviderCategory, formatProviderStatus } from '@/lib/domain/partners';
+import { PROVIDER_HANDOFF_CONSENT_COPY } from '@/lib/integrations/synergi/provider-handoff';
 import { usePreferences } from './AppPreferencesProvider';
 
 type PublicProvider = {
@@ -55,17 +56,17 @@ export function ProviderLeadSection({ assessmentId, zone }: { assessmentId: stri
     es: {
       request: 'Solicitud de contacto', name: 'Nombre', phone: 'Teléfono', service: 'Servicio interesado', urgency: 'Urgencia', budget: 'Presupuesto estimado', notes: 'Notas', send: 'Enviar solicitud',
       low: 'Baja', medium: 'Media', high: 'Alta', immediate: 'Inmediata', budgetPlaceholder: `Ej. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
-      consent: 'Acepto que Anclora EnergyScan registre esta solicitud de contacto y la comparta con proveedores demo/verificados para preparar un presupuesto orientativo. No implica contratación ni resultado garantizado.',
+      consent: PROVIDER_HANDOFF_CONSENT_COPY.es,
     },
     en: {
       request: 'Contact request', name: 'Name', phone: 'Phone', service: 'Interested service', urgency: 'Urgency', budget: 'Estimated budget', notes: 'Notes', send: 'Send request',
       low: 'Low', medium: 'Medium', high: 'High', immediate: 'Immediate', budgetPlaceholder: `E.g. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
-      consent: 'I accept that Anclora EnergyScan registers this contact request and shares it with demo/verified providers to prepare an indicative quote. It does not imply hiring or guaranteed results.',
+      consent: PROVIDER_HANDOFF_CONSENT_COPY.en,
     },
     de: {
       request: 'Kontaktanfrage', name: 'Name', phone: 'Telefon', service: 'Gewünschte Leistung', urgency: 'Dringlichkeit', budget: 'Geschätztes Budget', notes: 'Notizen', send: 'Anfrage senden',
       low: 'Niedrig', medium: 'Mittel', high: 'Hoch', immediate: 'Sofort', budgetPlaceholder: `z. B. ${formatCurrency(5000, { maximumFractionDigits: 0 })} - ${formatCurrency(15000, { maximumFractionDigits: 0 })}`,
-      consent: 'Ich akzeptiere, dass Anclora EnergyScan diese Kontaktanfrage speichert und mit Demo-/geprüften Anbietern teilt, um ein orientierendes Angebot vorzubereiten. Dies bedeutet keine Beauftragung und kein garantiertes Ergebnis.',
+      consent: PROVIDER_HANDOFF_CONSENT_COPY.de,
     },
   }[language];
   const [providers, setProviders] = useState<PublicProvider[]>([]);
@@ -117,6 +118,9 @@ export function ProviderLeadSection({ assessmentId, zone }: { assessmentId: stri
       zone,
       source: assessmentId.startsWith('local_') ? 'demo' : 'assessment',
       consentAccepted: formData.get('consentAccepted') === 'on',
+      consentVersion: process.env.NEXT_PUBLIC_PROVIDER_HANDOFF_CONSENT_VERSION || '2026-05-16-v1',
+      consentTextSnapshot: formCopy.consent,
+      preferredLanguage: language,
       notes: String(formData.get('notes') || ''),
     };
 
