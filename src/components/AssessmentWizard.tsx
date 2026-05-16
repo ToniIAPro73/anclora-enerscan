@@ -130,7 +130,7 @@ export default function AssessmentWizard() {
   const budgetFileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentFileInputRef = useRef<HTMLInputElement | null>(null);
   const fileDialogScrollRef = useRef<{ x: number; y: number } | null>(null);
-  const { dictionary: t, language, formatCurrency } = usePreferences();
+  const { dictionary: t, language, formatCurrency, formatArea } = usePreferences();
 
   useEffect(() => {
     if (step !== 2) return;
@@ -451,16 +451,16 @@ export default function AssessmentWizard() {
         }
       } else {
         setMapSourceLabel(t.wizardMapLocationManual);
-        setMapSelectionMessage('No se han podido obtener datos catastrales de ese punto. Acércate más y pulsa dentro del contorno de la finca.');
+        setMapSelectionMessage(t.wizardMapNoCadastralData);
       }
     } catch (err) {
       console.error('Parcel select failed:', err);
       setMapSourceLabel(t.wizardMapLocationManual);
-      setMapSelectionMessage('Catastro no ha devuelto datos para ese punto. Inténtalo de nuevo o usa referencia catastral/dirección.');
+      setMapSelectionMessage(t.wizardMapCadastralLookupFailed);
     } finally {
       setIsMapLoading(false);
     }
-  }, [t.wizardMapLocationManual, confirmedMatch, requestMapMatchReplacement, setValue, showResolvedMapMatches]);
+  }, [t.wizardMapCadastralLookupFailed, t.wizardMapLocationManual, t.wizardMapNoCadastralData, confirmedMatch, requestMapMatchReplacement, setValue, showResolvedMapMatches]);
 
   const restoreFileDialogScroll = () => {
     const position = fileDialogScrollRef.current;
@@ -1328,19 +1328,19 @@ export default function AssessmentWizard() {
 	                    />
 	                    {pendingMapMatch && (
 	                      <div className="absolute inset-x-4 bottom-4 z-[30] rounded-2xl border border-[#00DC82]/30 bg-[#07140f]/95 p-4 shadow-2xl backdrop-blur">
-	                        <p className="font-heading text-sm font-bold text-premium">¿Usar los datos de la finca seleccionada?</p>
+	                        <p className="font-heading text-sm font-bold text-premium">{t.wizardMapParcelConfirmTitle}</p>
 	                        <p className="mt-1 text-xs text-muted">
 	                          {confirmedMatch
-	                            ? 'Se sustituirán la referencia, la dirección y los datos catastrales aplicados anteriormente por los de esta finca.'
-	                            : 'Se volcarán la referencia, la dirección y los datos catastrales de esta finca en el formulario.'}
+	                            ? t.wizardMapParcelReplaceDescription
+	                            : t.wizardMapParcelApplyDescription}
 	                        </p>
 	                        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-muted">
 	                          <p className="font-bold text-premium">{pendingMapMatch.address}</p>
 	                          <p>{pendingMapMatch.municipality}, {pendingMapMatch.province}</p>
 	                          <p className="mt-1 font-mono text-[11px] text-[#00DC82]">{pendingMapMatch.cadastralReference || pendingMapMatch.parcelReference}</p>
 	                          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-	                            {pendingMapMatch.surfaceBuiltM2 && <span>{pendingMapMatch.surfaceBuiltM2} m² construidos</span>}
-	                            {pendingMapMatch.yearBuilt && <span>Año {pendingMapMatch.yearBuilt}</span>}
+	                            {pendingMapMatch.surfaceBuiltM2 && <span>{t.wizardMapParcelBuiltArea}: {formatArea(pendingMapMatch.surfaceBuiltM2)}</span>}
+	                            {pendingMapMatch.yearBuilt && <span>{t.wizardCatastroDetailYear}: {pendingMapMatch.yearBuilt}</span>}
 	                            {pendingMapMatch.propertyUse && <span>{pendingMapMatch.propertyUse}</span>}
 	                          </div>
 	                        </div>
@@ -1350,14 +1350,14 @@ export default function AssessmentWizard() {
                             onClick={() => applyCadastralMatch(pendingMapMatch)}
                             className="flex-1 rounded-full bg-[#00DC82] px-4 py-2 text-xs font-bold text-[#07140f] transition hover:brightness-110"
                           >
-                            Sí, usar esta finca
+                            {t.wizardMapParcelUseThis}
                           </button>
                           <button
                             type="button"
                             onClick={cancelPendingMapMatch}
                             className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-premium transition hover:border-[#00DC82]/40"
                           >
-                            Mantener anterior
+                            {t.wizardMapParcelKeepPrevious}
                           </button>
 	                        </div>
 	                      </div>

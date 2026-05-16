@@ -75,4 +75,18 @@ describe('Catastro client endpoints', () => {
     expect(url).toContain('Coordenada_X=2.6502');
     expect(url).toContain('Coordenada_Y=39.5696');
   });
+
+  it('uses the same official Coordenadas endpoint for reverse lookups', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(EMPTY_COORD_XML),
+    });
+
+    await resolveByCoordinates(40.4168, -3.7038);
+
+    const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(url).toContain('/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?');
+    expect(url).toContain('Coordenada_X=-3.7038');
+    expect(url).toContain('Coordenada_Y=40.4168');
+  });
 });

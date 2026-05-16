@@ -64,6 +64,51 @@ export const CatastroResolveResponseSchema = z.object({
 
 export type CatastroResolveResponse = z.infer<typeof CatastroResolveResponseSchema>;
 
+const optionalTrimmedString = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim() : value),
+  z.string().optional()
+);
+
+export const CadastralReferenceInputSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().replace(/\s+/g, '').toUpperCase() : value),
+  z.string().regex(/^[A-Z0-9]{14}([A-Z0-9]{6})?$/, 'INVALID_REFERENCE')
+);
+
+export const CatastroAddressInputSchema = z.object({
+  province: z.string().trim().min(1),
+  municipality: z.string().trim().min(1),
+  street: z.string().trim().min(1),
+  number: z.string().trim().min(1),
+  sigla: optionalTrimmedString,
+  provinceCode: optionalTrimmedString,
+  municipalityCode: optionalTrimmedString,
+  streetCode: optionalTrimmedString,
+  block: optionalTrimmedString,
+  staircase: optionalTrimmedString,
+  floor: optionalTrimmedString,
+  door: optionalTrimmedString,
+});
+
+export const CatastroCoordinatesInputSchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
+
+export const CatastroResolveRequestSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('rc'),
+    rc: CadastralReferenceInputSchema,
+  }),
+  CatastroAddressInputSchema.extend({
+    mode: z.literal('address'),
+  }),
+  CatastroCoordinatesInputSchema.extend({
+    mode: z.literal('coords'),
+  }),
+]);
+
+export type CatastroResolveRequest = z.infer<typeof CatastroResolveRequestSchema>;
+
 export const ProvinceSchema = z.object({
   id: z.string(),
   name: z.string(),

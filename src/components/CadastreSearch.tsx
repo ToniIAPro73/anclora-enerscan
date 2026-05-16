@@ -533,10 +533,10 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                       </p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                         {Boolean(match.surfaceBuiltM2 && match.surfaceBuiltM2 > 0) && (
-                          <span className="text-[10px] text-muted font-semibold">🏠 {match.surfaceBuiltM2} m²</span>
+                          <span className="text-[10px] text-muted font-semibold">{t.cadastralResultsBuiltArea}: {formatArea(match.surfaceBuiltM2!)}</span>
                         )}
                         {match.yearBuilt && (
-                          <span className="text-[10px] text-muted font-semibold">📅 {match.yearBuilt}</span>
+                          <span className="text-[10px] text-muted font-semibold">{t.wizardCatastroDetailYear}: {match.yearBuilt}</span>
                         )}
                         {match.propertyUse && (
                           <span className="text-[10px] text-muted font-semibold uppercase">🏢 {match.propertyUse}</span>

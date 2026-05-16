@@ -5,6 +5,7 @@ import type { MouseEvent } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Box, Layers, Loader2, MapPin, Minus, Plus } from 'lucide-react';
 import type { CadastralMapFeature } from '@/lib/catastro/types';
+import { usePreferences } from './AppPreferencesProvider';
 
 interface PropertyMapProps {
   lat?: number;
@@ -65,11 +66,11 @@ function boundsToPolygon(bounds: [[number, number], [number, number]]): [Array<[
   ]];
 }
 
-function featuresToGeoJson(features: CadastralMapFeature[]): MapGeoJson {
+function featuresToGeoJson(features: CadastralMapFeature[], fallbackLabel: string): MapGeoJson {
   const geoJsonFeatures: MapGeoJsonFeature[] = [];
 
   for (const feature of features) {
-    const label = feature.label || feature.cadastralReference || feature.parcelReference || 'Finca catastral';
+    const label = feature.label || feature.cadastralReference || feature.parcelReference || fallbackLabel;
     if (feature.bounds) {
       geoJsonFeatures.push({
         type: 'Feature',
@@ -237,12 +238,20 @@ function MapToolbar({
   pitchEnabled,
   onToggleStyle,
   onTogglePitch,
+  labels,
 }: {
   map: maplibregl.Map | null;
   styleIndex: number;
   pitchEnabled: boolean;
   onToggleStyle: () => void;
   onTogglePitch: () => void;
+  labels: {
+    controls: string;
+    zoomIn: string;
+    zoomOut: string;
+    changeBaseLayer: string;
+    pitchView: string;
+  };
 }) {
   const stopPropagation = (event: MouseEvent) => {
     event.preventDefault();
@@ -255,14 +264,14 @@ function MapToolbar({
       onMouseDown={stopPropagation}
       onClick={stopPropagation}
       onDoubleClick={stopPropagation}
-      aria-label="Controles del mapa"
+      aria-label={labels.controls}
     >
       <button
         type="button"
         onClick={() => map?.zoomIn()}
         className="flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100"
-        aria-label="Acercar mapa"
-        title="Acercar"
+        aria-label={labels.zoomIn}
+        title={labels.zoomIn}
       >
         <Plus className="h-6 w-6" />
       </button>
@@ -270,8 +279,8 @@ function MapToolbar({
         type="button"
         onClick={() => map?.zoomOut()}
         className="flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100"
-        aria-label="Alejar mapa"
-        title="Alejar"
+        aria-label={labels.zoomOut}
+        title={labels.zoomOut}
       >
         <Minus className="h-6 w-6" />
       </button>
@@ -279,8 +288,8 @@ function MapToolbar({
         type="button"
         onClick={onToggleStyle}
         className={`flex h-11 w-11 items-center justify-center border-b border-black/10 hover:bg-neutral-100 ${styleIndex > 0 ? 'bg-[#00DC82]/20' : ''}`}
-        aria-label="Cambiar capa base"
-        title="Cambiar capa"
+        aria-label={labels.changeBaseLayer}
+        title={labels.changeBaseLayer}
       >
         <Layers className="h-5 w-5" />
       </button>
@@ -288,8 +297,8 @@ function MapToolbar({
         type="button"
         onClick={onTogglePitch}
         className={`flex h-11 w-11 flex-col items-center justify-center gap-0.5 text-[11px] font-black hover:bg-neutral-100 ${pitchEnabled ? 'bg-[#00DC82]/20' : ''}`}
-        aria-label="Vista 3D orientativa"
-        title="Vista 3D"
+        aria-label={labels.pitchView}
+        title={labels.pitchView}
       >
         <Box className="h-4 w-4" />
         3D
@@ -311,6 +320,7 @@ export default function PropertyMap({
   showParcels = true,
   isLoading = false,
 }: PropertyMapProps) {
+  const { dictionary: t } = usePreferences();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const loadedRef = useRef(false);
@@ -329,7 +339,7 @@ export default function PropertyMap({
   const center = useMemo((): [number, number] => (
     hasExplicitCenter ? [lng!, lat!] : SPAIN_CENTER
   ), [hasExplicitCenter, lat, lng]);
-  const geoJson = useMemo(() => featuresToGeoJson(showParcels ? features : []), [features, showParcels]);
+  const geoJson = useMemo(() => featuresToGeoJson(showParcels ? features : [], t.wizardMapCadastralParcelLabel), [features, showParcels, t.wizardMapCadastralParcelLabel]);
   const initialCenterRef = useRef(center);
   const initialZoomRef = useRef(hasExplicitCenter ? zoom : SPAIN_ZOOM);
   const initialGeoJsonRef = useRef(geoJson);
@@ -488,6 +498,13 @@ export default function PropertyMap({
         pitchEnabled={pitchEnabled}
         onToggleStyle={handleToggleStyle}
         onTogglePitch={handleTogglePitch}
+        labels={{
+          controls: t.wizardMapControls,
+          zoomIn: t.wizardMapZoomIn,
+          zoomOut: t.wizardMapZoomOut,
+          changeBaseLayer: t.wizardMapChangeBaseLayer,
+          pitchView: t.wizardMapPitchView,
+        }}
       />
 
       {hasExplicitCenter && (
@@ -503,7 +520,7 @@ export default function PropertyMap({
         <div className="absolute inset-0 z-[30] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
           <div className="flex items-center gap-3 rounded-2xl border border-[#00DC82]/30 bg-[#131313]/90 p-4 shadow-2xl">
             <Loader2 className="h-5 w-5 animate-spin text-[#00DC82]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#00DC82]">Consultando Catastro...</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#00DC82]">{t.wizardMapLoadingCatastro}</span>
           </div>
         </div>
       )}
@@ -512,7 +529,7 @@ export default function PropertyMap({
         <div className="pointer-events-none absolute left-3 top-3 z-[15] rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase text-[#111] shadow-lg">
           <span className="inline-flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-[#00A65A]" />
-            Selecciona ubicación en el mapa
+            {t.wizardMapSelectLocation}
           </span>
         </div>
       )}
