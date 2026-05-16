@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 import { styles } from './styles';
 import { AssessmentAttachment, PremiumReportData } from '../domain/energy-assessment';
-import { getLegalDisclaimer } from '../i18n';
+import { getLegalDisclaimer, translateConfidence } from '../i18n';
 import { formatFileSize } from '../attachments';
 import { getPublicAssessmentRef } from '../stateless-assessment';
 import { formatCostQuantity, formatEuroRange, formatUnitPrice } from '../costs/format';
@@ -161,7 +161,7 @@ const labels = {
     budgetImpactDisclaimer: 'The estimated energy impact of quoted works is indicative. Real improvement depends on design, execution, materials, existing systems and official technical calculation.',
   },
   de: {
-    title: 'Anclora EnergyScan Premium Report',
+    title: 'Anclora EnergyScan Premium-Bericht',
     subtitle: 'Orientierende energetische Voreinschätzung',
     demo: 'Demo-Bericht mit fiktiven Daten',
     rating: 'Geschätzte Klasse',
@@ -715,7 +715,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             {s.costEstimate && (
               <View style={{ marginTop: 6 }}>
                 <Text style={{ ...styles.text, fontWeight: 'bold', color: '#008F5A' }}>
-                  {t.indicativeRange}: {formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal, { currency, language })} · {t.confidence}: {s.costEstimate.confidence}
+                  {t.indicativeRange}: {formatEuroRange(s.costEstimate.minTotal, s.costEstimate.maxTotal, s.costEstimate.midTotal, { currency, language })} · {t.confidence}: {translateConfidence(s.costEstimate.confidence, language)}
                 </Text>
                 <Text style={{ ...styles.text, fontSize: 8 }}>{costSourceSummary(language, s.costEstimate.sourceSummary)}</Text>
               </View>
@@ -761,7 +761,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>
               {t.conservativeRecommendedPremium}: {formatEuroRange(scenario.costEstimate!.minTotal, scenario.costEstimate!.maxTotal, scenario.costEstimate!.midTotal, { currency, language })}
             </Text>
-            <Text style={styles.text}>{t.confidence}: {scenario.costEstimate!.confidence}</Text>
+            <Text style={styles.text}>{t.confidence}: {translateConfidence(scenario.costEstimate!.confidence, language)}</Text>
             <Text style={{ ...styles.text, fontSize: 8 }}>{costSourceSummary(language, scenario.costEstimate!.sourceSummary)}</Text>
           </View>
         ))}
