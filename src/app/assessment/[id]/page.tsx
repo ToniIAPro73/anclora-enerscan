@@ -6,17 +6,16 @@ import { PdfDownloadLink } from '@/components/PdfDownloadLink';
 import { PaywallSection } from '@/components/PaywallSection';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
-import { REGULATORY_TIMELINE } from '@/lib/regulatory';
+import { localizeRegulatoryTimeline } from '@/lib/regulatory';
 import { getRelevantSubsidies } from '@/lib/subsidies';
 import { formatEuroRange } from '@/lib/costs/format';
-import { COST_ESTIMATE_DISCLAIMER } from '@/lib/costs/cost-disclaimers';
 import { AlertTriangle, CheckCircle2, HelpCircle, Lightbulb, FileText } from 'lucide-react';
 import { AssessmentAttachment, PropertyDataV2, ScoreResultV2, EnergyLetter, PropertyType, HeatingSystem, CoolingSystem, WaterHeatingSystem, WindowType, RenewableSystem, InsulationLevel, BudgetRange, AssessmentObjective, ConfidenceLevel, PropertyOrientation, RoofType, VentilationType, TimelineHorizon } from '@/lib/domain/energy-assessment';
 import { parseStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { cookies } from 'next/headers';
 import { getPreferencesForLanguage, normalizeCurrency, normalizeLanguage, normalizeMeasurementSystem } from '@/lib/preferences';
 import { formatArea } from '@/lib/formatters';
-import { getDictionary, getLegalDisclaimer, formatValueLabel } from '@/lib/i18n';
+import { getDictionary, getLegalDisclaimer, formatValueLabel, translateClimateZone, translateConfidence, translateScoreText } from '@/lib/i18n';
 import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
 import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
@@ -57,7 +56,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     rehabBudgets: [],
   };
 
-  if (!assessment && !statelessPayload) return <div>No se encontró el análisis.</div>;
+  if (!assessment && !statelessPayload) return <div>{t.analysisNotFound}</div>;
 
   const cadastralRecordRaw = statelessPayload?.cadastralRecord || assessment?.cadastralRecord;
   const cadastralRecord = cadastralRecordRaw ? {
@@ -111,6 +110,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
 
 
   const scenarios = localizeScenarios(generateScenarios(propertyData, scoreResult), language);
+  const regulatoryTimeline = localizeRegulatoryTimeline(language);
   const subsidies = localizeSubsidies(getRelevantSubsidies(propertyData), language);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
   const premiumAccess = canAccessPremiumContent({
@@ -178,7 +178,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </p>
               )}
               {scoreResult.explanation && (
-                <p className="text-sm text-premium">{scoreResult.explanation}</p>
+                <p className="text-sm text-premium">{translateScoreText(scoreResult.explanation, language)}</p>
               )}
 
               <div className="grid grid-cols-2 gap-4">
@@ -186,14 +186,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-semibold text-muted uppercase">{t.engineConfidence}</span>
                     <span className={`text-sm font-bold max-w-fit px-2 py-0.5 rounded ${scoreResult.confidence === 'Alta' ? 'bg-[#00DC82]/20 text-[#00DC82]' : scoreResult.confidence === 'Media' ? 'bg-[#FFB020]/20 text-[#FFB020]' : 'bg-[#EF4444]/20 text-[#EF4444]'}`}>
-                      {scoreResult.confidence}
+                      {translateConfidence(scoreResult.confidence, language)}
                     </span>
                   </div>
                 </div>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-semibold text-muted uppercase">{t.climateZone}</span>
-                    <span className="text-sm font-bold text-premium">{scoreResult.climateZone}</span>
+                    <span className="text-sm font-bold text-premium">{translateClimateZone(scoreResult.climateZone, language)}</span>
                   </div>
                 </div>
               </div>
@@ -348,7 +348,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   {scoreResult.penalties.slice(0, canViewPremium ? undefined : 3).map((p, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-1.5 shrink-0" />
-                      {p}
+                      {translateScoreText(p, language)}
                     </li>
                   ))}
                 </ul>
@@ -367,7 +367,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   {scoreResult.strengths.slice(0, canViewPremium ? undefined : 2).map((s, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#00DC82] mt-1.5 shrink-0" />
-                      {s}
+                      {translateScoreText(s, language)}
                     </li>
                   ))}
                 </ul>
@@ -386,7 +386,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                   {scoreResult.missingData.slice(0, canViewPremium ? undefined : 3).map((m, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#FFB020] mt-1.5 shrink-0" />
-                      {m}
+                      {translateScoreText(m, language)}
                     </li>
                   ))}
                 </ul>
@@ -424,7 +424,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               <p className="text-[#7A7A7A] text-sm italic">{getLegalDisclaimer(language)}</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {REGULATORY_TIMELINE.map((n, i) => (
+              {regulatoryTimeline.map((n, i) => (
                 <div key={i} className="bg-[#131313] border border-[#262626] rounded-2xl p-5 space-y-3 relative overflow-hidden">
                   <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-2xl opacity-10 ${n.riskLevel === 'high' ? 'bg-[#EF4444]' : n.riskLevel === 'medium' ? 'bg-[#FFB020]' : 'bg-[#00DC82]'}`} />
                   <div className="flex items-center justify-between gap-2 relative z-10">
@@ -515,9 +515,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                         </div>
                         <div className="mt-1 flex justify-between gap-3">
                           <span className="text-[#7A7A7A]">{t.confidence}:</span>
-                          <span className="font-bold text-[#FFB020]">{s.costEstimate.confidence}</span>
+                          <span className="font-bold text-[#FFB020]">{translateConfidence(s.costEstimate.confidence, language)}</span>
                         </div>
-                        <p className="mt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{s.costEstimate.sourceSummary}</p>
+                        <p className="mt-2 text-[10px] leading-relaxed text-[#7A7A7A]">{language === 'es' ? s.costEstimate.sourceSummary : t.costSourceSummary}</p>
                       </div>
                     )}
                     <div className="flex justify-between gap-3 text-xs"><span className="text-[#7A7A7A]">{t.savings}:</span><span className="font-bold text-[#00DC82] text-right">{s.estimatedSavingsRange}</span></div>
@@ -528,7 +528,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               ))}
             </div>
             <p className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-[#7A7A7A]">
-              {COST_ESTIMATE_DISCLAIMER} Factores que pueden modificar el precio: superficie real de huecos, estado inicial, calidades, accesibilidad, ubicación, permisos, comunidad de propietarios, disponibilidad de materiales y visita técnica.
+              {t.costEstimateDisclaimer} {t.priceFactorsCopy}
             </p>
           </section>}
 

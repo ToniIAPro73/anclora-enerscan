@@ -9,7 +9,7 @@ import { getLegalDisclaimer } from '@/lib/i18n';
 import { HeroEnergyScale } from '@/components/HeroEnergyScale';
 
 export default function LandingPage() {
-  const { dictionary: t, language, formatCurrency } = usePreferences();
+  const { dictionary: t, language, currency, measurementSystem, formatCurrency } = usePreferences();
   const timeline = {
     es: [
       { year: 'Hoy', title: 'R.D. 390/2021', desc: 'CEE obligatorio para venta/alquiler.', status: 'Vigente', color: 'bg-[#00DC82]' },
@@ -70,9 +70,9 @@ export default function LandingPage() {
                   <Link href="/pricing" className="px-6 py-3 rounded-full bg-[#F0EDE8] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.pricingPremiumCta}
                   </Link>
-                  <Link href="/api/assessment/demo" className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
+                  <a href={`/api/assessment/demo/pdf?lang=${language}&currency=${currency}&units=${measurementSystem}`} download className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.paywallDemoLink}
-                  </Link>
+                  </a>
                   <Link href="#como-funciona" className="px-6 py-3 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
                     {t.howItWorks}
                   </Link>

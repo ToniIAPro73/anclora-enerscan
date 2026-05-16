@@ -300,14 +300,14 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
               onClick={() => setMode('rc')}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${mode === 'rc' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
             >
-              Referencia Catastral
+              {t.wizardCatastroModeReference}
             </button>
             <button
               type="button"
               onClick={() => setMode('address')}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${mode === 'address' ? 'bg-[#00DC82] text-[#0A0A0A]' : 'text-muted hover:text-premium'}`}
             >
-              Dirección
+              {t.wizardCatastroModeAddress}
             </button>
           </div>
 
@@ -330,14 +330,14 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Provincia</label>
+                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">{t.cadastralProvince}</label>
                 <div className="relative">
                   <select
                     value={selectedProvince}
                     onChange={(e) => setSelectedProvince(e.target.value)}
                     className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none"
                   >
-                    <option value="">{provincesLoading ? 'Cargando provincias...' : 'Selecciona provincia'}</option>
+                    <option value="">{provincesLoading ? t.wizardCatastroProvinceLoading : t.wizardCatastroProvinceSelect}</option>
                     {provinces.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
@@ -348,7 +348,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Municipio</label>
+                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">{t.cadastralMunicipality}</label>
                 <div className="relative">
                   <select
                     value={selectedMunicipality}
@@ -356,7 +356,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                     disabled={!selectedProvince || municipalitiesLoading}
                     className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none disabled:opacity-50"
                   >
-                    <option value="">{municipalitiesLoading ? 'Cargando municipios...' : 'Selecciona municipio'}</option>
+                    <option value="">{municipalitiesLoading ? t.wizardCatastroMunicipalityLoading : t.wizardCatastroMunicipalitySelect}</option>
                     {municipalities.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
@@ -367,7 +367,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                 </div>
               </div>
               <div className="space-y-1.5 sm:col-span-2 relative">
-                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Calle / Vía</label>
+                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">{t.wizardCatastroStreetLabel}</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -418,12 +418,12 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">Número</label>
+                <label className="text-[10px] font-bold uppercase text-[#7A7A7A] ml-1">{t.wizardCatastroNumberLabel}</label>
                 <input
                   type="text"
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
-                  placeholder="Ej. 1"
+                  placeholder={t.wizardCatastroNumberPlaceholder}
                   disabled={!selectedMunicipality}
                   className="w-full bg-[#0A0A0A] border border-[#262626] rounded-xl p-3 text-sm focus:border-[#00DC82] outline-none disabled:opacity-50"
                 />
