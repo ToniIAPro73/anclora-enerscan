@@ -16,6 +16,8 @@ import { appendPdfAnnexes, PdfAnnex } from '@/lib/pdf/append-pdf-annex';
 import { getScenarioCostEstimate } from '@/lib/costs/cost-engine';
 import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
+import { assertCanDownloadPremiumPdf, canAccessPremiumContent } from '@/lib/premium-access';
+import { trackEvent } from '@/lib/analytics';
 
 // Forzar dinamismo para evitar problemas de pre-renderizado con DB y librerías nativas
 export const dynamic = 'force-dynamic';
@@ -150,6 +152,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     let rawAttachments: AssessmentAttachment[] = [];
 
     if (statelessPayload) {
+      const access = canAccessPremiumContent({
+        isDemo: statelessPayload.isDemo,
+        statelessPayload,
+      });
+      if (!assertCanDownloadPremiumPdf(access)) {
+        return NextResponse.json(
+          {
+            error: 'premium_required',
+            message: 'El informe PDF Premium requiere pago previo.',
+            checkoutRequired: true,
+          },
+          { status: 402 }
+        );
+      }
+
       reportData = createReportDataFromPayload(params.id, statelessPayload, language, currency, measurementSystem);
       rawAttachments = statelessPayload.attachments || [];
     } else {
@@ -160,6 +177,22 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
       if (!assessment) {
         return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+      }
+
+      const access = canAccessPremiumContent({
+        paidAt: assessment.paidAt,
+        isPremium: assessment.isPremium,
+        isDemo: assessment.isDemo,
+      });
+      if (!assertCanDownloadPremiumPdf(access)) {
+        return NextResponse.json(
+          {
+            error: 'premium_required',
+            message: 'El informe PDF Premium requiere pago previo.',
+            checkoutRequired: true,
+          },
+          { status: 402 }
+        );
       }
 
       const premiumSources = await loadPremiumSourcesForAssessment(assessment.id);
@@ -316,6 +349,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     const reportRef = reportData.publicRef || getPublicAssessmentRef(params.id);
+    trackEvent('pdf_downloaded', { assessmentId: params.id });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new NextResponse(finalPdfBytes as any, {

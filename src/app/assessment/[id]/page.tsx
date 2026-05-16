@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import { AttachmentList } from '@/components/AttachmentList';
 import { ProviderLeadSection } from '@/components/ProviderLeadSection';
 import { PdfDownloadLink } from '@/components/PdfDownloadLink';
+import { PaywallSection } from '@/components/PaywallSection';
 import { prisma } from '@/lib/prisma';
 import { generateScenarios } from '@/lib/simulator';
 import { REGULATORY_TIMELINE } from '@/lib/regulatory';
@@ -19,6 +20,7 @@ import { getDictionary, getLegalDisclaimer, formatValueLabel } from '@/lib/i18n'
 import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
 import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
+import { canAccessPremiumContent } from '@/lib/premium-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +113,13 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const scenarios = localizeScenarios(generateScenarios(propertyData, scoreResult), language);
   const subsidies = localizeSubsidies(getRelevantSubsidies(propertyData), language);
   const isDemo = statelessPayload?.isDemo || assessment?.isDemo || false;
+  const premiumAccess = canAccessPremiumContent({
+    paidAt: assessment?.paidAt,
+    isPremium: assessment?.isPremium,
+    isDemo,
+    statelessPayload,
+  });
+  const canViewPremium = premiumAccess.isPaid;
   const attachments: AssessmentAttachment[] = statelessPayload?.attachments || assessment?.attachments.map((attachment) => ({
     id: attachment.id,
     name: attachment.name,
@@ -285,7 +294,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
           </section>
 
-          {(energyCertificates.length > 0 || rehabBudgets.length > 0) && (
+          {canViewPremium && (energyCertificates.length > 0 || rehabBudgets.length > 0) && (
             <section className="surface border rounded-3xl p-6 lg:p-8 space-y-6">
               <h2 className="font-heading text-2xl font-bold text-premium">{t.importedSourcesTitle}</h2>
               {energyCertificates.map((certificate, index) => (
@@ -334,9 +343,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 <AlertTriangle className="w-5 h-5" />
                 <h3 className="font-heading font-bold text-lg">{t.penalties}</h3>
               </div>
-              {scoreResult.penalties.length > 0 ? (
+                  {scoreResult.penalties.length > 0 ? (
                 <ul className="space-y-3">
-                  {scoreResult.penalties.map((p, i) => (
+                  {scoreResult.penalties.slice(0, canViewPremium ? undefined : 3).map((p, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-1.5 shrink-0" />
                       {p}
@@ -353,9 +362,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 <Lightbulb className="w-5 h-5" />
                 <h3 className="font-heading font-bold text-lg">{t.strengths}</h3>
               </div>
-              {scoreResult.strengths.length > 0 ? (
+                  {scoreResult.strengths.length > 0 ? (
                 <ul className="space-y-3">
-                  {scoreResult.strengths.map((s, i) => (
+                  {scoreResult.strengths.slice(0, canViewPremium ? undefined : 2).map((s, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#00DC82] mt-1.5 shrink-0" />
                       {s}
@@ -372,9 +381,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 <HelpCircle className="w-5 h-5" />
                 <h3 className="font-heading font-bold text-lg">{t.missingData}</h3>
               </div>
-              {scoreResult.missingData.length > 0 ? (
+                  {scoreResult.missingData.length > 0 ? (
                 <ul className="space-y-3">
-                  {scoreResult.missingData.map((m, i) => (
+                  {scoreResult.missingData.slice(0, canViewPremium ? undefined : 3).map((m, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-[#7A7A7A]">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#FFB020] mt-1.5 shrink-0" />
                       {m}
@@ -387,8 +396,29 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             </div>
           </div>
 
+          {!canViewPremium && (
+            <section className="surface border rounded-3xl p-6 lg:p-8 space-y-6">
+              <div className="text-center">
+                <h2 className="font-heading font-bold text-2xl text-[#F0EDE8] mb-2">{t.premiumLockedTitle}</h2>
+                <p className="mx-auto max-w-2xl text-sm text-[#7A7A7A]">{t.premiumLockedCopy}</p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                {scenarios.slice(0, 3).map((scenario) => (
+                  <div key={scenario.id} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
+                    <h3 className="font-heading font-bold text-premium">{scenario.title}</h3>
+                    <p className="mt-2 text-xs text-muted">{scenario.objective}</p>
+                    <p className="mt-4 text-xs font-bold uppercase text-[#FFB020]">{t.premiumPreviewCopy}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {!canViewPremium && <PaywallSection assessmentId={params.id} />}
+
           {/* REGULATORY TIMELINE */}
-          <section className="space-y-8">
+          {canViewPremium && <section className="space-y-8">
             <div className="text-center">
               <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">{language === 'en' ? 'Regulatory context' : language === 'de' ? 'Regulatorischer Kontext' : 'Contexto regulatorio'}</h2>
               <p className="text-[#7A7A7A] text-sm italic">{getLegalDisclaimer(language)}</p>
@@ -408,10 +438,10 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
               ))}
             </div>
-          </section>
+          </section>}
 
           {/* PREMIUM REPORT CTA */}
-          <section className="bg-gradient-to-r from-[#00DC82]/20 to-[#FFB020]/20 border border-white/10 rounded-3xl p-8 text-center space-y-6">
+          {canViewPremium && <section className="bg-gradient-to-r from-[#00DC82]/20 to-[#FFB020]/20 border border-white/10 rounded-3xl p-8 text-center space-y-6">
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#F0EDE8]">{t.premiumReportTitle}</h2>
             <p className="text-[#7A7A7A] max-w-2xl mx-auto">
               {t.premiumReportCopy}
@@ -420,10 +450,10 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               <PdfDownloadLink assessmentId={params.id} />
             </div>
             <p className="text-[10px] text-[#7A7A7A]/60">{t.dynamicPdf}</p>
-          </section>
+          </section>}
 
           {/* ATTACHMENTS */}
-          <section className="surface border rounded-3xl p-6 lg:p-8">
+          {canViewPremium && <section className="surface border rounded-3xl p-6 lg:p-8">
             <div className="mb-5 flex items-center gap-2 text-premium">
               <FileText className="h-5 w-5 text-[#00DC82]" />
               <h2 className="font-heading text-2xl font-bold">{t.attachments}</h2>
@@ -453,10 +483,10 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
               <span className="rounded-full bg-white/5 px-2 py-1 text-muted">CEE: {ceeCount}</span>
             </div>
             <AttachmentList assessmentId={params.id} initialAttachments={attachments} />
-          </section>
+          </section>}
 
           {/* SIMULATOR */}
-          <section className="space-y-8">
+          {canViewPremium && <section className="space-y-8">
              <div className="text-center">
               <h2 className="font-heading font-bold text-3xl text-[#F0EDE8] mb-2">{t.simulatorTitle}</h2>
               <p className="text-[#7A7A7A]">{t.simulatorCopy}</p>
@@ -500,10 +530,10 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
             <p className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-[#7A7A7A]">
               {COST_ESTIMATE_DISCLAIMER} Factores que pueden modificar el precio: superficie real de huecos, estado inicial, calidades, accesibilidad, ubicación, permisos, comunidad de propietarios, disponibilidad de materiales y visita técnica.
             </p>
-          </section>
+          </section>}
 
           {/* SUBSIDIES */}
-          <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
+          {canViewPremium && <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
             <div>
               <h2 className="font-heading font-bold text-2xl text-premium">{t.subsidiesTitle}</h2>
               <p className="mt-2 text-xs leading-relaxed text-muted">{getLegalDisclaimer(language)}</p>
@@ -520,9 +550,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
                 </div>
               ))}
             </div>
-          </section>
+          </section>}
 
-          <ProviderLeadSection assessmentId={params.id} zone={propertyData.zipcode} />
+          {canViewPremium && <ProviderLeadSection assessmentId={params.id} zone={propertyData.zipcode} />}
 
         </div>
       </main>

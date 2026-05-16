@@ -55,6 +55,13 @@ model Assessment {
 
   // Status
   isPremium        Boolean                @default(false)
+  paidAt           DateTime?
+  stripeSessionId  String?                @unique
+  stripePaymentIntent String?
+  stripeCustomerId String?
+  paidAmountCents  Int?
+  paidCurrency     String?
+  paymentStatus    String                 @default("unpaid")
   attachments      AssessmentAttachment[]
   leads            Lead[]
   costEstimateRuns EstimateRun[]
