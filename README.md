@@ -4,6 +4,19 @@ Anclora EnergyScan es una plataforma de prediagnóstico energético orientativa.
 
 **Este proyecto NO genera un Certificado de Eficiencia Energética oficial ni documentación con validez administrativa.**
 
+## Encaje en el ecosistema Anclora
+
+Anclora EnergyScan forma parte de la familia Premium de Anclora Group. Su fuente de verdad documental vive en la Bóveda Anclora y debe mantenerse alineada con los contratos `ANCLORA_PREMIUM_APP_CONTRACT`, `ANCLORA_BRANDING_MASTER_CONTRACT`, `LOCALIZATION_CONTRACT`, `UI_MOTION_CONTRACT` y el Anclora Design System.
+
+Relaciones previstas:
+
+- Nexus: gestión operativa de leads, estados de evaluación y seguimiento.
+- Data Lab: inteligencia agregada y señales territoriales/energéticas.
+- Synergi: proveedores, partners y handoff de oportunidades cualificadas.
+- Private Estates: enriquecimiento energético orientativo de activos inmobiliarios.
+
+EnergyScan no sustituye a Anclora Private Estates como plataforma principal del vertical Real Estate. Funciona como app Premium especializada de prediagnóstico energético orientativo.
+
 ## Stack
 - Next.js 14
 - TypeScript
