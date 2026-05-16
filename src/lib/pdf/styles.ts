@@ -161,7 +161,7 @@ export const styles = StyleSheet.create({
   annexImage: {
     width: '100%',
     height: 166,
-    objectFit: 'cover',
+    objectFit: 'contain',
     borderRadius: 4,
   },
   ceePageFrame: {

@@ -43,6 +43,17 @@ describe('POST /api/checkout', () => {
     expect(response.status).toBe(400);
   });
 
+  it('returns 400 for stateless local assessment ids', async () => {
+    const response = await POST(new Request('http://localhost:3000/api/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ assessmentId: 'local_payload' }),
+    }));
+    const payload = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe('persisted_assessment_required');
+    expect(prisma.assessment.findUnique).not.toHaveBeenCalled();
+  });
+
   it('returns 404 for missing assessment', async () => {
     (prisma.assessment.findUnique as jest.Mock).mockResolvedValue(null);
     const response = await POST(new Request('http://localhost:3000/api/checkout', {

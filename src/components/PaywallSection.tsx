@@ -10,6 +10,7 @@ import { trackEvent } from '@/lib/analytics';
 
 export function PaywallSection({ assessmentId }: { assessmentId: string }) {
   const { dictionary: t } = usePreferences();
+  const isLocalAssessment = assessmentId.startsWith('local_');
   const features = [
     t.paywallFeatureScenarios,
     t.paywallFeatureCosts,
@@ -48,12 +49,18 @@ export function PaywallSection({ assessmentId }: { assessmentId: string }) {
             ))}
           </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <CheckoutButton assessmentId={assessmentId} />
-            <Link href="/api/assessment/demo" className="text-sm font-heading font-semibold text-[#00DC82] transition hover:brightness-125">
-              {t.paywallDemoLink}
-            </Link>
-          </div>
+          {isLocalAssessment ? (
+            <div className="rounded-2xl border border-[#FFB020]/30 bg-[#FFB020]/10 p-4 text-sm font-semibold text-[#FFB020]">
+              {t.checkoutRequiresSavedAssessment}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <CheckoutButton assessmentId={assessmentId} />
+              <Link href="/api/assessment/demo" className="text-sm font-heading font-semibold text-[#00DC82] transition hover:brightness-125">
+                {t.paywallDemoLink}
+              </Link>
+            </div>
+          )}
 
           <div className="flex items-start gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-muted">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#00DC82]" />

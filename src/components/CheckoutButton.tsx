@@ -22,10 +22,16 @@ export function CheckoutButton({ assessmentId }: { assessmentId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assessmentId }),
       });
-      const payload = await response.json();
+      const rawPayload = await response.text();
+      let payload: { url?: string; error?: string; message?: string } = {};
+      try {
+        payload = rawPayload ? JSON.parse(rawPayload) : {};
+      } catch {
+        payload = {};
+      }
 
       if (!response.ok || !payload.url) {
-        throw new Error(payload.error || t.checkoutError);
+        throw new Error(payload.message || payload.error || t.checkoutError);
       }
 
       window.location.href = payload.url;
