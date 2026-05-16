@@ -19,7 +19,7 @@ export function formatUnitPrice(
   const measurementSystem = options.measurementSystem || 'metric';
   const shouldConvertAreaUnit = measurementSystem === 'imperial' && unit === 'm2';
   const convertedValue = shouldConvertAreaUnit ? value / SQFT_PER_M2 : value;
-  const convertedUnit = shouldConvertAreaUnit ? 'sq ft' : unit;
+  const convertedUnit = shouldConvertAreaUnit ? 'sq ft' : unit === 'm2' ? 'm²' : unit;
   return `${formatCurrency(convertedValue, options.currency || 'EUR', { language, maximumFractionDigits: 0 })}/${convertedUnit}`;
 }
 
@@ -33,5 +33,5 @@ export function formatCostQuantity(
   if (measurementSystem === 'imperial' && unit === 'm2') {
     return `${formatNumber(quantity * SQFT_PER_M2, language)} sq ft`;
   }
-  return `${formatNumber(quantity, language)} ${unit}`;
+  return `${formatNumber(quantity, language)} ${unit === 'm2' ? 'm²' : unit}`;
 }

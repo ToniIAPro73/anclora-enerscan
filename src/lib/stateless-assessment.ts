@@ -2,6 +2,7 @@ import { REGULATORY_TIMELINE } from "./regulatory";
 import { calculateScoreV2 } from "./scoring";
 import { generateScenarios } from "./simulator";
 import { getRelevantSubsidies } from "./subsidies";
+import { getScenarioCostEstimate } from "./costs/cost-engine";
 import {
   AssessmentAttachment,
   PremiumReportData,
@@ -83,7 +84,10 @@ export function createReportDataFromPayload(
     date: new Date(payload.createdAt || Date.now()).toLocaleDateString(language === "es" ? "es-ES" : language === "de" ? "de-DE" : "en-US"),
     propertyData: payload.propertyData,
     scoreResult: payload.scoreResult,
-    scenarios: generateScenarios(payload.propertyData, payload.scoreResult),
+    scenarios: generateScenarios(payload.propertyData, payload.scoreResult).map((scenario) => ({
+      ...scenario,
+      costEstimate: getScenarioCostEstimate(scenario.id, payload.propertyData) || undefined,
+    })),
     regulatoryContext: REGULATORY_TIMELINE,
     subsidies: getRelevantSubsidies(payload.propertyData),
     providerCategories: ["aislamiento", "ventanas", "climatización", "acs", "fotovoltaica", "solar térmica", "certificador"],
