@@ -68,7 +68,7 @@ export default function LandingPage() {
                     {t.startFree}
                   </Link>
                   <Link href="/api/assessment/demo" className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
-                    {t.demo}
+                    {t.paywallDemoLink}
                   </Link>
                   <Link href="#como-funciona" className="px-6 py-3 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
                     {t.howItWorks}
@@ -221,8 +221,8 @@ export default function LandingPage() {
                   name: t.premiumPlan,
                   price: t.priceDemo,
                   badge: t.premiumPlanBadge,
-                  cta: t.demo,
-                  href: '/api/assessment/demo',
+                  cta: t.startFree,
+                  href: '/wizard',
                   items: pricingItems.premium,
                 },
               ].map((plan) => (
@@ -252,6 +252,11 @@ export default function LandingPage() {
             <p className="text-[11px] text-muted leading-relaxed max-w-3xl mx-auto text-center mt-8">
               {getLegalDisclaimer(language)}
             </p>
+            <div className="mt-6 text-center">
+              <Link href="/pricing" className="text-sm font-heading font-semibold text-[#00DC82] hover:brightness-125">
+                {t.navPricing}
+              </Link>
+            </div>
           </div>
         </section>
 

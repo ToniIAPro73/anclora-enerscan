@@ -6,7 +6,7 @@ import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
-function getStripeId(value: string | Stripe.PaymentIntent | Stripe.Customer | null) {
+function getStripeId(value: string | { id: string } | null) {
   if (!value) return undefined;
   return typeof value === 'string' ? value : value.id;
 }
