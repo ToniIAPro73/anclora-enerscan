@@ -654,7 +654,7 @@ export function CadastreSearch({ onConfirm, onLocationChange, onMatchSelect, onA
             <button
               type="button"
               onClick={handleConfirmDetail}
-              className="flex-[2] py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition flex items-center justify-center gap-2"
+              className="flex-[2] py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Check className="w-4 h-4" />
               {t.wizardCatastroDetailUseThis}

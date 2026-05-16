@@ -30,15 +30,15 @@ export default function LandingPage() {
   const pricingItems = {
     es: {
       free: ['Wizard energético completo', 'Letra orientativa y confianza', 'Penalizaciones y fortalezas', 'Contexto normativo básico'],
-      premium: ['PDF premium de ejemplo', 'Escenarios de mejora', 'Documentación aportada', 'Categorías de proveedores sugeridas'],
+      premium: ['Informe PDF Premium', 'Escenarios de mejora', 'Costes orientativos', 'Categorías de proveedores sugeridas'],
     },
     en: {
       free: ['Complete energy wizard', 'Indicative rating and confidence', 'Penalties and strengths', 'Basic regulatory context'],
-      premium: ['Sample premium PDF', 'Improvement scenarios', 'Submitted documentation', 'Suggested provider categories'],
+      premium: ['Premium PDF report', 'Improvement scenarios', 'Indicative costs', 'Suggested provider categories'],
     },
     de: {
       free: ['Vollständiger Energie-Wizard', 'Orientierende Klasse und Sicherheit', 'Abzüge und Stärken', 'Grundlegender regulatorischer Kontext'],
-      premium: ['Beispiel-Premium-PDF', 'Verbesserungsszenarien', 'Eingereichte Dokumentation', 'Vorgeschlagene Anbieterkategorien'],
+      premium: ['Premium-PDF-Bericht', 'Verbesserungsszenarien', 'Orientierungskosten', 'Vorgeschlagene Anbieterkategorien'],
     },
   }[language];
 
@@ -66,6 +66,9 @@ export default function LandingPage() {
                 <div className="flex flex-wrap gap-3 mb-6">
                   <Link href="/wizard" className="px-6 py-3 rounded-full bg-[#00DC82] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition pulse-glow">
                     {t.startFree}
+                  </Link>
+                  <Link href="/pricing" className="px-6 py-3 rounded-full bg-[#F0EDE8] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
+                    {t.pricingPremiumCta}
                   </Link>
                   <Link href="/api/assessment/demo" className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.paywallDemoLink}
@@ -166,7 +169,7 @@ export default function LandingPage() {
         </section>
 
         {/* PARTNERS */}
-        <section id="proveedores" className="py-24 sm:py-32 relative">
+        <section id="mejoras" className="py-24 sm:py-32 relative">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#262626] to-transparent"></div>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
@@ -221,7 +224,7 @@ export default function LandingPage() {
                   name: t.premiumPlan,
                   price: t.priceDemo,
                   badge: t.premiumPlanBadge,
-                  cta: t.startFree,
+                  cta: t.pricingPremiumCta,
                   href: '/wizard',
                   items: pricingItems.premium,
                 },

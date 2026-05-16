@@ -41,10 +41,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'assessment_required' }, { status: 400 });
   }
 
-  const assessment = await prisma.assessment.findUnique({
-    where: { id: assessmentId },
-    select: { id: true, isDemo: true, paidAt: true, paymentStatus: true },
-  });
+  if (assessmentId.startsWith('local_')) {
+    return NextResponse.json(
+      {
+        error: 'persisted_assessment_required',
+        message: 'El pago Premium requiere un análisis guardado en base de datos. Este resultado local no puede abrir Checkout.',
+      },
+      { status: 400 }
+    );
+  }
+
+  let assessment;
+  try {
+    assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { id: true, isDemo: true, paidAt: true, paymentStatus: true },
+    });
+  } catch (error) {
+    console.error('Checkout assessment lookup failed:', error);
+    return NextResponse.json(
+      {
+        error: 'checkout_storage_unavailable',
+        message: 'No se pudo consultar el análisis guardado para iniciar el pago.',
+      },
+      { status: 500 }
+    );
+  }
 
   if (!assessment) {
     return NextResponse.json({ error: 'assessment_not_found' }, { status: 404 });
@@ -59,25 +81,48 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'demo_checkout_not_allowed' }, { status: 400 });
   }
 
-  const stripe = getStripeClient();
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/assessment/${assessment.id}`,
-    line_items: [buildPremiumLineItem()],
-    metadata: {
-      assessmentId: assessment.id,
-      product: 'energyscan_premium_report',
-    },
-  });
+  let session;
+  try {
+    const stripe = getStripeClient();
+    session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/assessment/${assessment.id}`,
+      line_items: [buildPremiumLineItem()],
+      metadata: {
+        assessmentId: assessment.id,
+        product: 'energyscan_premium_report',
+      },
+    });
+  } catch (error) {
+    console.error('Stripe checkout session creation failed:', error);
+    return NextResponse.json(
+      {
+        error: 'checkout_session_failed',
+        message: 'Stripe no pudo crear la sesión de pago. Revisa la configuración test.',
+      },
+      { status: 500 }
+    );
+  }
 
-  await prisma.assessment.update({
-    where: { id: assessment.id },
-    data: {
-      stripeSessionId: session.id,
-      paymentStatus: 'checkout_started',
-    },
-  });
+  try {
+    await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: {
+        stripeSessionId: session.id,
+        paymentStatus: 'checkout_started',
+      },
+    });
+  } catch (error) {
+    console.error('Checkout session persistence failed:', error);
+    return NextResponse.json(
+      {
+        error: 'checkout_persistence_failed',
+        message: 'Se creó la sesión de Stripe, pero no se pudo guardar en el análisis.',
+      },
+      { status: 500 }
+    );
+  }
   trackEvent('checkout_initiated', { assessmentId: assessment.id, stripeSessionId: session.id });
 
   if (!session.url) {

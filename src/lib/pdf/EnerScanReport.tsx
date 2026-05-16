@@ -505,6 +505,66 @@ function costSourceSummary(language: 'es' | 'en' | 'de', sourceSummary?: string)
   return 'Orientierende Kostenspanne aus dem internen Demo-Preiskatalog. Endpreise erfordern ein professionelles Angebot.';
 }
 
+function localizedCostDisclaimer(language: 'es' | 'en' | 'de', key: 'traceability' | 'future' | 'legal') {
+  if (language === 'es') {
+    if (key === 'traceability') return PRICE_TRACEABILITY_NOTE;
+    if (key === 'future') return FUTURE_PRICE_SOURCE_NOTE;
+    return COST_LEGAL_DISCLAIMER;
+  }
+  if (language === 'en') {
+    if (key === 'traceability') return 'Indicative cost ranges are traceable to an internal catalogue by intervention type, quantity and confidence level.';
+    if (key === 'future') return 'Future versions may connect external price sources. Current figures are not binding quotes.';
+    return 'Costs are indicative estimates. They are not a quotation, professional measurement, offer or official EPC calculation.';
+  }
+  if (key === 'traceability') return 'Orientierende Kostenspannen werden einem internen Katalog nach Maßnahmentyp, Menge und Sicherheitsniveau zugeordnet.';
+  if (key === 'future') return 'Künftige Versionen können externe Preisquellen anbinden. Aktuelle Werte sind keine verbindlichen Angebote.';
+  return 'Kosten sind orientierende Schätzungen. Sie sind kein Angebot, kein Aufmaß, keine verbindliche Offerte und keine offizielle Energieausweisberechnung.';
+}
+
+function localizedProviderCategories(language: 'es' | 'en' | 'de', categories: string[]) {
+  const labels = {
+    es: ['aislamiento', 'ventanas', 'climatización', 'ACS', 'fotovoltaica', 'solar térmica', 'certificador energético'],
+    en: ['insulation', 'windows', 'HVAC / heat pumps', 'domestic hot water', 'photovoltaics', 'solar thermal', 'energy assessor'],
+    de: ['Dämmung', 'Fenster', 'Klima / Wärmepumpe', 'Warmwasser', 'Photovoltaik', 'Solarthermie', 'Energieausweis-Fachperson'],
+  }[language];
+  return categories.length > 0 ? labels : [];
+}
+
+function localizedRegulatoryCopy(itemId: string, language: 'es' | 'en' | 'de') {
+  const copy: Record<string, Record<'en' | 'de', { title: string; description: string; impact: string; disclaimer: string; dateLabel: string }>> = {
+    'es-rd-390-2021': {
+      en: { title: 'Official energy certification', description: 'Royal Decree 390/2021 regulates the basic procedure for energy performance certification of buildings in Spain.', impact: 'For sale or rental where applicable, the user needs an official EPC issued by a qualified technician. EnergyScan only prepares an indicative estimate.', disclaimer: 'The EnergyScan report is not an official EPC and cannot be registered with an administration.', dateLabel: 'Spain - current' },
+      de: { title: 'Offizieller Energieausweis', description: 'Das Königliche Dekret 390/2021 regelt das grundlegende Verfahren für Energieausweise von Gebäuden in Spanien.', impact: 'Für Verkauf oder Vermietung, soweit anwendbar, ist ein offizieller Energieausweis durch Fachleute erforderlich. EnergyScan erstellt nur eine Orientierung.', disclaimer: 'Der EnergyScan-Bericht ist kein offizieller Energieausweis und kann nicht behördlich registriert werden.', dateLabel: 'Spanien - gültig' },
+    },
+    'eu-epbd-2024-1275': {
+      en: { title: 'Directive (EU) 2024/1275', description: 'The new EPBD is the European framework for improving building energy performance and guiding national renovation strategies.', impact: 'It provides regulatory context, but concrete obligations for homes in Spain depend on national transposition and development.', disclaimer: 'Do not read it as a direct individual obligation without applicable Spanish rules.', dateLabel: 'European Union - current framework' },
+      de: { title: 'Richtlinie (EU) 2024/1275', description: 'Die neue EPBD ist der europäische Rahmen zur Verbesserung der Energieeffizienz von Gebäuden und nationaler Sanierungsstrategien.', impact: 'Sie liefert regulatorischen Kontext; konkrete Pflichten für Wohnungen in Spanien hängen von nationaler Umsetzung ab.', disclaimer: 'Nicht als direkte Einzelpflicht ohne anwendbare spanische Vorschriften verstehen.', dateLabel: 'Europäische Union - aktueller Rahmen' },
+    },
+    'es-pniec': {
+      en: { title: 'PNIEC and energy renovation', description: 'The PNIEC is a strategic reference for energy and climate policy, including efficiency, electrification, renewables and renovation.', impact: 'It may guide investment priorities and support programmes, but does not confirm eligibility or amounts for a specific home.', disclaimer: 'Always check official national, regional or municipal sources for active calls.', dateLabel: 'Spain - strategic reference' },
+      de: { title: 'PNIEC und energetische Sanierung', description: 'Der PNIEC ist eine strategische Referenz der Energie- und Klimapolitik, einschließlich Effizienz, Elektrifizierung, Erneuerbare und Sanierung.', impact: 'Er kann Investitionsprioritäten und Förderprogramme einordnen, bestätigt aber keine Förderfähigkeit oder Beträge für eine konkrete Immobilie.', disclaimer: 'Aktive Programme immer bei offiziellen staatlichen, regionalen oder kommunalen Quellen prüfen.', dateLabel: 'Spanien - strategische Referenz' },
+    },
+    'eu-2030-2033-residential': {
+      en: { title: 'Average residential consumption reduction', description: 'Directive (EU) 2024/1275 introduces national-level targets to reduce average primary energy consumption in the residential stock.', impact: 'It may increase commercial and regulatory interest in improving inefficient homes, especially before sale, rental or renovation.', disclaimer: 'These horizons do not replace Spanish transposition and do not define an individual obligation for this home by themselves.', dateLabel: 'European horizon' },
+      de: { title: 'Reduktion des durchschnittlichen Wohnenergieverbrauchs', description: 'Die Richtlinie (EU) 2024/1275 führt nationale Ziele zur Senkung des durchschnittlichen Primärenergieverbrauchs im Wohnbestand ein.', impact: 'Dies kann das Interesse an der Verbesserung ineffizienter Wohnungen erhöhen, besonders vor Verkauf, Vermietung oder Sanierung.', disclaimer: 'Diese Horizonte ersetzen nicht die spanische Umsetzung und begründen allein keine Einzelpflicht für diese Immobilie.', dateLabel: 'Europäischer Horizont' },
+    },
+    'eu-2050-zero-emission': {
+      en: { title: 'Zero-emission building stock', description: 'The European strategy points to a decarbonised, very low-emission building stock by 2050.', impact: 'It reinforces the convenience of planning improvements in phases: envelope, efficient electrification and renewables where viable.', disclaimer: 'Long-term strategic context, not an official diagnosis or legal advice.', dateLabel: 'Long term' },
+      de: { title: 'Emissionsfreier Gebäudebestand', description: 'Die europäische Strategie zielt bis 2050 auf einen dekarbonisierten Gebäudebestand mit sehr niedrigen Emissionen.', impact: 'Sie unterstützt eine phasenweise Planung: Gebäudehülle, effiziente Elektrifizierung und erneuerbare Energien, wo tragfähig.', disclaimer: 'Langfristiger strategischer Kontext, keine offizielle Diagnose oder Rechtsberatung.', dateLabel: 'Langfristig' },
+    },
+  };
+  if (language === 'es') return null;
+  return copy[itemId]?.[language] || null;
+}
+
+function localizedRegulatoryYear(year: string, language: 'es' | 'en' | 'de') {
+  if (year === 'Hoy') {
+    if (language === 'en') return 'Today';
+    if (language === 'de') return 'Heute';
+  }
+  return year;
+}
+
 export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
   const language = data.language || 'es';
   const defaults = getPreferencesForLanguage(language);
@@ -586,7 +646,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           {(data.rehabBudgets || []).map((budget, index) => (
             <View key={`budget-${index}`} style={{ marginTop: 8, padding: 8, backgroundColor: '#fff8e1', borderRadius: 4 }}>
               <Text style={{ ...styles.text, fontWeight: 'bold', color: '#856404' }}>{t.budgetTitle}</Text>
-              <View style={styles.row}><Text style={styles.colLeft}>{t.investment}</Text><Text style={styles.colRight}>{budget.totalAmount ? `${budget.totalAmount.toLocaleString('es-ES')} ${budget.currency}` : '-'}</Text></View>
+              <View style={styles.row}><Text style={styles.colLeft}>{t.investment}</Text><Text style={styles.colRight}>{budget.totalAmount ? new Intl.NumberFormat(language === 'en' ? 'en-GB' : language === 'de' ? 'de-DE' : 'es-ES', { style: 'currency', currency: budget.currency || currency }).format(budget.totalAmount) : '-'}</Text></View>
               <View style={styles.row}><Text style={styles.colLeft}>{t.jump}</Text><Text style={styles.colRight}>{budget.estimatedCurrentLetter || '-'} → {budget.estimatedPostBudgetLetter || '-'}</Text></View>
               <Text style={styles.text}>{budget.analysisSummary}</Text>
               <Text style={{ ...styles.text, color: '#856404', fontSize: 8 }}>{t.budgetImpactDisclaimer}</Text>
@@ -697,7 +757,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
           <View key={scenario.id} style={styles.scenarioBox} wrap={false}>
             <Text style={styles.scenarioTitle}>{scenario.title}</Text>
             <Text style={styles.text}>{t.jump}: {scenario.expectedLetterImpact}</Text>
-            <Text style={styles.text}>{t.interventionLevel}: {scenario.costEstimate?.interventionLevel || scenario.complexity || 'Orientativo'}</Text>
+            <Text style={styles.text}>{t.interventionLevel}: {scenario.costEstimate?.interventionLevel || scenario.complexity || (language === 'en' ? 'Indicative' : language === 'de' ? 'Orientierend' : 'Orientativo')}</Text>
             <Text style={{ ...styles.text, fontWeight: 'bold' }}>
               {t.conservativeRecommendedPremium}: {formatEuroRange(scenario.costEstimate!.minTotal, scenario.costEstimate!.maxTotal, scenario.costEstimate!.midTotal, { currency, language })}
             </Text>
@@ -722,9 +782,9 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       </View>
 
       <View style={styles.disclaimer}>
-        <Text>{PRICE_TRACEABILITY_NOTE}</Text>
-        <Text>{FUTURE_PRICE_SOURCE_NOTE}</Text>
-        <Text>{COST_LEGAL_DISCLAIMER}</Text>
+        <Text>{localizedCostDisclaimer(language, 'traceability')}</Text>
+        <Text>{localizedCostDisclaimer(language, 'future')}</Text>
+        <Text>{localizedCostDisclaimer(language, 'legal')}</Text>
       </View>
     </Page>
 
@@ -769,14 +829,17 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.regulation}</Text>
-        {data.regulatoryContext.map((r, i) => (
-          <View key={i} style={{ marginBottom: 10 }} wrap={false}>
-            <Text style={{ ...styles.text, fontWeight: 'bold' }}>{r.year} - {r.title} ({r.dateLabel})</Text>
-            <Text style={styles.text}>{r.description}</Text>
-            <Text style={styles.text}>{language === 'en' ? 'User impact' : language === 'de' ? 'Auswirkung für Nutzer' : 'Impacto para el usuario'}: {language === 'es' ? r.impactOnUser : getLegalDisclaimer(language)}</Text>
-            <Text style={{ ...styles.text, fontSize: 8 }}>{r.legalReference}{r.disclaimer ? ` · ${r.disclaimer}` : ''}</Text>
-          </View>
-        ))}
+        {data.regulatoryContext.map((r, i) => {
+          const localized = localizedRegulatoryCopy(r.id, language);
+          return (
+            <View key={i} style={{ marginBottom: 10 }} wrap={false}>
+              <Text style={{ ...styles.text, fontWeight: 'bold' }}>{localizedRegulatoryYear(r.year, language)} - {localized?.title || r.title} ({localized?.dateLabel || r.dateLabel})</Text>
+              <Text style={styles.text}>{localized?.description || r.description}</Text>
+              <Text style={styles.text}>{language === 'en' ? 'User impact' : language === 'de' ? 'Auswirkung für Nutzer' : 'Impacto para el usuario'}: {localized?.impact || r.impactOnUser}</Text>
+              <Text style={{ ...styles.text, fontSize: 8 }}>{r.legalReference}{(localized?.disclaimer || r.disclaimer) ? ` · ${localized?.disclaimer || r.disclaimer}` : ''}</Text>
+            </View>
+          );
+        })}
       </View>
     </Page>
 
@@ -811,7 +874,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
 
       <View style={styles.section} wrap={false}>
         <Text style={styles.sectionTitle}>{t.providerCategoriesTitle}</Text>
-        <Text style={styles.text}>{language === 'en' ? 'Indicative categories suggested to study the improvements' : language === 'de' ? 'Orientierende Kategorien zur Prüfung der Maßnahmen' : 'Categorías orientativas sugeridas para estudiar las mejoras'}: {data.providerCategories.join(', ')}.</Text>
+        <Text style={styles.text}>{language === 'en' ? 'Indicative categories suggested to study the improvements' : language === 'de' ? 'Orientierende Kategorien zur Prüfung der Maßnahmen' : 'Categorías orientativas sugeridas para estudiar las mejoras'}: {localizedProviderCategories(language, data.providerCategories).join(', ')}.</Text>
         <Text style={styles.text}>{getLegalDisclaimer(language)}</Text>
       </View>
     </Page>
@@ -951,7 +1014,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
               <View style={styles.row}><Text style={styles.colLeft}>{t.collectedLetter}</Text><Text style={styles.colRight}>{attachment.ceeLetter || data.scoreResult.estimatedLetter}</Text></View>
               <Text style={{ ...styles.text, marginTop: 8 }}>{attachment.annexNote || t.ceeAnnexNoteShort}</Text>
               <Text style={{ ...styles.text, color: '#008F5A', fontWeight: 'bold', marginTop: 6 }}>
-                {t.ceeAnnexNote} CEE en español, con importes en euros y superficies en m².
+                {t.ceeAnnexNote} {language === 'en' ? 'The EPC annex remains in Spanish because it represents an official Spanish document supplied by the user.' : language === 'de' ? 'Der Energieausweis-Anhang bleibt auf Spanisch, da er ein offizielles spanisches Nutzer-Dokument darstellt.' : 'El CEE se mantiene en español porque representa un documento oficial español aportado por el usuario.'}
               </Text>
             </View>
           ))}

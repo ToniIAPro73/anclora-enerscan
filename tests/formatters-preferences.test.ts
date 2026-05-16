@@ -5,6 +5,15 @@ describe('preference formatters', () => {
   it('formats EUR and metric values for Spanish', () => {
     expect(formatCurrency(1234.56, 'EUR', { language: 'es' })).toContain('€');
     expect(formatArea(185, 'metric', 'es')).toContain('m²');
+    expect(formatCostQuantity(185, 'm2', { language: 'es', measurementSystem: 'metric' })).toContain('m²');
+    expect(formatUnitPrice(100, 'm2', { language: 'es', currency: 'EUR', measurementSystem: 'metric' })).toContain('/m²');
+  });
+
+  it('formats EUR and metric values for German', () => {
+    expect(formatCurrency(1234.56, 'EUR', { language: 'de' })).toContain('€');
+    expect(formatArea(185, 'metric', 'de')).toContain('m²');
+    expect(formatCostQuantity(185, 'm2', { language: 'de', measurementSystem: 'metric' })).toContain('m²');
+    expect(formatUnitPrice(100, 'm2', { language: 'de', currency: 'EUR', measurementSystem: 'metric' })).toContain('/m²');
   });
 
   it('formats GBP and imperial values for English', () => {
