@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   try {
     assessment = await prisma.assessment.findUnique({
       where: { id: assessmentId },
-      select: { id: true, isDemo: true, paidAt: true, paymentStatus: true },
+      select: { id: true, isDemo: true, paidAt: true, paymentStatus: true, user: { select: { email: true } } },
     });
   } catch (error) {
     console.error('Checkout assessment lookup failed:', error);
@@ -89,9 +89,11 @@ export async function POST(req: Request) {
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/assessment/${assessment.id}`,
       line_items: [buildPremiumLineItem()],
+      customer_email: assessment.user?.email || undefined,
       metadata: {
         assessmentId: assessment.id,
         product: 'energyscan_premium_report',
+        productType: 'premium_report',
       },
     });
   } catch (error) {
@@ -113,6 +115,28 @@ export async function POST(req: Request) {
         paymentStatus: 'checkout_started',
       },
     });
+    const checkoutRecovery = (prisma as unknown as {
+      checkoutRecovery?: {
+        upsert: (args: unknown) => Promise<unknown>;
+      };
+    }).checkoutRecovery;
+    if (checkoutRecovery) {
+      const { hashEmail } = await import('@/lib/email');
+      await checkoutRecovery.upsert({
+        where: { assessmentId: assessment.id },
+        create: {
+          assessmentId: assessment.id,
+          stripeSessionId: session.id,
+          userEmailHash: assessment.user?.email ? hashEmail(assessment.user.email) : undefined,
+          status: assessment.user?.email ? 'PENDING' : 'SKIPPED_NO_EMAIL',
+        },
+        update: {
+          stripeSessionId: session.id,
+          userEmailHash: assessment.user?.email ? hashEmail(assessment.user.email) : undefined,
+          status: assessment.user?.email ? 'PENDING' : 'SKIPPED_NO_EMAIL',
+        },
+      });
+    }
   } catch (error) {
     console.error('Checkout session persistence failed:', error);
     return NextResponse.json(

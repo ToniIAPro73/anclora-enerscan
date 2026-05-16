@@ -42,5 +42,15 @@
   "legal": "Impressum",
   "legalDisclaimer": "Anclora EnergyScan ist eine orientierende Voreinschätzung. Sie ersetzt weder den offiziellen Energieausweis noch die Prüfung durch qualifizierte Fachleute. Einsparungen, Kosten und Klassen sind Schätzungen.",
   "providerHandoff.consent": "Ich stimme zu, dass Anclora meine Kontaktdaten und die technische Zusammenfassung meiner energetischen Voreinschätzung mit ausgewählten Anbietern oder Partnern teilen darf, damit sie mich zu den angefragten Leistungen kontaktieren können. Ich verstehe, dass Anclora EnergyScan keine offiziellen Energiezertifikate ausstellt und dass jede Zertifizierung von einer qualifizierten Fachperson durchgeführt werden muss.",
-  "providerHandoff.checkboxDefault": "false"
+  "providerHandoff.checkboxDefault": "false",
+  "analytics.enabled": "Analytik aktiviert",
+  "email.premium.subject": "Ihr Premium-Bericht von Anclora EnergyScan",
+  "email.recovery.subject": "Ihr EnergyScan-Bericht ist noch verfügbar",
+  "seo.disclaimer": "Orientierende Schätzung. Sie ersetzt keinen offiziellen Energieausweis.",
+  "calculator.title": "Öffentlicher Energiesparrechner",
+  "budgetReview.title": "Zweite Meinung zum Sanierungsangebot",
+  "provider.title": "EnergyScan-Anbietermarktplatz",
+  "partnerLanding.disclaimer": "Orientierende Analyse von Anclora EnergyScan.",
+  "professional.title": "EnergyScan Professional Beta",
+  "adminMetrics.title": "Interne EnergyScan-Metriken"
 }

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { upload } from '@vercel/blob/client';
 import { Bolt, Target, ShieldCheck, Building, UploadCloud, X, FileText, CheckCircle2, Info, Menu } from 'lucide-react';
@@ -18,6 +18,7 @@ import { MAX_ATTACHMENTS, MAX_ATTACHMENT_SIZE, formatFileSize, isAllowedPhotoAtt
 import { usePreferences } from './AppPreferencesProvider';
 import { getLegalDisclaimer } from '@/lib/i18n';
 import type { EnergyCertificateCEE, RehabBudgetAnalysis } from '@/lib/ingestion/types';
+import { trackEvent } from '@/lib/analytics';
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), { ssr: false, loading: () => <div className="w-full h-full min-h-[300px] bg-white/5 animate-pulse rounded-2xl" /> });
 
@@ -100,6 +101,7 @@ function createSelectedMapFeature(lat: number, lng: number): CadastralMapFeature
 export default function AssessmentWizard() {
   const [step, setStep] = useState(1);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -131,6 +133,10 @@ export default function AssessmentWizard() {
   const attachmentFileInputRef = useRef<HTMLInputElement | null>(null);
   const fileDialogScrollRef = useRef<{ x: number; y: number } | null>(null);
   const { dictionary: t, language, formatCurrency } = usePreferences();
+
+  useEffect(() => {
+    trackEvent('wizard_started', { source: searchParams.get('source') || 'direct' });
+  }, [searchParams]);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -1050,6 +1056,10 @@ export default function AssessmentWizard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...data,
+        source: searchParams.get('source') || undefined,
+        partnerSlug: searchParams.get('partner') || undefined,
+        providerId: searchParams.get('provider') || undefined,
+        attributionOwner: searchParams.get('source') === 'partner' ? 'PROVIDER' : undefined,
         uploadedAttachments,
         uploadedSourceDocuments,
         cadastralData: confirmedMatch,
@@ -1067,6 +1077,13 @@ export default function AssessmentWizard() {
         formData.append(key, String(value));
       }
     });
+    const source = searchParams.get('source');
+    const partner = searchParams.get('partner');
+    const provider = searchParams.get('provider');
+    if (source) formData.append('source', source);
+    if (partner) formData.append('partnerSlug', partner);
+    if (provider) formData.append('providerId', provider);
+    if (source === 'partner') formData.append('attributionOwner', 'PROVIDER');
     files.forEach((file) => formData.append('attachments', file));
     if (ceeImport.status === 'ready' && ceeImport.data && ceeImport.sourceFile) {
       formData.append('ceeSourceDocument', ceeImport.sourceFile);

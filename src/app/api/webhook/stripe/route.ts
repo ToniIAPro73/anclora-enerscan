@@ -3,6 +3,8 @@ import type Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { getStripeClient } from '@/lib/stripe';
 import { trackEvent } from '@/lib/analytics';
+import { sendPremiumPurchaseEmail } from '@/lib/email';
+import { PROVIDER_LEAD_PACK_CREDITS } from '@/lib/monetization/products';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +14,50 @@ function getStripeId(value: string | { id: string } | null) {
 }
 
 async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  const productType = session.metadata?.productType;
+  if (productType === 'budget_review') {
+    const budgetReviewId = session.metadata?.budgetReviewId;
+    if (!budgetReviewId) return;
+    await prisma.budgetReview.updateMany({
+      where: { id: budgetReviewId },
+      data: {
+        paidAt: new Date(),
+        status: 'PAID',
+        stripeSessionId: session.id,
+        stripePaymentIntent: getStripeId(session.payment_intent),
+        paidAmountCents: session.amount_total || undefined,
+        paidCurrency: session.currency || undefined,
+      },
+    });
+    trackEvent('budget_review_paid', { productType: 'budget_review', budgetReviewId, stripeSessionId: session.id });
+    return;
+  }
+
+  if (productType === 'provider_lead_pack') {
+    const providerId = session.metadata?.providerId;
+    if (!providerId) return;
+    await prisma.provider.update({
+      where: { id: providerId },
+      data: { leadCreditsBalance: { increment: PROVIDER_LEAD_PACK_CREDITS } },
+    });
+    await prisma.providerLeadCreditLedger.create({
+      data: {
+        providerId,
+        type: 'PURCHASE',
+        credits: PROVIDER_LEAD_PACK_CREDITS,
+        stripeSessionId: session.id,
+        notes: 'Stripe provider lead pack checkout completed',
+      },
+    });
+    return;
+  }
+
   const assessmentId = session.metadata?.assessmentId;
   if (!assessmentId) return;
 
   const existing = await prisma.assessment.findUnique({
     where: { id: assessmentId },
-    select: { paidAt: true },
+    select: { paidAt: true, user: { select: { email: true } } },
   });
   if (!existing) return;
 
@@ -34,8 +74,21 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
       paidCurrency: session.currency || undefined,
     },
   });
+  const checkoutRecovery = (prisma as unknown as {
+    checkoutRecovery?: { updateMany: (args: unknown) => Promise<unknown> };
+  }).checkoutRecovery;
+  if (checkoutRecovery) {
+    await checkoutRecovery.updateMany({
+      where: { assessmentId },
+      data: { status: 'SKIPPED_PAID' },
+    });
+  }
 
-  trackEvent('payment_completed', { assessmentId, stripeSessionId: session.id });
+  trackEvent('payment_completed', { assessmentId, stripeSessionId: session.id, productType: 'premium_report' });
+  await sendPremiumPurchaseEmail({
+    to: session.customer_details?.email || existing.user?.email,
+    assessmentId,
+  });
 }
 
 async function markCheckoutSessionExpired(session: Stripe.Checkout.Session) {
