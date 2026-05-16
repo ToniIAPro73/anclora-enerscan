@@ -26,7 +26,7 @@ export default function Navbar() {
           <Link href="/#como-funciona" className="hover:text-premium transition">{t.navHow}</Link>
           <Link href="/#normativa" className="hover:text-premium transition">{t.navRegulation}</Link>
           <Link href="/#mejoras" className="hover:text-premium transition">{t.navImprovements}</Link>
-          <Link href="/#precios" className="hover:text-premium transition">{t.navPricing}</Link>
+          <Link href="/pricing" className="hover:text-premium transition">{t.navPricing}</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden md:block">

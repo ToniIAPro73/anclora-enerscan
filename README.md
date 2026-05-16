@@ -22,6 +22,7 @@ La aplicación sigue un flujo Wizard -> API -> Resultados:
 4. **Resultados**: Muestra clasificación orientativa, score, confianza, brecha regulatoria, ayudas informativas, escenarios y proveedores recomendados.
 5. **Adjuntos**: Guarda metadatos en Prisma y ficheros aportados en Vercel Blob si está configurado, con fallback local.
 6. **Generador PDF**: Construye y descarga un reporte Premium renderizado mediante `@react-pdf/renderer`.
+7. **Monetización Premium**: Stripe Checkout desbloquea el informe Premium mediante pago único. El PDF queda bloqueado hasta que el webhook confirma `paidAt`.
 
 ## Experiencia v0.3
 - **Tema:** selector premium Luna/Sol/Ordenador. La preferencia se guarda en `localStorage` y cookie para evitar flashes visuales.
@@ -106,6 +107,9 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ENABLE_DEMO_PREMIUM="true"
 STRIPE_SECRET_KEY=""
 STRIPE_WEBHOOK_SECRET=""
+STRIPE_PRICE_PREMIUM=""
+NEXT_PUBLIC_PREMIUM_PRICE_EUR="9.90"
+NEXT_PUBLIC_PREMIUM_STANDARD_PRICE_EUR="14.90"
 BLOB_READ_WRITE_TOKEN=""
 AUTH_SECRET=""
 AUTH_URL="http://localhost:3000"
@@ -122,6 +126,20 @@ SQLITE_DATABASE_URL="file:./dev.db"
 
 `NEXT_PUBLIC_APP_URL` y `AUTH_URL` se usan para construir enlaces absolutos. `EUR_GBP_RATE`/`NEXT_PUBLIC_EUR_GBP_RATE` fijan el cambio orientativo EUR -> GBP usado en UI/PDF. `PASSWORD_RESET_WEBHOOK_URL` es opcional: si no existe, el enlace de recuperación solo se muestra en local y se registra en logs de desarrollo.
 
+## Stripe Premium
+
+El flujo Premium usa `/api/checkout` para crear una sesión de pago único y `/api/webhook/stripe` para confirmar el pago. El cliente nunca marca un análisis como pagado: el desbloqueo real depende de `Assessment.paidAt`, escrito desde el webhook `checkout.session.completed`.
+
+Precio inicial: 9,90 € lanzamiento, con 14,90 € como referencia estándar. Si `STRIPE_PRICE_PREMIUM` está configurado se usa ese Price ID; si no, la API crea `price_data` dinámico por 990 céntimos EUR.
+
+Webhook local recomendado:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhook/stripe
+```
+
+Configura el secreto recibido en `STRIPE_WEBHOOK_SECRET`. El informe sigue siendo un prediagnóstico orientativo y no sustituye al CEE oficial.
+
 ## Limitaciones Legales
 - **Orientativo:** Anclora EnergyScan solo emite valoraciones automáticas en base a la información declarada.
 - **Sin validez administrativa:** No sustituye al Certificado de Eficiencia Energética oficial regulado en España por el Real Decreto 390/2021, no emite certificados oficiales y no puede registrarse ante administraciones.
@@ -132,5 +150,5 @@ SQLITE_DATABASE_URL="file:./dev.db"
 - [x] Motor Scoring v2 (Más factores).
 - [x] Generador PDF nativo y rápido (`@react-pdf/renderer`).
 - [x] Tema, idioma, adjuntos y demo premium.
-- [ ] Integración completa con Stripe para Premium real.
+- [x] Integración Stripe Checkout para Premium real.
 - [ ] Panel Admin de Proveedores.
