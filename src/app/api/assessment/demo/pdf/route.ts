@@ -13,5 +13,5 @@ export async function GET(req: Request) {
   });
   const demoId = createStatelessAssessmentId(payload);
 
-  return buildAssessmentPdfResponse(req, demoId);
+  return buildAssessmentPdfResponse(req, demoId, { allowDemoPremium: true });
 }

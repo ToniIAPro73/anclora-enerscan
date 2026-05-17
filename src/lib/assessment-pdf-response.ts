@@ -133,7 +133,11 @@ async function loadPremiumSourcesForAssessment(assessmentId: string) {
   }
 }
 
-export async function buildAssessmentPdfResponse(req: Request, assessmentId: string) {
+export async function buildAssessmentPdfResponse(
+  req: Request,
+  assessmentId: string,
+  options: { allowDemoPremium?: boolean } = {}
+) {
   try {
     const cookieHeader = req.headers.get('cookie') || '';
     const cookieLanguage = cookieHeader.match(/enerscan-language=(es|en|de)/)?.[1];
@@ -149,11 +153,12 @@ export async function buildAssessmentPdfResponse(req: Request, assessmentId: str
     let rawAttachments: AssessmentAttachment[] = [];
 
     if (statelessPayload) {
+      const isAllowedExplicitDemo = options.allowDemoPremium === true && statelessPayload.isDemo === true;
       const access = canAccessPremiumContent({
         isDemo: statelessPayload.isDemo,
         statelessPayload,
       });
-      if (!assertCanDownloadPremiumPdf(access)) {
+      if (!isAllowedExplicitDemo && !assertCanDownloadPremiumPdf(access)) {
         return NextResponse.json(
           {
             error: 'premium_required',
