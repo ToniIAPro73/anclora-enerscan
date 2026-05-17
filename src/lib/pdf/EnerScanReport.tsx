@@ -39,6 +39,8 @@ const labels = {
     documentsAnnex: 'Documentos aportados',
     noDocuments: 'No se aportaron documentos adicionales.',
     documentsCount: 'Los PDF aportados se incorporan después de su resumen en su formato original.',
+    documentsAnnexNote: 'Anexo - Documentación aportada por el usuario. Las evidencias mostradas proceden de la información facilitada y, cuando existan, de los documentos aportados por el usuario.',
+    documentsAnnexDemoNote: 'Anexo - Documentación aportada por el usuario. Las evidencias mostradas forman parte de una demo y, en un caso real, serían documentación aportada por el usuario.',
     documentPage: 'Documento aportado',
     fileName: 'Nombre',
     fileType: 'Tipo',
@@ -75,6 +77,8 @@ const labels = {
     collectedLetter: 'Letra recogida',
     ceeAnnexNoteShort: 'Documento PDF aportado por el usuario.',
     ceeDisclaimer: 'Documento aportado por el usuario. EnergyScan no sustituye al Certificado de Eficiencia Energética oficial ni a la inspección de un técnico competente.',
+    imageAnnexDisclaimer: 'Imágenes aportadas por el usuario. Su interpretación es orientativa y requeriría revisión técnica presencial y documentación verificable.',
+    imageAnnexDemoDisclaimer: 'Imágenes demo sin validez pericial. En un caso real, su interpretación exigiría revisión técnica presencial y documentación verificable.',
     cadastralReference: 'Referencia catastral',
     cadastralSource: 'Fuente catastral',
     cadastralVerified: 'Datos verificados mediante fuente oficial',
@@ -113,6 +117,8 @@ const labels = {
     documentsAnnex: 'Submitted documents',
     noDocuments: 'No additional documents were submitted.',
     documentsCount: 'Each document is included on a separate page of this appendix.',
+    documentsAnnexNote: 'Appendix - Submitted documentation. The evidence shown comes from the information supplied and, when available, from documents submitted by the user.',
+    documentsAnnexDemoNote: 'Appendix - Submitted documentation. The evidence shown is part of a demo and, in a real case, would be documentation supplied by the user.',
     documentPage: 'Submitted document',
     fileName: 'Name',
     fileType: 'Type',
@@ -149,6 +155,8 @@ const labels = {
     collectedLetter: 'Collected rating',
     ceeAnnexNoteShort: 'PDF document provided by user.',
     ceeDisclaimer: 'Document provided by user. EnergyScan does not replace the official Energy Performance Certificate or an inspection by a qualified technician.',
+    imageAnnexDisclaimer: 'Images submitted by the user. Their interpretation is indicative and would require on-site technical review and verifiable documentation.',
+    imageAnnexDemoDisclaimer: 'Demo images with no expert validity. In a real case, interpretation would require on-site technical review and verifiable documentation.',
     cadastralReference: 'Cadastral reference',
     cadastralSource: 'Cadastral source',
     cadastralVerified: 'Verified data from official source',
@@ -187,6 +195,8 @@ const labels = {
     documentsAnnex: 'Eingereichte Dokumente',
     noDocuments: 'Es wurden keine zusätzlichen Dokumente eingereicht.',
     documentsCount: 'Jedes Dokument wird auf einer separaten Seite dieses Anhangs aufgeführt.',
+    documentsAnnexNote: 'Anhang - Eingereichte Dokumentation. Die gezeigten Nachweise stammen aus den bereitgestellten Angaben und, sofern vorhanden, aus vom Nutzer eingereichten Dokumenten.',
+    documentsAnnexDemoNote: 'Anhang - Eingereichte Dokumentation. Die gezeigten Nachweise sind Teil einer Demo und wären in einem realen Fall vom Nutzer bereitgestellte Dokumentation.',
     documentPage: 'Eingereichtes Dokument',
     fileName: 'Name',
     fileType: 'Typ',
@@ -223,6 +233,8 @@ const labels = {
     collectedLetter: 'Erfasste Klasse',
     ceeAnnexNoteShort: 'Vom Nutzer bereitgestelltes PDF-Dokument.',
     ceeDisclaimer: 'Vom Nutzer bereitgestelltes Dokument. EnergyScan ersetzt keinen offiziellen Energieausweis oder eine Prüfung durch einen qualifizierten Techniker.',
+    imageAnnexDisclaimer: 'Vom Nutzer eingereichte Bilder. Ihre Interpretation ist orientierend und würde eine technische Vor-Ort-Prüfung und prüfbare Dokumentation erfordern.',
+    imageAnnexDemoDisclaimer: 'Demobilder ohne Gutachtenwert. In einem realen Fall erfordert die Interpretation eine technische Vor-Ort-Prüfung und prüfbare Dokumentation.',
     cadastralReference: 'Katasternummer',
     cadastralSource: 'Katasterquelle',
     cadastralVerified: 'Verifizierte Daten aus offizieller Quelle',
@@ -907,7 +919,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.documentsAnnex}</Text>
         <Text style={styles.text}>{attachments.length > 0 ? formatDocumentsCount(attachments.length, language) : t.noDocuments}</Text>
-        <Text style={styles.text}>{language === 'en' ? 'Appendix - Submitted documentation. The evidence shown is part of a demo and, in a real case, would be documentation supplied by the user.' : language === 'de' ? 'Anhang - Eingereichte Dokumentation. Die gezeigten Nachweise sind Teil einer Demo und wären in einem realen Fall vom Nutzer bereitgestellte Dokumentation.' : 'Anexo - Documentación aportada por el usuario. Las evidencias mostradas forman parte de una demo y, en un caso real, serían documentación aportada por el usuario.'}</Text>
+        <Text style={styles.text}>{data.isDemo ? t.documentsAnnexDemoNote : t.documentsAnnexNote}</Text>
       </View>
 
       <View style={styles.disclaimer}>
@@ -946,7 +958,7 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
         </View>
 
         <View style={styles.disclaimer}>
-          <Text>{language === 'en' ? 'Demo images with no expert validity. In a real case, interpretation would require on-site technical review and verifiable documentation.' : language === 'de' ? 'Demobilder ohne Gutachtenwert. In einem realen Fall erfordert die Interpretation eine technische Vor-Ort-Prüfung und prüfbare Dokumentation.' : 'Imágenes demo sin validez pericial. En un caso real, su interpretación exigiría revisión técnica presencial y documentación verificable.'}</Text>
+          <Text>{data.isDemo ? t.imageAnnexDemoDisclaimer : t.imageAnnexDisclaimer}</Text>
         </View>
       </Page>
     ))}
