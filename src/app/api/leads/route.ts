@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateAttributionExpiry } from '@/lib/domain/partners';
+import { calculateAttributionExpiry, parseJsonArray, scoreProviderMatch } from '@/lib/domain/partners';
 import { leadRequestSchema } from '@/lib/lead-validation';
 import { isStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { auth } from '@/auth';
+import { sendTransactionalEmail } from '@/lib/email';
+import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,21 +82,48 @@ export async function POST(req: Request) {
   let attributionMonths = 12;
   let providerId = data.providerId;
   let partnerId = data.partnerId;
+  let assignedProviderEmail: string | null | undefined;
 
   try {
     if (data.providerId && !data.providerId.startsWith('fallback-')) {
       const provider = await prisma.provider.findUnique({
         where: { id: data.providerId },
-        select: { id: true, partnerId: true, attributionMonths: true },
+        select: { id: true, partnerId: true, attributionMonths: true, email: true },
       });
       if (provider) {
         attributionMonths = provider.attributionMonths;
         partnerId = partnerId || provider.partnerId || undefined;
+        assignedProviderEmail = provider.email;
       } else {
         providerId = undefined;
       }
     } else if (data.providerId?.startsWith('fallback-')) {
       providerId = undefined;
+    }
+
+    if (!providerId && data.requestedService) {
+      const candidates = await prisma.provider.findMany({
+        where: { status: { in: ['VERIFIED', 'PREFERRED', 'EXCLUSIVE'] } },
+        take: 50,
+      });
+      const ranked = candidates
+        .map((provider) => ({
+          provider,
+          score: scoreProviderMatch({
+            categories: parseJsonArray(provider.categories),
+            zones: parseJsonArray(provider.zones),
+            status: provider.status,
+            verified: provider.verified,
+            rating: provider.rating,
+          }, { category: data.requestedService, zone: data.zone }),
+        }))
+        .sort((a, b) => b.score - a.score);
+      if (ranked[0]?.score > 0) {
+        providerId = ranked[0].provider.id;
+        partnerId = partnerId || ranked[0].provider.partnerId || undefined;
+        attributionMonths = ranked[0].provider.attributionMonths;
+        assignedProviderEmail = ranked[0].provider.email;
+      }
     }
 
     if (partnerId) {
@@ -146,6 +175,24 @@ export async function POST(req: Request) {
       partnerId: partnerId || null,
       source: data.source || 'provider_marketplace',
     });
+    trackEvent('lead_submitted', {
+      leadId: lead.id,
+      assessmentId,
+      providerId,
+      requestedService: data.requestedService,
+      source: data.source || 'provider_marketplace',
+    });
+
+    if (assignedProviderEmail) {
+      await sendTransactionalEmail({
+        type: 'provider_lead_notification',
+        to: assignedProviderEmail,
+        subject: 'Nuevo lead EnergyScan asignado',
+        html: '<p>Hay una nueva solicitud de contacto en tu panel de proveedor EnergyScan.</p><p>EnergyScan es un prediagnostico orientativo y no sustituye el CEE oficial.</p>',
+        metadata: { leadId: lead.id, providerId },
+      });
+      trackEvent('provider_lead_notified', { leadId: lead.id, providerId });
+    }
 
     return NextResponse.json({ ok: true, lead });
   } catch (error) {

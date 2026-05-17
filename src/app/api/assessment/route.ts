@@ -27,6 +27,7 @@ import {
 import { EnergyCertificateCEE, RehabBudgetAnalysis } from '@/lib/ingestion/types';
 import { budgetToPrismaCreate, certificateToPrismaCreate, fieldsToPrismaCreateMany } from '@/lib/ingestion/persistence';
 import { Prisma } from '@prisma/client';
+import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,10 @@ const assessmentSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   locationSource: z.enum(['catastro', 'manual', 'none']).optional(),
+  source: z.string().trim().max(80).optional(),
+  partnerSlug: z.string().trim().max(120).optional(),
+  providerId: z.string().trim().max(120).optional(),
+  attributionOwner: z.string().trim().max(40).optional(),
 });
 
 const uploadedAttachmentBaseSchema = z.object({
@@ -317,7 +322,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Datos de entrada inválidos', details: parseResult.error.format() }, { status: 400 });
     }
 
-    const data: PropertyDataV2 = parseResult.data;
+    const parsedAssessment = parseResult.data;
+    const data: PropertyDataV2 = parsedAssessment;
 
     const result = calculateScoreV2(data);
     try {
@@ -383,6 +389,11 @@ export async function POST(req: Request) {
         latitude: data.latitude,
         longitude: data.longitude,
         locationSource: data.locationSource,
+        source: parsedAssessment.source,
+        partnerSlug: parsedAssessment.partnerSlug,
+        providerId: parsedAssessment.providerId,
+        attributionOwner: parsedAssessment.attributionOwner,
+        attributionExpiresAt: parsedAssessment.partnerSlug || parsedAssessment.providerId ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365) : undefined,
 
         score: result.score,
         estimatedLetter: result.estimatedLetter,
@@ -519,6 +530,15 @@ export async function POST(req: Request) {
       ]);
       return NextResponse.json({ error: attachmentError instanceof Error ? attachmentError.message : 'Adjunto no válido' }, { status: 400 });
     }
+
+    trackEvent('assessment_created', {
+      assessmentId: assessment.id,
+      estimatedLetter: result.estimatedLetter,
+      confidence: result.confidence,
+      propertyType: data.propertyType,
+      zipcode: data.zipcode,
+      source: parsedAssessment.source,
+    });
 
     return NextResponse.json({
       id: assessment.id,

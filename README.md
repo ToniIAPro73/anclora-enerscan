@@ -153,6 +153,31 @@ stripe listen --forward-to localhost:3000/api/webhook/stripe
 
 Configura el secreto recibido en `STRIPE_WEBHOOK_SECRET`. El informe sigue siendo un prediagnóstico orientativo y no sustituye al CEE oficial.
 
+## Monetización pendiente MVP
+
+Esta rama añade bases operativas para nuevas vías de monetización sin convertir EnergyScan en emisor de CEE oficial:
+
+- Analítica: `src/lib/analytics.ts` envía eventos saneados a PostHog por HTTP si existe `NEXT_PUBLIC_POSTHOG_KEY` y puede persistir eventos críticos si `ENABLE_ANALYTICS_EVENT_LOG=true`.
+- Email: `src/lib/email.ts` envía correos transaccionales con Resend si `RESEND_API_KEY` está configurado. Sin API key, el flujo no falla y se registra `EmailLog`.
+- Recovery: `POST /api/cron/checkout-recovery` usa `Authorization: Bearer $CRON_SECRET` para recuperar checkouts Premium no pagados.
+- SEO: `/ciudad/[slug]`, `/calculadora-ahorro`, `sitemap.ts` y `robots.ts` cubren captación inicial.
+- Budget review: `/budget-review` y APIs `/api/budget-review/*` crean un producto standalone de segunda opinión orientativa de presupuesto.
+- Providers: `/proveedores`, `/provider/register`, `/provider/dashboard`, `/provider/leads` y `/provider/billing` preparan registro, panel, leads y créditos.
+- Partner landing: `/partner/[slug]` propaga atribución al wizard mediante query params.
+- Profesional beta: `/profesional` y `/profesional/solicitar` capturan demanda B2B ligera.
+- Admin metrics: `/admin/metrics` requiere email en `ADMIN_EMAILS`.
+
+Comandos útiles:
+
+```bash
+npx prisma generate
+npm test
+npm run lint
+npm run build
+stripe listen --forward-to localhost:3000/api/webhook/stripe
+curl -X POST http://localhost:3000/api/cron/checkout-recovery -H "Authorization: Bearer $CRON_SECRET"
+```
+
 ## Limitaciones Legales
 - **Orientativo:** Anclora EnergyScan solo emite valoraciones automáticas en base a la información declarada.
 - **Sin validez administrativa:** No sustituye al Certificado de Eficiencia Energética oficial regulado en España por el Real Decreto 390/2021, no emite certificados oficiales y no puede registrarse ante administraciones.

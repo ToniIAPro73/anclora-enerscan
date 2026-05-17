@@ -85,3 +85,23 @@ export function safeCentsToEuros(cents?: number | null): string {
     currency: "EUR",
   }).format(cents / 100);
 }
+
+export function scoreProviderMatch(provider: {
+  categories: string[] | string;
+  zones: string[] | string;
+  status: string;
+  verified: boolean;
+  rating?: number | null;
+}, input: { category?: string; zone?: string }) {
+  const categories = Array.isArray(provider.categories) ? provider.categories : parseJsonArray(provider.categories);
+  const zones = Array.isArray(provider.zones) ? provider.zones : parseJsonArray(provider.zones);
+  let score = 0;
+  if (input.category && categories.includes(input.category)) score += 40;
+  if (input.zone && zones.some((zone) => zone.toLowerCase().includes(input.zone!.toLowerCase()) || input.zone!.toLowerCase().includes(zone.toLowerCase()))) score += 25;
+  if (provider.status === 'EXCLUSIVE') score += 20;
+  if (provider.status === 'PREFERRED') score += 15;
+  if (provider.status === 'VERIFIED') score += 10;
+  if (provider.verified) score += 10;
+  score += Math.round((provider.rating || 0) * 2);
+  return score;
+}

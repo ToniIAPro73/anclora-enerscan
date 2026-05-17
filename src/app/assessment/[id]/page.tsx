@@ -20,6 +20,7 @@ import { localizeScenarios, localizeSubsidies } from '@/lib/scenario-i18n';
 import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 import { canAccessPremiumContent } from '@/lib/premium-access';
+import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   const currency = normalizeCurrency(cookieStore.get('enerscan-currency')?.value || defaults.currency);
   const measurementSystem = normalizeMeasurementSystem(cookieStore.get('enerscan-measurement-system')?.value || defaults.measurementSystem);
   const t = getDictionary(language);
+  trackEvent('assessment_viewed', { assessmentId: params.id });
 
   const statelessPayload = parseStatelessAssessmentId(params.id);
   const assessment = statelessPayload ? null : await prisma.assessment.findUnique({
