@@ -48,15 +48,16 @@ export default function Footer() {
           <div>
             <h4 className="font-heading font-semibold text-sm text-premium mb-3">{t.footerContact}</h4>
             <ul className="space-y-2 text-xs text-muted">
-              <li className="flex items-center gap-2"><Mail className="w-3 h-3 text-[#00DC82]/60" /> hola@enerscan.app</li>
+              <li className="flex items-center gap-2"><Mail className="w-3 h-3 text-[#00DC82]/60" /> hola@anclora.com</li>
             </ul>
           </div>
         </div>
         <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: 'var(--border)' }}>
-          <p className="text-[11px] text-muted leading-relaxed">
-            {getLegalDisclaimer(language)}
-          </p>
-          <p className="text-[11px] text-muted">&copy; 2026 Anclora EnergyScan.</p>
+          <div className="max-w-3xl space-y-2 text-[11px] text-muted leading-relaxed">
+            <p>{getLegalDisclaimer(language)}</p>
+            <p>{t.footerBrandStatement}</p>
+          </div>
+          <p className="text-[11px] text-muted">{t.footerCopyright.replace('{{year}}', String(new Date().getFullYear()))}</p>
         </div>
       </div>
     </footer>
