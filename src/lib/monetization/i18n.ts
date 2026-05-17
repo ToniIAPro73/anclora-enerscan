@@ -3,7 +3,7 @@ import type { AppLanguage } from '@/lib/preferences';
 const es = {
   common: {
     analyzeFree: 'Analizar mi vivienda gratis',
-    legalNotice: 'Estimacion orientativa basada en datos declarados o documentos aportados. No sustituye al Certificado de Eficiencia Energetica oficial ni a la revision de un tecnico cualificado. Costes, ahorros, ayudas y resultados pueden variar.',
+    legalNotice: 'Estimación orientativa basada en datos declarados o documentos aportados. No sustituye al Certificado de Eficiencia Energética oficial ni a la revisión de un técnico cualificado. Costes, ahorros, ayudas y resultados pueden variar.',
   },
   seoCity: {
     metadataTitle: (city: string) => `Reforma energetica en ${city}: costes, ayudas y prediagnostico`,
@@ -43,11 +43,11 @@ const es = {
     years: 'anos',
   },
   budgetReview: {
-    metadataTitle: 'Segunda opinion de presupuesto de reforma | Anclora EnergyScan',
-    metadataDescription: 'Analisis automatico orientativo de presupuestos de reforma antes de aceptar.',
-    title: 'Segunda opinion de presupuesto de reforma',
+    metadataTitle: 'Segunda opinión de presupuesto de reforma | Anclora EnergyScan',
+    metadataDescription: 'Análisis automático orientativo de presupuestos de reforma antes de aceptar.',
+    title: 'Segunda opinión de presupuesto de reforma',
     intro: 'Pega el contenido de un presupuesto para detectar partidas, importes y alertas generales. El resultado completo es un producto independiente del informe Premium.',
-    placeholder: 'Pega aqui el texto de tu presupuesto de reforma...',
+    placeholder: 'Pega aquí el texto de tu presupuesto de reforma...',
     analyzing: 'Analizando...',
     analyze: 'Analizar presupuesto',
     uploadPdf: 'Importar presupuesto PDF',
@@ -59,7 +59,7 @@ const es = {
     detectedTotal: 'Total detectado',
     confidence: 'Confianza',
     unlock: 'Desbloquear informe completo 19,90 EUR',
-    legal: 'Analisis automatico orientativo. No sustituye la revision de un tecnico, arquitecto, aparejador ni asesor legal.',
+    legal: 'Análisis automático orientativo. No sustituye la revisión de un técnico, arquitecto, aparejador ni asesor legal.',
   },
   provider: {
     landingTitle: 'Marketplace de proveedores EnergyScan',

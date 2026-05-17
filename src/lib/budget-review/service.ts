@@ -28,9 +28,9 @@ export function buildBudgetReviewFindings(lineItems: BudgetLineItem[], totalAmou
   return {
     findings,
     alert: totalAmount && totalAmount > 30000
-      ? 'Presupuesto alto: revisa mediciones, exclusiones, IVA y garantias antes de aceptar.'
-      : 'Revisa siempre mediciones, marcas, garantias e IVA antes de aceptar.',
-    legalNotice: 'Analisis automatico orientativo. No sustituye la revision de un tecnico, arquitecto, aparejador ni asesor legal.',
+      ? 'Presupuesto alto: revisa mediciones, exclusiones, IVA y garantías antes de aceptar.'
+      : 'Revisa siempre mediciones, marcas, garantías e IVA antes de aceptar.',
+    legalNotice: 'Análisis automático orientativo. No sustituye la revisión de un técnico, arquitecto, aparejador ni asesor legal.',
   };
 }
 
