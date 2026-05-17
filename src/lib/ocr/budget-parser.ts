@@ -60,7 +60,7 @@ export function parseBudgetLineItems(text: string): BudgetLineItem[] {
     const totalMatch = line.match(new RegExp(String.raw`(${AMOUNT_PATTERN})\s*€\s*$`));
     const quantityMatch = line.match(QUANTITY_PATTERN);
 
-    if (!totalMatch || !quantityMatch) {
+    if (!totalMatch) {
       if (!/[€]/.test(line) && !/^(?:presupuesto|cliente|direcci[oó]n|c[oó]digo postal|fecha|nota|desde\b|llame\b|hemos\b|de nuevo\b)/i.test(line)) {
         pendingDescription = pendingDescription ? `${pendingDescription} ${line}` : line;
       }
@@ -90,8 +90,8 @@ export function parseBudgetLineItems(text: string): BudgetLineItem[] {
 
     items.push({
       description: description || descriptionLine,
-      quantity: parseCurrencyAmount(quantityMatch[1]),
-      unit: quantityMatch[2].replace(/\.$/, ''),
+      quantity: quantityMatch ? parseCurrencyAmount(quantityMatch[1]) : undefined,
+      unit: quantityMatch ? quantityMatch[2].replace(/\.$/, '') : undefined,
       unitPrice,
       total,
       confidence: pendingDescription ? 0.82 : 0.72,
