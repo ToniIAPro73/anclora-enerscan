@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { CheckoutButton } from './CheckoutButton';
 import { PdfPreview } from './PdfPreview';
@@ -9,8 +8,9 @@ import { usePreferences } from './AppPreferencesProvider';
 import { trackEvent } from '@/lib/analytics';
 
 export function PaywallSection({ assessmentId }: { assessmentId: string }) {
-  const { dictionary: t } = usePreferences();
+  const { dictionary: t, language, currency, measurementSystem } = usePreferences();
   const isLocalAssessment = assessmentId.startsWith('local_');
+  const demoPdfHref = `/api/assessment/demo/pdf?lang=${language}&currency=${currency}&units=${measurementSystem}`;
   const features = [
     t.paywallFeatureScenarios,
     t.paywallFeatureCosts,
@@ -56,9 +56,9 @@ export function PaywallSection({ assessmentId }: { assessmentId: string }) {
           ) : (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <CheckoutButton assessmentId={assessmentId} />
-              <Link href="/api/assessment/demo" className="text-sm font-heading font-semibold text-[#00DC82] transition hover:brightness-125">
+              <a href={demoPdfHref} className="text-sm font-heading font-semibold text-[#00DC82] transition hover:brightness-125">
                 {t.paywallDemoLink}
-              </Link>
+              </a>
             </div>
           )}
 
