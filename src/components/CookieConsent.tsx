@@ -71,7 +71,7 @@ export default function CookieConsent() {
           setIsOpen(true);
           setShowSettings(true);
         }}
-        className="fixed bottom-5 left-5 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#00DC82]/40 bg-[#07130f]/90 text-[#00DC82] shadow-[0_18px_50px_rgba(0,220,130,0.22)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#00DC82]"
+        className="fixed bottom-5 right-5 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#00DC82]/40 bg-[#07130f]/90 text-[#00DC82] shadow-[0_18px_50px_rgba(0,220,130,0.22)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#00DC82]"
       >
         <Cookie className="h-5 w-5" aria-hidden="true" />
       </button>

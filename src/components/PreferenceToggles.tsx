@@ -51,7 +51,7 @@ export function PreferenceToggles({ compact = false, variant = 'inline' }: { com
   const [open, setOpen] = useState(false);
 
   const groups = (
-    <div className={`flex ${compact ? 'items-center gap-1.5' : 'flex-wrap items-center gap-3'}`}>
+    <div className={`flex max-w-full ${compact ? 'flex-wrap items-center justify-center gap-1.5' : 'flex-wrap items-center gap-3'}`}>
       <div className="premium-toggle" role="group" aria-label="Theme selector">
         {themeModes.map((mode) => {
           const Icon = themeLabels[mode].icon;
@@ -132,7 +132,7 @@ export function PreferenceToggles({ compact = false, variant = 'inline' }: { com
           <span>{languageLabels[language]} · {currencyLabels[currency]} · {measurementLabels[measurementSystem]}</span>
         </button>
         {open && (
-          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[8600] rounded-3xl border border-white/10 bg-[#101010]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div className="surface absolute right-0 top-[calc(100%+0.75rem)] z-[8600] rounded-3xl border p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
             {groups}
           </div>
         )}

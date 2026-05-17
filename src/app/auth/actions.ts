@@ -37,7 +37,7 @@ export async function signInWithEmail(_: AuthActionState, formData: FormData): P
     await signIn('credentials', {
       email,
       password,
-      redirectTo: '/wizard',
+      redirectTo: '/dashboard',
     });
   } catch (error) {
     if ((error as Error & { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw error;
@@ -71,7 +71,7 @@ export async function signUpWithEmail(_: AuthActionState, formData: FormData): P
     await signIn('credentials', {
       email,
       password,
-      redirectTo: '/wizard',
+      redirectTo: '/dashboard',
     });
   } catch (error) {
     if ((error as Error & { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw error;
@@ -144,7 +144,7 @@ export async function resetPassword(_: AuthActionState, formData: FormData): Pro
 export async function signInWithProvider(formData: FormData) {
   const provider = value(formData, 'provider');
   if (provider !== 'google' && provider !== 'github') redirect('/auth?error=invalid-provider');
-  await signIn(provider, { redirectTo: '/wizard' });
+  await signIn(provider, { redirectTo: '/dashboard' });
 }
 
 export async function signOut() {
