@@ -233,6 +233,26 @@ body {
   color: #5e574e;
 }
 
+/* Cookie panel — light mode: CookieRow */
+.light .cookie-panel .cookie-row-label {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(0, 0, 0, 0.025) !important;
+}
+
+.light .cookie-panel .cookie-row-title {
+  color: #171512 !important;
+}
+
+.light .cookie-panel .cookie-row-desc {
+  color: #5e574e !important;
+}
+
+/* Borders that use border-white/xx — make visible in light */
+.light .cookie-panel .cookie-border-btn,
+.light .cookie-panel button[class*="border-white"] {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
 .app-shell {
   background: var(--bg);
   color: var(--fg);
