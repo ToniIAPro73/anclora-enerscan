@@ -133,10 +133,10 @@ function CookieRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <label className="cookie-row-label flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <span>
-        <span className="block text-sm font-semibold text-white">{title}</span>
-        <span className="mt-1 block text-xs leading-5 text-white/60">{description}</span>
+        <span className="cookie-row-title block text-sm font-semibold text-white">{title}</span>
+        <span className="cookie-row-desc mt-1 block text-xs leading-5 text-white/60">{description}</span>
       </span>
       <input
         type="checkbox"
