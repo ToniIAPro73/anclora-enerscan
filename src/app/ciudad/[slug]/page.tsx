@@ -26,6 +26,7 @@ export default function CitySeoPage({ params }: { params: { slug: string } }) {
   if (!city) notFound();
   const language = normalizeLanguage(cookies().get(PREFERENCE_COOKIE_NAMES.language)?.value);
   const copy = getMonetizationCopy(language);
+  const defaults = language === 'en' ? { currency: 'GBP', units: 'imperial' } : { currency: 'EUR', units: 'metric' };
   const faq = copy.seoCity.faq;
   return (
     <div className="min-h-screen app-shell">
@@ -44,7 +45,7 @@ export default function CitySeoPage({ params }: { params: { slug: string } }) {
         </section>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href={`/wizard?source=seo_city&city=${city.slug}`} className="rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{copy.common.analyzeFree}</Link>
-          <Link href="/api/assessment/demo" className="rounded-full border border-white/10 px-6 py-3 font-bold">{copy.seoCity.premiumExample}</Link>
+          <a href={`/api/assessment/demo/pdf?lang=${language}&currency=${defaults.currency}&units=${defaults.units}`} className="rounded-full border border-white/10 px-6 py-3 font-bold">{copy.seoCity.premiumExample}</a>
         </div>
         <section className="mt-10 space-y-4">
           <h2 className="font-heading text-2xl font-bold">{copy.seoCity.faqTitle}</h2>
