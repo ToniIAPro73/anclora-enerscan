@@ -1,3 +1,11 @@
+type PdfItem = {
+  str: string;
+  transform: number[];
+  width: number;
+  height: number;
+  hasEOL?: boolean;
+};
+
 export async function extractTextFromPdf(pdfBytes: Uint8Array): Promise<{
   fullText: string;
   pages: Array<{ pageNumber: number; text: string }>;
@@ -23,17 +31,85 @@ export async function extractTextFromPdf(pdfBytes: Uint8Array): Promise<{
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((item: any) => item.str)
-      .join(' ');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageText = reconstructLines(textContent.items as PdfItem[]).join('\n');
 
     pages.push({ pageNumber: i, text: pageText });
-    fullText += ` ${pageText}`;
+    fullText += (fullText ? '\n' : '') + pageText;
   }
 
   const trimmed = fullText.trim();
   return { fullText: trimmed, pages, textQuality: assessPdfTextQuality(trimmed) };
+}
+
+/**
+ * Reconstruct human-readable lines from pdfjs text items using their XY positions.
+ * - Items at the same Y (±tolerance) → same line, sorted left to right.
+ * - A horizontal gap larger than ~3 average character widths → tab separator.
+ * - Lines sorted top to bottom (PDF Y axis is inverted: top = high Y).
+ */
+function reconstructLines(items: PdfItem[]): string[] {
+  type PosItem = { str: string; x: number; y: number; right: number; height: number };
+
+  const positioned: PosItem[] = [];
+  for (const item of items) {
+    const str = item.str;
+    if (!str || !item.transform) continue;
+    const x = item.transform[4];
+    const y = item.transform[5];
+    // Font height from scale matrix; fall back to item.height
+    const height = Math.abs(item.transform[3]) || item.height || 10;
+    positioned.push({ str, x, y, right: x + (item.width || 0), height });
+  }
+
+  if (positioned.length === 0) return [];
+
+  const avgHeight = positioned.reduce((s, i) => s + i.height, 0) / positioned.length;
+  const yTolerance = Math.max(1.5, avgHeight * 0.45);
+  const colGapThreshold = avgHeight * 2.5; // gap that indicates a column break
+
+  // Group items by Y position
+  const lineGroups: Array<{ y: number; items: PosItem[] }> = [];
+  for (const item of positioned) {
+    const existing = lineGroups.find((g) => Math.abs(g.y - item.y) <= yTolerance);
+    if (existing) {
+      existing.items.push(item);
+      // Track centroid y so groups drift toward actual average
+      existing.y = (existing.y * (existing.items.length - 1) + item.y) / existing.items.length;
+    } else {
+      lineGroups.push({ y: item.y, items: [item] });
+    }
+  }
+
+  // Sort top to bottom
+  lineGroups.sort((a, b) => b.y - a.y);
+
+  const result: string[] = [];
+
+  for (const group of lineGroups) {
+    group.items.sort((a, b) => a.x - b.x);
+
+    let line = '';
+    let prevRight = -Infinity;
+
+    for (const item of group.items) {
+      const gap = item.x - prevRight;
+      if (prevRight > -Infinity) {
+        if (gap > colGapThreshold) {
+          line += '\t';
+        } else if (gap > 0.5) {
+          line += ' ';
+        }
+      }
+      line += item.str;
+      prevRight = item.right;
+    }
+
+    const trimmed = line.trim();
+    if (trimmed) result.push(trimmed);
+  }
+
+  return result;
 }
 
 async function ensurePdfJsNodeCanvasGlobals() {
