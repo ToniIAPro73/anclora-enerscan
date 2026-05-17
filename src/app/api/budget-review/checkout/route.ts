@@ -40,8 +40,11 @@ export async function POST(req: Request) {
     cancel_url: `${getAppUrl(req)}/budget-review?review=${review.id}`,
     line_items: [lineItem],
     metadata: {
+      amountCents: String(BUDGET_REVIEW_PRICE_CENTS),
+      currency: 'eur',
       productType: 'budget_review',
       budgetReviewId: review.id,
+      userId: review.userId || '',
     },
   });
 
@@ -49,6 +52,13 @@ export async function POST(req: Request) {
     where: { id: review.id },
     data: { stripeSessionId: session.id, status: 'CHECKOUT_STARTED' },
   });
-  trackEvent('budget_review_checkout_initiated', { productType: 'budget_review', budgetReviewId: review.id, stripeSessionId: session.id });
+  trackEvent('budget_review_checkout_initiated', {
+    amountCents: BUDGET_REVIEW_PRICE_CENTS,
+    currency: 'eur',
+    productType: 'budget_review',
+    budgetReviewId: review.id,
+    stripeSessionId: session.id,
+    userId: review.userId,
+  });
   return NextResponse.json({ url: session.url });
 }

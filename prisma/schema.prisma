@@ -412,7 +412,7 @@ model ProviderLeadCreditLedger {
   type            String
   credits         Int
   leadId          String?
-  stripeSessionId String?
+  stripeSessionId String?  @unique
   notes           String?
 }
 
