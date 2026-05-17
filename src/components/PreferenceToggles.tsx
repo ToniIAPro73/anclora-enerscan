@@ -124,7 +124,7 @@ export function PreferenceToggles({ compact = false, variant = 'inline' }: { com
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-premium transition hover:border-[#00DC82]/40"
+          className="inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-bold text-premium transition hover:border-[#00DC82]/40"
           aria-expanded={open}
           aria-haspopup="menu"
         >
