@@ -50,7 +50,7 @@ export const legalContent: Record<AppLanguage, Record<LegalPageKind, LegalPageCo
       description: 'Información general del titular del sitio y condiciones básicas de acceso a Anclora EnergyScan.',
       updatedAt: updatedAt.es,
       sections: [
-        { title: 'Titular del sitio', paragraphs: ['Titular y operador: Anclora Group.', 'Anclora EnergyScan es una marca comercial operada bajo licencia exclusiva por Anclora Group.', 'Sitio web: https://anclora-energyscan.vercel.app/', 'Email de contacto: hola@anclora.com.'] },
+        { title: 'Titular del sitio', paragraphs: ['Titular y operador: Anclora Group.', 'Anclora EnergyScan forma parte del ecosistema tecnológico de Anclora Group.', 'Sitio web: https://anclora-energyscan.vercel.app/', 'Email de contacto: hola@anclora.com.'] },
         { title: 'Finalidad del sitio', paragraphs: ['El sitio ofrece una herramienta web de prediagnóstico energético orientativo para viviendas, generación de informes informativos y preparación de solicitudes de contacto.'] },
         { title: 'Naturaleza informativa', paragraphs: ['La información mostrada tiene carácter orientativo, comercial e informativo. No constituye certificación energética oficial, informe pericial ni asesoramiento legal.'] },
       ],
@@ -84,7 +84,7 @@ export const legalContent: Record<AppLanguage, Record<LegalPageKind, LegalPageCo
       description: 'General information about the site owner and basic access conditions for Anclora EnergyScan.',
       updatedAt: updatedAt.en,
       sections: [
-        { title: 'Site owner', paragraphs: ['Owner and operator: Anclora Group.', 'Anclora EnergyScan is a commercial brand operated under exclusive license by Anclora Group.', 'Website: https://anclora-energyscan.vercel.app/', 'Contact email: hola@anclora.com.'] },
+        { title: 'Site owner', paragraphs: ['Owner and operator: Anclora Group.', 'Anclora EnergyScan is part of the Anclora Group technology ecosystem.', 'Website: https://anclora-energyscan.vercel.app/', 'Contact email: hola@anclora.com.'] },
         { title: 'Site purpose', paragraphs: ['The site provides an indicative energy pre-assessment web tool for homes, informative report generation and preparation of contact requests.'] },
         { title: 'Informative nature', paragraphs: ['The displayed information is indicative, commercial and informative. It is not official energy certification, expert evidence or legal advice.'] },
       ],
@@ -118,7 +118,7 @@ export const legalContent: Record<AppLanguage, Record<LegalPageKind, LegalPageCo
       description: 'Allgemeine Informationen zum Betreiber der Website und grundlegende Zugangsbedingungen für Anclora EnergyScan.',
       updatedAt: updatedAt.de,
       sections: [
-        { title: 'Betreiber', paragraphs: ['Eigentümerin und Betreiberin: Anclora Group.', 'Anclora EnergyScan ist eine Handelsmarke, die unter exklusiver Lizenz von Anclora Group betrieben wird.', 'Website: https://anclora-energyscan.vercel.app/', 'Kontakt: hola@anclora.com.'] },
+        { title: 'Betreiber', paragraphs: ['Eigentümerin und Betreiberin: Anclora Group.', 'Anclora EnergyScan ist Teil des Technologie-Ökosystems von Anclora Group.', 'Website: https://anclora-energyscan.vercel.app/', 'Kontakt: hola@anclora.com.'] },
         { title: 'Zweck der Website', paragraphs: ['Die Website bietet ein Webtool zur orientierenden Energievoreinschätzung von Wohnimmobilien, informative Berichte und Vorbereitung von Kontaktanfragen.'] },
         { title: 'Informative Natur', paragraphs: ['Die angezeigten Informationen sind orientierend, kommerziell und informativ. Sie sind kein offizieller Energieausweis, kein Gutachten und keine Rechtsberatung.'] },
       ],
