@@ -70,7 +70,7 @@ export default function LandingPage() {
                   <Link href="/pricing" className="px-6 py-3 rounded-full bg-[#F0EDE8] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.pricingPremiumCta}
                   </Link>
-                  <a href={`/api/assessment/demo/pdf?lang=${language}&currency=${currency}&units=${measurementSystem}`} download className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
+                  <a href={`/api/assessment/demo/pdf?lang=${language}&currency=${currency}&units=${measurementSystem}`} className="px-6 py-3 rounded-full bg-[#FFB020] text-[#0A0A0A] font-heading font-bold text-sm hover:brightness-110 transition">
                     {t.paywallDemoLink}
                   </a>
                   <Link href="#como-funciona" className="px-6 py-3 rounded-full border border-[#262626] text-premium font-heading font-medium text-sm hover:border-[#7A7A7A] transition">
