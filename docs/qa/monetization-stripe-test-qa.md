@@ -2,7 +2,7 @@
 
 ## Estado general
 
-**Aprobado con salvedades** — El flujo de Budget Review completo hasta checkout está operativo. Se documentan 3 incidencias funcionales menores y 1 limitación de entorno. El carácter visual premium se mantiene en dark y light.
+**Aprobado con salvedades** — El flujo de Budget Review completo hasta checkout está operativo. Todas las incidencias funcionales cerradas salvo QA-004 (test manual Stripe). El carácter visual premium se mantiene en dark y light.
 
 ---
 
@@ -12,8 +12,8 @@
 |---|---|
 | URL local | `http://localhost:3001` |
 | Rama | `fix/monetization-stripe-i18n-hardening` |
-| Commits | `432ea78` (visual), `d99ca29` (copy) |
-| Fecha | 2026-05-17 |
+| Commits | `432ea78` (visual), `d99ca29` (copy), `f19018b` (parser QA-002/005), `31c5dca` (multi-estrategia PDF) |
+| Fecha | 2026-05-18 |
 | Modo Stripe | test |
 | Playwright | headless, producción build |
 
@@ -40,6 +40,16 @@
 - `src/lib/monetization/i18n.ts`: acentos en título, placeholder, legalNotice ES
 - `src/lib/budget-review/service.ts`: acentos en alertas y disclaimer
 - `src/app/api/budget-review/checkout/route.ts`: nombre y descripción del producto en Stripe
+
+### Commit `f19018b` — Parser básico + i18n ES (QA-002, QA-005)
+
+- `src/lib/ocr/budget-parser.ts`: el parser ya no requiere unidad de medida (m2, ud…) para detectar una partida; cantidad/unidad pasan a ser opcionales
+- `src/lib/monetization/i18n.ts`: acentos corregidos en seoCity, calculator, provider, partnerLanding, professional, dashboard, adminMetrics
+
+### Commit `31c5dca` — Parser multi-estrategia + extractor posicional PDF
+
+- `src/lib/ocr/pdf-extractor.ts`: reconstrucción de líneas por posición XY en lugar de join(' '); inserta tabulaciones en saltos de columna
+- `src/lib/ocr/budget-parser.ts`: cinco estrategias de detección en cascada — tabular, líder punteado, código prefijado (Presto/Arquimedes), viñeta/numerado, inline; ampliación de keywords para total; filtrado de subtotales de capítulo; detección de cabeceras de tabla por densidad de palabras clave
 
 ---
 
