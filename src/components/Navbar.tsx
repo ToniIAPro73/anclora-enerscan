@@ -25,7 +25,10 @@ export default function Navbar() {
         <div className="hidden xl:flex items-center gap-7 text-sm text-muted">
           <Link href="/#como-funciona" className="hover:text-premium transition">{t.navHow}</Link>
           <Link href="/#normativa" className="hover:text-premium transition">{t.navRegulation}</Link>
-          <Link href="/#mejoras" className="hover:text-premium transition">{t.navImprovements}</Link>
+          <Link href="/calculadora-ahorro" className="hover:text-premium transition">{t.navCalculator}</Link>
+          <Link href="/budget-review" className="hover:text-premium transition">{t.navBudgetReview}</Link>
+          <Link href="/proveedores" className="hover:text-premium transition">{t.navProviders}</Link>
+          <Link href="/profesional" className="hover:text-premium transition">{t.navProfessional}</Link>
           <Link href="/pricing" className="hover:text-premium transition">{t.navPricing}</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -41,7 +44,7 @@ export default function Navbar() {
         </div>
       </nav>
       <div className="flex justify-center border-t border-white/5 px-3 py-2 md:hidden">
-        <PreferenceToggles compact />
+        <PreferenceToggles compact variant="popover" />
       </div>
     </header>
   );

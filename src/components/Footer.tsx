@@ -33,7 +33,10 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-muted">
               <li><a href="/#como-funciona" className="hover:text-premium transition">{t.navHow}</a></li>
               <li><a href="/#normativa" className="hover:text-premium transition">{t.navRegulation}</a></li>
-              <li><a href="/#mejoras" className="hover:text-premium transition">{t.navImprovements}</a></li>
+              <li><a href="/calculadora-ahorro" className="hover:text-premium transition">{t.navCalculator}</a></li>
+              <li><a href="/budget-review" className="hover:text-premium transition">{t.navBudgetReview}</a></li>
+              <li><a href="/proveedores" className="hover:text-premium transition">{t.navProviders}</a></li>
+              <li><a href="/profesional" className="hover:text-premium transition">{t.navProfessional}</a></li>
               <li><a href="/#precios" className="hover:text-premium transition">{t.navPricing}</a></li>
             </ul>
           </div>
