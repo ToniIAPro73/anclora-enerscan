@@ -83,9 +83,11 @@ describe('POST /api/checkout', () => {
   it('creates Stripe checkout with assessment metadata', async () => {
     (prisma.assessment.findUnique as jest.Mock).mockResolvedValue({
       id: 'assess_123',
+      userId: 'user_123',
       isDemo: false,
       paidAt: null,
       paymentStatus: 'unpaid',
+      user: { email: 'buyer@example.com' },
     });
     mockCreateSession.mockResolvedValue({
       id: 'cs_test_123',
@@ -102,7 +104,13 @@ describe('POST /api/checkout', () => {
     expect(payload.url).toContain('checkout.stripe.com');
     expect(mockCreateSession).toHaveBeenCalledWith(expect.objectContaining({
       mode: 'payment',
-      metadata: expect.objectContaining({ assessmentId: 'assess_123' }),
+      metadata: expect.objectContaining({
+        amountCents: '990',
+        assessmentId: 'assess_123',
+        currency: 'eur',
+        productType: 'premium_report',
+        userId: 'user_123',
+      }),
     }));
     expect(prisma.assessment.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ stripeSessionId: 'cs_test_123', paymentStatus: 'checkout_started' }),

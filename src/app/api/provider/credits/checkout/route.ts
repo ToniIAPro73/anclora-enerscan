@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getStripeClient } from '@/lib/stripe';
 import { PROVIDER_LEAD_PACK_CREDITS, PROVIDER_LEAD_PACK_PRICE_CENTS } from '@/lib/monetization/products';
+import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,23 @@ export async function POST(req: Request) {
     success_url: `${appUrl(req)}/provider/billing?paid=1`,
     cancel_url: `${appUrl(req)}/provider/billing`,
     line_items: [lineItem],
-    metadata: { productType: 'provider_lead_pack', providerId: account.providerId },
+    metadata: {
+      amountCents: String(PROVIDER_LEAD_PACK_PRICE_CENTS),
+      credits: String(PROVIDER_LEAD_PACK_CREDITS),
+      currency: 'eur',
+      productType: 'provider_lead_pack',
+      providerId: account.providerId,
+      userId: session.user.id,
+    },
+  });
+  trackEvent('checkout_initiated', {
+    amountCents: PROVIDER_LEAD_PACK_PRICE_CENTS,
+    credits: PROVIDER_LEAD_PACK_CREDITS,
+    currency: 'eur',
+    productType: 'provider_lead_pack',
+    providerId: account.providerId,
+    stripeSessionId: checkout.id,
+    userId: session.user.id,
   });
   return NextResponse.json({ url: checkout.url });
 }

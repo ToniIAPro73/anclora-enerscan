@@ -18,8 +18,8 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   if (productType === 'budget_review') {
     const budgetReviewId = session.metadata?.budgetReviewId;
     if (!budgetReviewId) return;
-    await prisma.budgetReview.updateMany({
-      where: { id: budgetReviewId },
+    const updated = await prisma.budgetReview.updateMany({
+      where: { id: budgetReviewId, paidAt: null },
       data: {
         paidAt: new Date(),
         status: 'PAID',
@@ -29,28 +29,55 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
         paidCurrency: session.currency || undefined,
       },
     });
-    trackEvent('budget_review_paid', { productType: 'budget_review', budgetReviewId, stripeSessionId: session.id });
+    if (updated.count > 0) {
+      trackEvent('budget_review_paid', {
+        amountCents: session.amount_total || undefined,
+        currency: session.currency || undefined,
+        productType: 'budget_review',
+        budgetReviewId,
+        stripeSessionId: session.id,
+        userId: session.metadata?.userId || undefined,
+      });
+    }
     return;
   }
 
   if (productType === 'provider_lead_pack') {
     const providerId = session.metadata?.providerId;
     if (!providerId) return;
-    await prisma.provider.update({
-      where: { id: providerId },
-      data: { leadCreditsBalance: { increment: PROVIDER_LEAD_PACK_CREDITS } },
+    const existingLedger = await prisma.providerLeadCreditLedger.findFirst({
+      where: { stripeSessionId: session.id, type: 'PURCHASE' },
+      select: { id: true },
     });
-    await prisma.providerLeadCreditLedger.create({
-      data: {
-        providerId,
-        type: 'PURCHASE',
-        credits: PROVIDER_LEAD_PACK_CREDITS,
-        stripeSessionId: session.id,
-        notes: 'Stripe provider lead pack checkout completed',
-      },
+    if (existingLedger) return;
+    await prisma.$transaction([
+      prisma.provider.update({
+        where: { id: providerId },
+        data: { leadCreditsBalance: { increment: PROVIDER_LEAD_PACK_CREDITS } },
+      }),
+      prisma.providerLeadCreditLedger.create({
+        data: {
+          providerId,
+          type: 'PURCHASE',
+          credits: PROVIDER_LEAD_PACK_CREDITS,
+          stripeSessionId: session.id,
+          notes: 'Stripe provider lead pack checkout completed',
+        },
+      }),
+    ]);
+    trackEvent('payment_completed', {
+      amountCents: session.amount_total || undefined,
+      credits: PROVIDER_LEAD_PACK_CREDITS,
+      currency: session.currency || undefined,
+      productType: 'provider_lead_pack',
+      providerId,
+      stripeSessionId: session.id,
+      userId: session.metadata?.userId || undefined,
     });
     return;
   }
+
+  if (productType && productType !== 'premium_report') return;
 
   const assessmentId = session.metadata?.assessmentId;
   if (!assessmentId) return;
@@ -60,11 +87,12 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     select: { paidAt: true, user: { select: { email: true } } },
   });
   if (!existing) return;
+  if (existing.paidAt) return;
 
-  await prisma.assessment.update({
-    where: { id: assessmentId },
+  const updated = await prisma.assessment.updateMany({
+    where: { id: assessmentId, paidAt: null },
     data: {
-      paidAt: existing.paidAt || new Date(),
+      paidAt: new Date(),
       isPremium: true,
       paymentStatus: 'paid',
       stripeSessionId: session.id,
@@ -74,6 +102,7 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
       paidCurrency: session.currency || undefined,
     },
   });
+  if (updated.count === 0) return;
   const checkoutRecovery = (prisma as unknown as {
     checkoutRecovery?: { updateMany: (args: unknown) => Promise<unknown> };
   }).checkoutRecovery;
@@ -84,7 +113,14 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     });
   }
 
-  trackEvent('payment_completed', { assessmentId, stripeSessionId: session.id, productType: 'premium_report' });
+  trackEvent('payment_completed', {
+    amountCents: session.amount_total || undefined,
+    assessmentId,
+    currency: session.currency || undefined,
+    productType: 'premium_report',
+    stripeSessionId: session.id,
+    userId: session.metadata?.userId || undefined,
+  });
   await sendPremiumPurchaseEmail({
     to: session.customer_details?.email || existing.user?.email,
     assessmentId,
@@ -92,6 +128,18 @@ async function markCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function markCheckoutSessionExpired(session: Stripe.Checkout.Session) {
+  if (session.metadata?.productType === 'budget_review') {
+    const budgetReviewId = session.metadata?.budgetReviewId;
+    if (!budgetReviewId) return;
+    await prisma.budgetReview.updateMany({
+      where: { id: budgetReviewId, paidAt: null },
+      data: { status: 'EXPIRED' },
+    });
+    return;
+  }
+
+  if (session.metadata?.productType && session.metadata.productType !== 'premium_report') return;
+
   const assessmentId = session.metadata?.assessmentId;
   if (!assessmentId) return;
 

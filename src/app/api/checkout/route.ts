@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   try {
     assessment = await prisma.assessment.findUnique({
       where: { id: assessmentId },
-      select: { id: true, isDemo: true, paidAt: true, paymentStatus: true, user: { select: { email: true } } },
+      select: { id: true, userId: true, isDemo: true, paidAt: true, paymentStatus: true, user: { select: { email: true } } },
     });
   } catch (error) {
     console.error('Checkout assessment lookup failed:', error);
@@ -92,8 +92,11 @@ export async function POST(req: Request) {
       customer_email: assessment.user?.email || undefined,
       metadata: {
         assessmentId: assessment.id,
+        amountCents: String(PREMIUM_PRICE_CENTS),
+        currency: PREMIUM_CURRENCY,
         product: 'energyscan_premium_report',
         productType: 'premium_report',
+        userId: assessment.userId || '',
       },
     });
   } catch (error) {
@@ -147,7 +150,14 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  trackEvent('checkout_initiated', { assessmentId: assessment.id, stripeSessionId: session.id });
+  trackEvent('checkout_initiated', {
+    assessmentId: assessment.id,
+    amountCents: PREMIUM_PRICE_CENTS,
+    currency: PREMIUM_CURRENCY,
+    productType: 'premium_report',
+    stripeSessionId: session.id,
+    userId: assessment.userId,
+  });
 
   if (!session.url) {
     return NextResponse.json({ error: 'checkout_url_missing' }, { status: 500 });

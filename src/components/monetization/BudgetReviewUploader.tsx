@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { usePreferences } from '@/components/AppPreferencesProvider';
+import { getMonetizationCopy } from '@/lib/monetization/i18n';
 
 type ReviewSummary = {
   id: string;
@@ -13,6 +15,8 @@ type ReviewSummary = {
 };
 
 export function BudgetReviewUploader() {
+  const { language } = usePreferences();
+  const copy = getMonetizationCopy(language).budgetReview;
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,10 +33,10 @@ export function BudgetReviewUploader() {
         body: JSON.stringify({ text }),
       });
       const data = await response.json();
-      if (!response.ok || !data.ok) throw new Error(data.error || 'No se pudo analizar');
+      if (!response.ok || !data.ok) throw new Error(data.error || copy.analyzeFailed);
       setReview(data.review);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo analizar');
+      setError(err instanceof Error ? err.message : copy.analyzeFailed);
     } finally {
       setLoading(false);
     }
@@ -49,7 +53,7 @@ export function BudgetReviewUploader() {
     const data = await response.json();
     if (data.url) window.location.href = data.url;
     else {
-      setError(data.error || 'No se pudo iniciar el pago');
+      setError(data.error || copy.checkoutFailed);
       setLoading(false);
     }
   }
@@ -57,19 +61,19 @@ export function BudgetReviewUploader() {
   return (
     <section className="surface border rounded-3xl p-6 lg:p-8">
       <form onSubmit={analyze} className="space-y-4">
-        <textarea name="text" rows={10} className="w-full rounded-2xl border border-white/10 bg-black/20 p-4 text-sm" placeholder="Pega aqui el texto de tu presupuesto de reforma..." />
-        <button disabled={loading} className="rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f] disabled:opacity-60">{loading ? 'Analizando...' : 'Analizar presupuesto'}</button>
+        <textarea name="text" rows={10} className="w-full rounded-2xl border border-white/10 bg-black/20 p-4 text-sm" placeholder={copy.placeholder} />
+        <button disabled={loading} className="rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f] disabled:opacity-60">{loading ? copy.analyzing : copy.analyze}</button>
       </form>
       {error && <p className="mt-4 text-sm text-[#EF4444]">{error}</p>}
       {review && (
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="font-heading text-xl font-bold">Resultado gratuito</h2>
-          <p className="mt-2 text-sm text-muted">Partidas detectadas: {review.summary?.detectedItems || 0}</p>
-          <p className="text-sm text-muted">Total detectado: {review.summary?.totalAmount || '---'} EUR</p>
-          <p className="text-sm text-muted">Confianza: {Math.round((review.summary?.confidence || 0) * 100)}%</p>
+          <h2 className="font-heading text-xl font-bold">{copy.freeResult}</h2>
+          <p className="mt-2 text-sm text-muted">{copy.detectedItems}: {review.summary?.detectedItems || 0}</p>
+          <p className="text-sm text-muted">{copy.detectedTotal}: {review.summary?.totalAmount || '---'} EUR</p>
+          <p className="text-sm text-muted">{copy.confidence}: {Math.round((review.summary?.confidence || 0) * 100)}%</p>
           <p className="mt-3 text-sm text-[#FFB020]">{review.summary?.alert}</p>
-          <button onClick={checkout} disabled={loading} className="mt-4 rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">Desbloquear informe completo 19,90 EUR</button>
-          <p className="mt-3 text-xs text-muted">Analisis automatico orientativo. No sustituye la revision de un tecnico, arquitecto, aparejador ni asesor legal.</p>
+          <button onClick={checkout} disabled={loading} className="mt-4 rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{copy.unlock}</button>
+          <p className="mt-3 text-xs text-muted">{copy.legal}</p>
         </div>
       )}
     </section>
