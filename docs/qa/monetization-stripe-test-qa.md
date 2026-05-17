@@ -193,9 +193,9 @@
 ## Evidencias clave
 
 - Fecha/hora: 2026-05-17 21:xx UTC
-- Stripe Checkout Session (Budget Review): `cs_test_a1D4CC…`
-- Stripe Checkout Session anterior: `cs_test_a16Rta…`
-- Webhook secret CLI (temporal): `whsec_…`
+- Stripe Checkout Session (Budget Review): `cs_test_a1D4CC…` (ver Stripe Dashboard)
+- Stripe Checkout Session anterior: `cs_test_a16Rta…` (ver Stripe Dashboard)
+- Webhook secret CLI (temporal): `whsec_…` — rotar si se reutiliza; generado por `stripe listen`
 - Importe Budget Review confirmado en Stripe UI: €19.90
 - Producto Stripe: "Segunda opinión de presupuesto EnergyScan"
 - Rutas smoke test: 12/12 públicas → 200
