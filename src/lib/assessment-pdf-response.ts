@@ -133,6 +133,35 @@ async function loadPremiumSourcesForAssessment(assessmentId: string) {
   }
 }
 
+function buildReportFilename(reportData: PremiumReportData, reportRef: string) {
+  if (reportData.isDemo && reportRef.startsWith('DEMO-')) {
+    const demoRef = reportRef.slice('DEMO-'.length);
+    const timestamp = formatDownloadTimestamp();
+    if (reportData.language === 'en') return `energyscan-report-demo-en-${demoRef}-${timestamp}.pdf`;
+    if (reportData.language === 'de') return `energyscan-bericht-demo-de-${demoRef}-${timestamp}.pdf`;
+    return `energyscan-informe-demo-es-${demoRef}-${timestamp}.pdf`;
+  }
+
+  if (reportData.language === 'en') return `energyscan-report-${reportRef}.pdf`;
+  if (reportData.language === 'de') return `energyscan-bericht-${reportRef}.pdf`;
+  return `energyscan-informe-${reportRef}.pdf`;
+}
+
+function formatDownloadTimestamp(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Madrid',
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '00';
+  return `${value('day')}${value('month')}${value('year')}${value('hour')}${value('minute')}${value('second')}`;
+}
+
 export async function buildAssessmentPdfResponse(
   req: Request,
   assessmentId: string,
@@ -351,13 +380,14 @@ export async function buildAssessmentPdfResponse(
     }
 
     const reportRef = reportData.publicRef || getPublicAssessmentRef(assessmentId);
+    const filename = buildReportFilename(reportData, reportRef);
     trackEvent('pdf_downloaded', { assessmentId });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new NextResponse(finalPdfBytes as any, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="enerscan-informe-${reportRef}.pdf"`
+        'Content-Disposition': `attachment; filename="${filename}"`
       }
     });
   } catch (error) {
