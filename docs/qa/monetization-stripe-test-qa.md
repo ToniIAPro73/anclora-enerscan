@@ -173,10 +173,10 @@
 | ID | Severidad | Área | Descripción | Estado |
 |---|---|---|---|---|
 | QA-001 | Baja | Copy/i18n | Acentos faltantes en strings ES de Budget Review (título, disclaimer, placeholder, nombre Stripe) | **Cerrada** — commit `d99ca29` |
-| QA-002 | Baja | AI parsing | "Partidas detectadas: 0" con 3 line items en texto de presupuesto. Total se detecta correctamente (26.300€). Probable umbral de parsing. | **Abierta** |
-| QA-003 | Info | Auth | `/dashboard` y `/provider/dashboard` devuelven 200 sin auth (probablemente muestran formulario de login o redirigen client-side). No bloquea si la redirección es correcta. | **Abierta — verificar manualmente** |
+| QA-002 | Baja | AI parsing | "Partidas detectadas: 0" con líneas sin unidad de medida en texto. Total detectado correctamente. | **Cerrada** — commit `f19018b` — parser ya no requiere token de unidad; text: 6/6 partidas, PDF: 10/10 |
+| QA-003 | Info | Auth | `/dashboard` y `/provider/dashboard` devuelven 200 sin auth. Verificado: muestran formulario de login sin exponer datos de usuario. Comportamiento correcto. | **Cerrada — comportamiento correcto** |
 | QA-004 | Info | Stripe | Completar pago con tarjeta test no automatizable via Playwright por iframe security de Stripe. Verificación de webhook post-pago requiere test manual o Stripe CLI con whsec correcto. | **Abierta — requiere test manual** |
-| QA-005 | Baja | Copy | Otros strings ES en `src/lib/monetization/i18n.ts` (seoCity, profesional, proveedor) tienen acentos faltantes. No críticos para el flujo principal. | **Abierta — deuda técnica** |
+| QA-005 | Baja | Copy | Strings ES en `src/lib/monetization/i18n.ts` (seoCity, calculator, profesional, proveedor, dashboard, adminMetrics) con acentos faltantes. | **Cerrada** — commit `f19018b` — corregidos todos los strings afectados |
 
 ---
 
