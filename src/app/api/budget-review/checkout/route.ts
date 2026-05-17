@@ -28,8 +28,8 @@ export async function POST(req: Request) {
       currency: 'eur',
       unit_amount: BUDGET_REVIEW_PRICE_CENTS,
       product_data: {
-        name: 'Segunda opinion de presupuesto EnergyScan',
-        description: 'Analisis automatico orientativo de presupuesto de reforma. No sustituye revision tecnica profesional.',
+        name: 'Segunda opinión de presupuesto EnergyScan',
+        description: 'Análisis automático orientativo de presupuesto de reforma. No sustituye revisión técnica profesional.',
       },
     },
   };

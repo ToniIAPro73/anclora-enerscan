@@ -128,6 +128,111 @@ body {
   box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.premium-nav-pill {
+  border: 1px solid color-mix(in srgb, var(--border) 78%, white 12%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 32px rgba(0,0,0,0.16);
+}
+
+.light .premium-nav-pill {
+  border-color: rgba(0, 0, 0, 0.11);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07), 0 8px 28px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255,255,255,0.88);
+}
+
+/* Light mode: hover visible sobre fondo claro */
+.light .premium-nav-pill button:hover,
+.light .premium-nav-pill a:hover {
+  background: rgba(0, 0, 0, 0.055) !important;
+}
+
+/* Light mode: borde del header y dropdown */
+.light header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.light header .surface a:hover {
+  background: rgba(0, 0, 0, 0.055) !important;
+}
+
+/* Hero energy card — tema adaptable */
+.hero-energy-card {
+  background: linear-gradient(145deg, #2f2f2f 0%, #1e1e1e 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 32px 72px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.light .hero-energy-card {
+  background: linear-gradient(135deg, #ffffff, #f0ebe2);
+  border-color: rgba(0, 0, 0, 0.09);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Elementos interiores del widget que dependen del tema */
+.hero-energy-card .hero-card-simular {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.light .hero-energy-card .hero-card-simular {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.hero-energy-card .hero-card-divider {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.light .hero-energy-card .hero-card-divider {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.hero-energy-card .hero-bar-border {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.light .hero-energy-card .hero-bar-border {
+  border-color: rgba(0, 0, 0, 0.07);
+}
+
+/* Cookie consent — botón flotante */
+.cookie-floating-btn {
+  background: rgba(7, 19, 15, 0.9);
+}
+
+.light .cookie-floating-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 143, 90, 0.4);
+  box-shadow: 0 18px 50px rgba(0, 143, 90, 0.18);
+}
+
+/* Cookie consent — panel/modal */
+.cookie-panel {
+  background: #07130f;
+  color: #f0ede8;
+}
+
+.light .cookie-panel {
+  background: #ffffff;
+  color: #171512;
+  border-color: rgba(0, 143, 90, 0.2);
+}
+
+.light .cookie-panel .cookie-text-secondary {
+  color: #5e574e;
+}
+
+.light .cookie-panel .cookie-border-btn {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #171512;
+}
+
+.light .cookie-panel .cookie-muted-btn {
+  color: #5e574e;
+}
+
 .app-shell {
   background: var(--bg);
   color: var(--fg);

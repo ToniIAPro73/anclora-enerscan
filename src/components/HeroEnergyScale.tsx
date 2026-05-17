@@ -46,7 +46,7 @@ export function HeroEnergyScale() {
         className="group relative cursor-pointer"
       >
         {/* PREMIUM CARD CONTAINER */}
-        <div className="relative w-[340px] sm:w-[400px] p-6 sm:p-8 rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#131313] to-[#0A0A0A] shadow-2xl overflow-hidden group-hover:border-[#00DC82]/30 transition-all duration-500">
+        <div className="hero-energy-card relative w-[340px] sm:w-[400px] p-6 sm:p-8 rounded-[2.5rem] border shadow-2xl overflow-hidden group-hover:border-[#00DC82]/30 transition-all duration-500">
           
           {/* DECORATIVE ELEMENTS */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#00DC82]/10 blur-[80px] rounded-full group-hover:bg-[#00DC82]/20 transition-colors duration-700" />
@@ -68,7 +68,7 @@ export function HeroEnergyScale() {
               </div>
             </div>
             {!isCalculating && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 animate-bounce">
+              <div className="hero-card-simular flex items-center gap-1.5 px-2 py-1 rounded-lg border animate-bounce">
                 <MousePointer2 className="w-3 h-3 text-muted" />
                 <span className="text-[9px] font-bold text-muted uppercase">{t.heroSimulate}</span>
               </div>
@@ -86,7 +86,7 @@ export function HeroEnergyScale() {
                   className={`relative flex items-center transition-all duration-500 ${isActive ? 'scale-[1.03] z-10' : 'opacity-40'}`}
                 >
                   {/* BAR CONTAINER */}
-                  <div className={`h-8 sm:h-9 ${level.width} rounded-r-full relative overflow-hidden flex items-center justify-end px-4 border border-white/5 shadow-lg group-hover:shadow-[#00DC82]/5`}>
+                  <div className={`hero-bar-border h-8 sm:h-9 ${level.width} rounded-r-full relative overflow-hidden flex items-center justify-end px-4 border shadow-lg group-hover:shadow-[#00DC82]/5`}>
                     {/* BASE COLOR */}
                     <div className={`absolute inset-0 ${level.bg} opacity-80`} />
                     
@@ -116,7 +116,7 @@ export function HeroEnergyScale() {
           </div>
 
           {/* BOTTOM METER (DYNAMIC DATA) */}
-          <div className="mt-10 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+          <div className="hero-card-divider mt-10 pt-6 border-t grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-[9px] font-bold text-muted uppercase tracking-widest leading-none">{t.heroEstimateGrade}</p>
               <p className={`text-2xl font-heading font-black transition-colors duration-500 ${isCalculating ? 'text-muted' : 'text-premium'}`}>

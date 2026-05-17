@@ -1,0 +1,43 @@
+title = "Anclora EnergyScan — Gitleaks config"
+
+[extend]
+# Inherit all default rules (AWS, GCP, GitHub tokens, generic secrets, etc.)
+useDefault = true
+
+[[rules]]
+id          = "stripe-secret-key"
+description = "Stripe secret or restricted API key"
+regex       = '''sk_(live|test)_[0-9a-zA-Z]{20,}'''
+tags        = ["stripe", "api-key"]
+
+[[rules]]
+id          = "stripe-webhook-secret"
+description = "Stripe webhook signing secret"
+regex       = '''whsec_[0-9a-zA-Z]{32,}'''
+tags        = ["stripe", "webhook"]
+
+[[rules]]
+id          = "stripe-checkout-session"
+description = "Stripe checkout session ID (not a secret but avoid leaking in docs)"
+regex       = '''cs_(test|live)_[0-9a-zA-Z]{40,}'''
+tags        = ["stripe", "session-id"]
+
+[[rules]]
+id          = "stripe-restricted-key"
+description = "Stripe restricted key"
+regex       = '''rk_(live|test)_[0-9a-zA-Z]{20,}'''
+tags        = ["stripe", "api-key"]
+
+[allowlist]
+description = "Ignore placeholder / truncated values in docs and examples"
+regexes     = [
+  # Truncated placeholders written intentionally
+  '''whsec_…''',
+  '''cs_test_[a-zA-Z0-9]{6,8}…''',
+  # .env.example with empty or placeholder values
+  '''(STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET)\s*=\s*["']?(sk_test_\.\.\.|whsec_\.\.\.|your[_-].*|<.*>)?["']?\s*$''',
+]
+paths       = [
+  ".env.example",
+  "docs/prompt_maestro_codex_monetizacion_inmediata_energyscan.md",
+]

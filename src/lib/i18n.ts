@@ -9,6 +9,7 @@ export const legalDisclaimer = {
 export const dictionaries = {
   es: {
     navHow: "Cómo funciona",
+    navProduct: "Producto",
     navRegulation: "Normativa",
     navImprovements: "Mejoras",
     navCalculator: "Calculadora",
@@ -478,6 +479,7 @@ export const dictionaries = {
   },
   en: {
     navHow: "How it works",
+    navProduct: "Product",
     navRegulation: "Regulation",
     navImprovements: "Improvements",
     navCalculator: "Calculator",
@@ -947,6 +949,7 @@ export const dictionaries = {
   },
   de: {
     navHow: "Ablauf",
+    navProduct: "Produkt",
     navRegulation: "Regulierung",
     navImprovements: "Verbesserungen",
     navCalculator: "Rechner",
