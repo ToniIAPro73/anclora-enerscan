@@ -62,12 +62,35 @@ export function SavingsCalculator() {
       </form>
       {error && <p className="mt-4 text-sm text-[#EF4444]">{error}</p>}
       {result && (
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.annualSavings}</p><p className="font-heading text-xl font-bold">{result.annualSavingsRange[0]} - {result.annualSavingsRange[1]} EUR</p></div>
-          <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.estimatedCost}</p><p className="font-heading text-xl font-bold">{result.costRange[0]} - {result.costRange[1]} EUR</p></div>
-          <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.payback}</p><p className="font-heading text-xl font-bold">{result.paybackYearsRange[0]} - {result.paybackYearsRange[1]} {copy.years}</p></div>
-          <p className="md:col-span-3 text-xs text-muted">{result.disclaimer}</p>
-          <Link href="/wizard?source=calculator" onClick={() => trackEvent('seo_cta_clicked', { source: 'calculator' })} className="md:col-span-3 text-center rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{getMonetizationCopy(language).common.analyzeFree}</Link>
+        <div className="mt-6 space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.annualSavings}</p><p className="font-heading text-xl font-bold">{result.annualSavingsRange[0]} - {result.annualSavingsRange[1]} EUR</p></div>
+            <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.estimatedCost}</p><p className="font-heading text-xl font-bold">{result.costRange[0]} - {result.costRange[1]} EUR</p></div>
+            <div className="rounded-2xl bg-white/5 p-4"><p className="text-xs text-muted">{copy.payback}</p><p className="font-heading text-xl font-bold">{result.paybackYearsRange[0]} - {result.paybackYearsRange[1]} {copy.years}</p></div>
+            <p className="md:col-span-3 text-xs text-muted">{result.disclaimer}</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#00DC82]/30 bg-[#00DC82]/5 p-5">
+            <p className="font-heading text-lg font-bold text-premium">{copy.upsellTitle}</p>
+            <p className="mt-2 text-sm text-muted">{copy.upsellCopy}</p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/wizard?source=calculator"
+                onClick={() => trackEvent('seo_cta_clicked', { source: 'calculator_upsell_free' })}
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#00DC82] px-6 py-2.5 font-bold text-[#07140f]"
+              >
+                {copy.upsellCta}
+              </Link>
+              <Link
+                href="/wizard?source=calculator&premium=1"
+                onClick={() => trackEvent('seo_cta_clicked', { source: 'calculator_upsell_premium' })}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#00DC82]/40 px-6 py-2.5 font-bold text-[#00DC82] hover:bg-[#00DC82]/10"
+              >
+                {copy.upsellPremiumCta}
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-muted">{copy.upsellLegal}</p>
+          </div>
         </div>
       )}
     </section>

@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { normalizeLanguage, PREFERENCE_COOKIE_NAMES } from '@/lib/preferences';
 import { getProviderStatusLabel } from '@/lib/enum-labels';
+import { ProviderStatusChanger } from '@/components/admin/ProviderStatusChanger';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,10 @@ const headings = {
     registered: 'Alta',
     back: 'Volver a métricas',
     noProviders: 'No hay proveedores registrados.',
+    save: 'Guardar',
+    saving: '…',
+    saved: '✓',
+    saveError: 'Error',
   },
   en: {
     title: 'Provider Administration',
@@ -42,6 +47,10 @@ const headings = {
     registered: 'Registered',
     back: 'Back to metrics',
     noProviders: 'No providers registered.',
+    save: 'Save',
+    saving: '…',
+    saved: '✓',
+    saveError: 'Error',
   },
   de: {
     title: 'Anbieter-Administration',
@@ -57,6 +66,10 @@ const headings = {
     registered: 'Registriert',
     back: 'Zurück zu Metriken',
     noProviders: 'Keine Anbieter registriert.',
+    save: 'Speichern',
+    saving: '…',
+    saved: '✓',
+    saveError: 'Fehler',
   },
 };
 
@@ -136,9 +149,12 @@ export default async function AdminProvidersPage() {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusColors[provider.status] ?? 'bg-white/5 text-muted'}`}>
-                          {getProviderStatusLabel(provider.status, language)}
-                        </span>
+                        <ProviderStatusChanger
+                          providerId={provider.id}
+                          currentStatus={provider.status}
+                          statusLabel={(s) => getProviderStatusLabel(s, language)}
+                          labels={{ save: copy.save, saving: copy.saving, saved: copy.saved, saveError: copy.saveError }}
+                        />
                         <span className="text-xs text-muted">{provider.createdAt.toLocaleDateString(locale)}</span>
                       </div>
                       <h2 className="mt-2 font-heading text-xl font-bold text-premium">{provider.name}</h2>
