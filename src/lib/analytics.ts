@@ -21,7 +21,9 @@ export type AnalyticsEvent =
   | 'budget_review_paid'
   | 'budget_review_completed'
   | 'seo_cta_clicked'
-  | 'calculator_used';
+  | 'calculator_used'
+  | 'evidence_matrix_viewed'
+  | 'condition_risk_viewed';
 
 const SENSITIVE_KEYS = [
   'email',

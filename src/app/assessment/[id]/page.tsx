@@ -213,6 +213,9 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
   });
   const conditionRiskDisclaimer = getModuleDisclaimer(language);
 
+  if (evidenceMatrix.length > 0) trackEvent('evidence_matrix_viewed', { assessmentId: params.id });
+  if (conditionRiskItems.length > 0) trackEvent('condition_risk_viewed', { assessmentId: params.id });
+
   return (
     <div className="min-h-screen app-shell">
       <Navbar />
