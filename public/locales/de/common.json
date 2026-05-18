@@ -50,6 +50,13 @@
   "calculator.title": "Öffentlicher Energiesparrechner",
   "budgetReview.title": "Zweite Meinung zum Sanierungsangebot",
   "provider.title": "EnergyScan-Anbietermarktplatz",
+  "dashboard.connected.title": "Mein EnergyScan-Bereich",
+  "dashboard.connected.totalAssessments": "Analysen gesamt",
+  "dashboard.connected.premiumUnlocked": "Premium freigeschaltet",
+  "dashboard.connected.budgetsAnalyzed": "Angebote analysiert",
+  "provider.leads.unlockContact": "Kontakt freischalten",
+  "provider.leads.commercialStatus": "Kommerzieller Status",
+  "professional.dashboard.title": "Professional-Beta-Bereich",
   "partnerLanding.disclaimer": "Orientierende Analyse von Anclora EnergyScan.",
   "professional.title": "EnergyScan Professional Beta",
   "adminMetrics.title": "Interne EnergyScan-Metriken"

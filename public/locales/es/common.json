@@ -50,6 +50,13 @@
   "calculator.title": "Calculadora publica de ahorro energetico",
   "budgetReview.title": "Segunda opinion de presupuesto de reforma",
   "provider.title": "Marketplace de proveedores EnergyScan",
+  "dashboard.connected.title": "Mi panel EnergyScan",
+  "dashboard.connected.totalAssessments": "Análisis totales",
+  "dashboard.connected.premiumUnlocked": "Premium desbloqueados",
+  "dashboard.connected.budgetsAnalyzed": "Presupuestos analizados",
+  "provider.leads.unlockContact": "Desbloquear contacto",
+  "provider.leads.commercialStatus": "Estado comercial",
+  "professional.dashboard.title": "Panel profesional beta",
   "partnerLanding.disclaimer": "Analisis orientativo realizado por Anclora EnergyScan.",
   "professional.title": "EnergyScan Profesional beta",
   "adminMetrics.title": "Metricas internas EnergyScan"

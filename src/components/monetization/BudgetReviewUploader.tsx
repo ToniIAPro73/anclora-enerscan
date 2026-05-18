@@ -124,7 +124,10 @@ export function BudgetReviewUploader() {
           <p className="text-sm text-muted">{copy.detectedTotal}: {review.summary?.totalAmount || '---'} EUR</p>
           <p className="text-sm text-muted">{copy.confidence}: {Math.round((review.summary?.confidence || 0) * 100)}%</p>
           <p className="mt-3 text-sm text-[#FFB020]">{review.summary?.alert}</p>
-          <button onClick={checkout} disabled={loading} className="mt-4 rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{copy.unlock}</button>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <button onClick={checkout} disabled={loading} className="rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{copy.unlock}</button>
+            <a href="/dashboard" className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 px-6 py-3 font-bold text-premium">{copy.dashboardCta}</a>
+          </div>
           <p className="mt-3 text-xs text-muted">{copy.legal}</p>
         </div>
       )}
