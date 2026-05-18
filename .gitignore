@@ -43,5 +43,5 @@ next-env.d.ts
 prompt*.md 
 
 # imagenes
-Captura*.png
+*.png
 
