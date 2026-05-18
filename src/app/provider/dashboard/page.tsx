@@ -6,10 +6,12 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMonetizationCopy } from '@/lib/monetization/i18n';
 import { normalizeLanguage, PREFERENCE_COOKIE_NAMES } from '@/lib/preferences';
+import { getProviderStatusLabel } from '@/lib/enum-labels';
 
 export default async function ProviderDashboardPage() {
   const language = normalizeLanguage(cookies().get(PREFERENCE_COOKIE_NAMES.language)?.value);
   const copy = getMonetizationCopy(language).provider;
+  const providerLang = language;
   const session = await auth().catch(() => null);
   const account = session?.user?.id ? await prisma.providerAccount.findUnique({
     where: { userId: session.user.id },
@@ -41,7 +43,7 @@ export default async function ProviderDashboardPage() {
                 </div>
                 <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-premium">
                   {account.provider.status === 'PENDING' ? <CircleAlert className="h-4 w-4 text-[#FFB020]" /> : <BadgeCheck className="h-4 w-4 text-[#00DC82]" />}
-                  {account.provider.status}
+                  {getProviderStatusLabel(account.provider.status, providerLang)}
                 </span>
               </div>
               {account.provider.status === 'PENDING' && <p className="mt-4 rounded-2xl border border-[#FFB020]/30 bg-[#FFB020]/10 p-4 text-sm text-[#FFB020]">{copy.pendingNotice}</p>}
