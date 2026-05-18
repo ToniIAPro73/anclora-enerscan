@@ -5,6 +5,15 @@ import { FileText, UploadCloud } from 'lucide-react';
 import { usePreferences } from '@/components/AppPreferencesProvider';
 import { getMonetizationCopy } from '@/lib/monetization/i18n';
 
+type FindingStatus = 'IN_RANGE' | 'HIGH_REVIEW' | 'LOW_REVIEW' | 'INCOMPLETE' | 'REQUIRES_CLARIFICATION';
+
+type AdvancedFinding = {
+  description: string;
+  total?: number | null;
+  unitPrice?: number | null;
+  status: FindingStatus;
+};
+
 type ReviewSummary = {
   id: string;
   summary?: {
@@ -12,6 +21,13 @@ type ReviewSummary = {
     totalAmount?: number;
     confidence?: number;
     alert?: string;
+  };
+  advancedAnalysis?: {
+    category: string;
+    findings: AdvancedFinding[];
+    omissions: { item: string }[];
+    suggestedQuestions: string[];
+    legalNotice: string;
   };
 };
 
@@ -117,18 +133,75 @@ export function BudgetReviewUploader() {
       </form>
       {error && <p className="mt-4 text-sm text-[#EF4444]">{error}</p>}
       {review && (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
           <h2 className="font-heading text-xl font-bold">{copy.freeResult}</h2>
-          {sourceFileName && <p className="mt-2 text-xs text-muted">{copy.pdfImported}: {sourceFileName}</p>}
-          <p className="mt-2 text-sm text-muted">{copy.detectedItems}: {review.summary?.detectedItems || 0}</p>
-          <p className="text-sm text-muted">{copy.detectedTotal}: {review.summary?.totalAmount || '---'} EUR</p>
-          <p className="text-sm text-muted">{copy.confidence}: {Math.round((review.summary?.confidence || 0) * 100)}%</p>
-          <p className="mt-3 text-sm text-[#FFB020]">{review.summary?.alert}</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          {sourceFileName && <p className="text-xs text-muted">{copy.pdfImported}: {sourceFileName}</p>}
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
+            <span>{copy.detectedItems}: <strong className="text-foreground">{review.summary?.detectedItems || 0}</strong></span>
+            <span>{copy.detectedTotal}: <strong className="text-foreground">{review.summary?.totalAmount ?? '---'} EUR</strong></span>
+            <span>{copy.confidence}: <strong className="text-foreground">{Math.round((review.summary?.confidence || 0) * 100)}%</strong></span>
+          </div>
+          {review.summary?.alert && <p className="text-sm text-[#FFB020]">{review.summary.alert}</p>}
+
+          {review.advancedAnalysis && (
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-4">
+              <h3 className="font-semibold text-sm">{copy.advancedTitle}</h3>
+              <p className="text-xs text-muted">{copy.categoryLabel}: <strong className="text-foreground">{review.advancedAnalysis.category}</strong></p>
+
+              {review.advancedAnalysis.findings.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2">{copy.findingsLabel}</p>
+                  <div className="space-y-1">
+                    {review.advancedAnalysis.findings.slice(0, 8).map((f, i) => {
+                      const colorMap: Record<FindingStatus, string> = {
+                        IN_RANGE: 'text-[#00DC82]',
+                        HIGH_REVIEW: 'text-[#EF4444]',
+                        LOW_REVIEW: 'text-[#FFB020]',
+                        INCOMPLETE: 'text-[#FFB020]',
+                        REQUIRES_CLARIFICATION: 'text-[#FFB020]',
+                      };
+                      const statusKey = `status${f.status}` as keyof typeof copy;
+                      return (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          <span className={`shrink-0 font-bold ${colorMap[f.status]}`}>●</span>
+                          <span className="text-muted flex-1 truncate">{f.description}</span>
+                          <span className={`shrink-0 ${colorMap[f.status]}`}>{copy[statusKey] as string}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {review.advancedAnalysis.omissions.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-1">{copy.omissionsLabel}</p>
+                  <ul className="list-disc list-inside text-xs text-muted space-y-0.5">
+                    {review.advancedAnalysis.omissions.slice(0, 4).map((o, i) => (
+                      <li key={i}>{o.item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {review.advancedAnalysis.suggestedQuestions.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-1">{copy.questionsLabel}</p>
+                  <ol className="list-decimal list-inside text-xs text-muted space-y-0.5">
+                    {review.advancedAnalysis.suggestedQuestions.map((q, i) => (
+                      <li key={i}>{q}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row pt-2">
             <button onClick={checkout} disabled={loading} className="rounded-full bg-[#00DC82] px-6 py-3 font-bold text-[#07140f]">{copy.unlock}</button>
             <a href="/dashboard" className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 px-6 py-3 font-bold text-premium">{copy.dashboardCta}</a>
           </div>
-          <p className="mt-3 text-xs text-muted">{copy.legal}</p>
+          <p className="text-xs text-muted">{copy.legal}</p>
         </div>
       )}
     </section>

@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { createBudgetReviewFromText } from '@/lib/budget-review/service';
 import { trackEvent } from '@/lib/analytics';
 import { extractTextFromPdf } from '@/lib/ocr/pdf-extractor';
+import { normalizeLanguage } from '@/lib/preferences';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -14,6 +15,9 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   const contentType = req.headers.get('content-type') || '';
+  const cookieHeader = req.headers.get('cookie') || '';
+  const cookieLang = cookieHeader.match(/enerscan-language=(es|en|de)/)?.[1];
+  const lang = normalizeLanguage(cookieLang);
   let parsedInput: { text: string; source: string; fileName?: string };
 
   if (contentType.includes('multipart/form-data')) {
@@ -44,11 +48,12 @@ export async function POST(req: Request) {
   }
 
   const session = await auth().catch(() => null);
-  const review = await createBudgetReviewFromText({
+  const { review, advancedAnalysis } = await createBudgetReviewFromText({
     text: parsedInput.text,
     userId: session?.user?.id,
     source: parsedInput.source,
     fileName: parsedInput.fileName,
+    lang,
   });
 
   trackEvent('budget_review_started', { productType: 'budget_review', budgetReviewId: review.id, source: parsedInput.source });
@@ -59,6 +64,7 @@ export async function POST(req: Request) {
       status: review.status,
       summary: review.summaryJson,
       paid: Boolean(review.paidAt),
+      advancedAnalysis,
     },
   });
 }
