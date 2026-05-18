@@ -50,6 +50,13 @@
   "calculator.title": "Public energy savings calculator",
   "budgetReview.title": "Renovation quote second opinion",
   "provider.title": "EnergyScan provider marketplace",
+  "dashboard.connected.title": "My EnergyScan dashboard",
+  "dashboard.connected.totalAssessments": "Total assessments",
+  "dashboard.connected.premiumUnlocked": "Premium unlocked",
+  "dashboard.connected.budgetsAnalyzed": "Quotes analyzed",
+  "provider.leads.unlockContact": "Unlock contact",
+  "provider.leads.commercialStatus": "Commercial status",
+  "professional.dashboard.title": "Professional beta dashboard",
   "partnerLanding.disclaimer": "Indicative assessment by Anclora EnergyScan.",
   "professional.title": "EnergyScan Professional beta",
   "adminMetrics.title": "EnergyScan internal metrics"

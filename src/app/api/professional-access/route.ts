@@ -16,6 +16,19 @@ const schema = z.object({
 export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
-  const request = await prisma.professionalAccessRequest.create({ data: parsed.data });
-  return NextResponse.json({ ok: true, id: request.id });
+  const email = parsed.data.email.toLowerCase();
+  const existing = await prisma.professionalAccessRequest.findFirst({
+    where: { email },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (existing) {
+    return NextResponse.json({
+      ok: true,
+      duplicate: true,
+      id: existing.id,
+      status: existing.status,
+    });
+  }
+  const request = await prisma.professionalAccessRequest.create({ data: { ...parsed.data, email } });
+  return NextResponse.json({ ok: true, id: request.id, status: request.status });
 }

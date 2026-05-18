@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Link from 'next/link';
 import { AttachmentList } from '@/components/AttachmentList';
 import { ProviderLeadSection } from '@/components/ProviderLeadSection';
 import { PdfDownloadLink } from '@/components/PdfDownloadLink';
@@ -418,6 +419,14 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           )}
 
           {!canViewPremium && <PaywallSection assessmentId={params.id} />}
+
+          <section className="surface border rounded-3xl p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/dashboard" className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 py-2 font-heading text-sm font-bold text-premium hover:border-[#00DC82]/40">{t.backToDashboard}</Link>
+              <Link href="/budget-review" className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 py-2 font-heading text-sm font-bold text-premium hover:border-[#00DC82]/40">{t.analyzeBudgetCta}</Link>
+              <Link href="/proveedores" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#00DC82]/30 px-5 py-2 font-heading text-sm font-bold text-[#00DC82]">{t.requestProviderCta}</Link>
+            </div>
+          </section>
 
           {/* REGULATORY TIMELINE */}
           {canViewPremium && <section className="space-y-8">

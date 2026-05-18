@@ -17,13 +17,15 @@ export default function ProfessionalRequestPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.fromEntries(form.entries())),
     });
-    setMessage(response.ok ? copy.requestOk : copy.requestError);
+    const payload = await response.json().catch(() => ({}));
+    setMessage(response.ok ? (payload.duplicate ? copy.requestDuplicate : copy.requestOk) : copy.requestError);
   }
   return (
     <div className="min-h-screen app-shell">
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-28">
         <h1 className="font-heading text-4xl font-bold">{copy.requestTitle}</h1>
+        <p className="mt-3 text-sm text-muted">{copy.requestIntro}</p>
         <form onSubmit={submit} className="mt-8 grid gap-4">
           <input name="name" placeholder={copy.name} className="rounded-xl border border-white/10 bg-black/20 p-3" />
           <input name="email" type="email" required placeholder={copy.email} className="rounded-xl border border-white/10 bg-black/20 p-3" />

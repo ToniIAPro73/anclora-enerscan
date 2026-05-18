@@ -5,7 +5,17 @@ import { LockKeyhole, Loader2 } from 'lucide-react';
 import { usePreferences } from './AppPreferencesProvider';
 import { trackEvent } from '@/lib/analytics';
 
-export function CheckoutButton({ assessmentId }: { assessmentId: string }) {
+export function CheckoutButton({
+  assessmentId,
+  label,
+  loadingLabel,
+  errorLabel,
+}: {
+  assessmentId: string;
+  label?: string;
+  loadingLabel?: string;
+  errorLabel?: string;
+}) {
   const { dictionary: t } = usePreferences();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +41,12 @@ export function CheckoutButton({ assessmentId }: { assessmentId: string }) {
       }
 
       if (!response.ok || !payload.url) {
-        throw new Error(payload.message || payload.error || t.checkoutError);
+        throw new Error(payload.message || payload.error || errorLabel || t.checkoutError);
       }
 
       window.location.href = payload.url;
     } catch (checkoutError) {
-      setError(checkoutError instanceof Error ? checkoutError.message : t.checkoutError);
+      setError(checkoutError instanceof Error ? checkoutError.message : errorLabel || t.checkoutError);
       setLoading(false);
     }
   }
@@ -50,7 +60,7 @@ export function CheckoutButton({ assessmentId }: { assessmentId: string }) {
         className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#00DC82] px-8 py-4 font-heading font-bold text-[#0A0A0A] shadow-xl shadow-[#00DC82]/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <LockKeyhole className="h-5 w-5" />}
-        {loading ? t.checkoutLoading : t.checkoutButton}
+        {loading ? loadingLabel || t.checkoutLoading : label || t.checkoutButton}
       </button>
       {error && <p className="max-w-md text-center text-xs font-semibold text-[#EF4444]">{error}</p>}
     </div>

@@ -88,6 +88,9 @@ export function CheckoutSuccessClient({
                 {t.checkoutSuccessBackToAssessment}
               </Link>
             )}
+            <Link href="/dashboard" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/10 px-6 py-3 font-heading font-bold text-premium transition hover:border-[#00DC82]/40">
+              {t.checkoutSuccessDashboard}
+            </Link>
             {!isPaid && (
               <button type="button" onClick={loadStatus} disabled={loading} className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#00DC82] px-6 py-3 font-heading font-bold text-[#0A0A0A] transition hover:brightness-110 disabled:opacity-70">
                 <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />

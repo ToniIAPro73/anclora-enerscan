@@ -11,6 +11,7 @@ export async function GET() {
   if (!account) return NextResponse.json({ leads: [], credits: 0 });
   const leads = await prisma.lead.findMany({
     where: { providerId: account.providerId },
+    include: { assessment: true },
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
@@ -23,10 +24,18 @@ export async function GET() {
       zone: lead.zone,
       urgency: lead.urgency,
       status: lead.status,
-      unlocked: Boolean(lead.contactUnlockedAt) || account.provider.leadCreditsBalance > 0,
+      unlocked: Boolean(lead.contactUnlockedAt),
       userName: lead.contactUnlockedAt ? lead.userName : undefined,
       userEmail: lead.contactUnlockedAt ? lead.userEmail : undefined,
       userPhone: lead.contactUnlockedAt ? lead.userPhone : undefined,
+      assessment: lead.assessment ? {
+        id: lead.assessment.id,
+        propertyType: lead.assessment.propertyType,
+        zipcode: lead.assessment.zipcode,
+        estimatedLetter: lead.assessment.estimatedLetter,
+        confidence: lead.assessment.confidence,
+        budgetRange: lead.assessment.budgetRange,
+      } : null,
     })),
   });
 }
