@@ -178,6 +178,48 @@ export async function sendPremiumPurchaseEmail(input: {
   });
 }
 
+const providerLeadCopy = {
+  es: {
+    subject: 'Nueva solicitud de contacto asignada — EnergyScan',
+    title: 'Tienes una nueva solicitud de contacto',
+    copy: 'Un usuario ha solicitado contacto en tu área de servicio a través de Anclora EnergyScan. Revisa el detalle en tu panel de proveedor.',
+    cta: 'Ver leads',
+    legal: 'EnergyScan es un prediagnóstico orientativo. No emite CEE oficial ni garantiza obras, ahorros o cierres comerciales. Usa los datos recibidos solo para la solicitud consentida.',
+  },
+  en: {
+    subject: 'New contact request assigned — EnergyScan',
+    title: 'You have a new contact request',
+    copy: 'A user has requested contact in your service area through Anclora EnergyScan. Review the details in your provider dashboard.',
+    cta: 'View leads',
+    legal: 'EnergyScan is an indicative pre-assessment. It does not issue official EPCs or guarantee works, savings or commercial closings. Use the received data only for the consented request.',
+  },
+  de: {
+    subject: 'Neue Kontaktanfrage zugewiesen — EnergyScan',
+    title: 'Sie haben eine neue Kontaktanfrage',
+    copy: 'Ein Nutzer hat über Anclora EnergyScan eine Kontaktanfrage in Ihrem Servicebereich gestellt. Details finden Sie in Ihrem Anbieter-Dashboard.',
+    cta: 'Leads ansehen',
+    legal: 'EnergyScan ist eine orientierende Voreinschätzung. Es stellt keinen offiziellen Energieausweis aus und garantiert keine Arbeiten, Einsparungen oder Geschäftsabschlüsse. Verwenden Sie die erhaltenen Daten nur für die zugestimmte Anfrage.',
+  },
+} as const;
+
+export async function sendProviderLeadNotificationEmail(input: {
+  to?: string | null;
+  providerId?: string;
+  leadId: string;
+  language?: EmailLanguage;
+}) {
+  const language = input.language || 'es';
+  const copy = providerLeadCopy[language];
+  const appUrl = getAppUrl();
+  return sendTransactionalEmail({
+    type: 'provider_lead_notification',
+    to: input.to,
+    subject: copy.subject,
+    html: layout(copy.title, copy.copy, `${appUrl}/provider/leads`, copy.cta, copy.legal),
+    metadata: { leadId: input.leadId, providerId: input.providerId },
+  });
+}
+
 export async function sendCheckoutRecoveryEmail(input: {
   to?: string | null;
   assessmentId: string;

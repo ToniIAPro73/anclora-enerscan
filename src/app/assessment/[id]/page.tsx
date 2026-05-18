@@ -22,6 +22,9 @@ import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 import { canAccessPremiumContent } from '@/lib/premium-access';
 import { trackEvent } from '@/lib/analytics';
+import { buildEvidenceMatrix, getEvidenceFieldLabel, getEvidenceSourceLabel, getEvidenceConfidenceLabel } from '@/lib/evidence/evidence-matrix';
+import { buildConditionRiskItems } from '@/lib/condition-risk/rules';
+import { getCategoryLabel, getElementLabel, getModuleDisclaimer } from '@/lib/condition-risk/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -157,6 +160,61 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     assumptions: [],
     warnings: [],
   }));
+
+  // Evidence Matrix
+  const photoCount = attachments.filter((a) => a.category === 'EXTERIOR' || a.category === 'INTERIOR').length;
+  const hasCeeDocument = ceeCount > 0;
+  const hasBudgetDocument = rehabBudgets.length > 0;
+  const evidenceMatrix = buildEvidenceMatrix({
+    assessment: {
+      year: propertyData.year,
+      area: propertyData.area,
+      zipcode: propertyData.zipcode,
+      propertyType: propertyData.propertyType !== 'unknown' ? propertyData.propertyType : null,
+      windows: propertyData.windows !== 'unknown' ? propertyData.windows : null,
+      facadeInsulation: propertyData.facadeInsulation !== 'unknown' ? propertyData.facadeInsulation : null,
+      roofInsulation: propertyData.roofInsulation !== 'unknown' ? propertyData.roofInsulation : null,
+      heating: propertyData.heating !== 'unknown' ? propertyData.heating : null,
+      waterHeating: propertyData.waterHeating !== 'unknown' ? propertyData.waterHeating : null,
+      cooling: propertyData.cooling !== 'unknown' ? propertyData.cooling : null,
+      renewables: propertyData.renewables !== 'unknown' ? propertyData.renewables : null,
+    },
+    cadastralRecord: cadastralRecord ? {
+      cadastralReference: cadastralRecord.cadastralReference,
+      address: cadastralRecord.address,
+      postalCode: undefined,
+      yearBuilt: cadastralRecord.yearBuilt,
+      surfaceBuiltM2: cadastralRecord.surfaceBuiltM2,
+    } : null,
+    hasCeeDocument,
+    hasBudgetDocument,
+    photoCount,
+  });
+
+  // Condition & Risk Light
+  const isMultiFamily = ['flat', 'penthouse', 'ground_floor'].includes(propertyData.propertyType);
+  const conditionRiskItems = buildConditionRiskItems({
+    year: propertyData.year,
+    propertyType: propertyData.propertyType,
+    roofType: propertyData.roofType !== 'unknown' ? propertyData.roofType : null,
+    windows: propertyData.windows !== 'unknown' ? propertyData.windows : null,
+    facadeInsulation: propertyData.facadeInsulation !== 'unknown' ? propertyData.facadeInsulation : null,
+    roofInsulation: propertyData.roofInsulation !== 'unknown' ? propertyData.roofInsulation : null,
+    ventilation: propertyData.ventilation !== 'unknown' ? propertyData.ventilation : null,
+    heating: propertyData.heating !== 'unknown' ? propertyData.heating : null,
+    waterHeating: propertyData.waterHeating !== 'unknown' ? propertyData.waterHeating : null,
+    cooling: propertyData.cooling !== 'unknown' ? propertyData.cooling : null,
+    renewables: propertyData.renewables !== 'unknown' ? propertyData.renewables : null,
+    hasCeeDocument,
+    hasBudgetDocument,
+    hasCatastro: Boolean(cadastralRecord),
+    isMultiFamily,
+    photoCount,
+  });
+  const conditionRiskDisclaimer = getModuleDisclaimer(language);
+
+  if (evidenceMatrix.length > 0) trackEvent('evidence_matrix_viewed', { assessmentId: params.id });
+  if (conditionRiskItems.length > 0) trackEvent('condition_risk_viewed', { assessmentId: params.id });
 
   return (
     <div className="min-h-screen app-shell">
@@ -419,6 +477,116 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
           )}
 
           {!canViewPremium && <PaywallSection assessmentId={params.id} />}
+
+          {/* EVIDENCE MATRIX */}
+          <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
+            <div>
+              <h2 className="font-heading font-bold text-2xl text-premium">
+                {language === 'en' ? 'Evidence & Data Sources' : language === 'de' ? 'Belege & Datenquellen' : 'Evidencias y fuentes de datos'}
+              </h2>
+              <p className="mt-1 text-xs text-muted">
+                {language === 'en' ? 'Origin and confidence level of each data point used in the pre-assessment.' : language === 'de' ? 'Herkunft und Zuverlässigkeit der in der Voreinschätzung verwendeten Daten.' : 'Origen y nivel de confianza de cada dato utilizado en el prediagnóstico.'}
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-muted">
+                    <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">
+                      {language === 'en' ? 'Field' : language === 'de' ? 'Feld' : 'Campo'}
+                    </th>
+                    <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">
+                      {language === 'en' ? 'Value' : language === 'de' ? 'Wert' : 'Valor'}
+                    </th>
+                    <th className="pb-2 pr-4 font-semibold uppercase tracking-wider">
+                      {language === 'en' ? 'Source' : language === 'de' ? 'Quelle' : 'Fuente'}
+                    </th>
+                    <th className="pb-2 font-semibold uppercase tracking-wider">
+                      {language === 'en' ? 'Confidence' : language === 'de' ? 'Zuverlässigkeit' : 'Confianza'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {evidenceMatrix.map((item) => (
+                    <tr key={item.key} className="border-b border-white/5">
+                      <td className="py-2 pr-4 font-medium text-premium">{getEvidenceFieldLabel(item.key, language)}</td>
+                      <td className="py-2 pr-4 text-muted">
+                        {item.value != null && item.value !== '' ? String(item.value) : (
+                          <span className="text-white/30">{language === 'en' ? 'N/A' : language === 'de' ? 'N/V' : 'No disponible'}</span>
+                        )}
+                        {item.requiresReview && (
+                          <span className="ml-1 rounded-full bg-[#FFB020]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#FFB020]">
+                            {language === 'en' ? 'Review' : language === 'de' ? 'Prüfen' : 'Revisar'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-4 text-muted">{getEvidenceSourceLabel(item.source, language)}</td>
+                      <td className="py-2">
+                        <span className={`rounded-full px-2 py-0.5 font-bold ${
+                          item.confidence === 'high' ? 'bg-[#00DC82]/20 text-[#00DC82]' :
+                          item.confidence === 'medium' ? 'bg-[#FFB020]/20 text-[#FFB020]' :
+                          item.confidence === 'low' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                          'bg-white/5 text-muted'
+                        }`}>
+                          {getEvidenceConfidenceLabel(item.confidence, language)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* CONDITION & RISK LIGHT */}
+          <section className="surface border rounded-3xl p-6 lg:p-8 space-y-5">
+            <div>
+              <h2 className="font-heading font-bold text-2xl text-premium">
+                {language === 'en' ? 'Condition & Risk (Indicative)' : language === 'de' ? 'Zustand & Risiko (Orientierend)' : 'Estado & Riesgo (Orientativo)'}
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{conditionRiskDisclaimer}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {([3, 2, 1] as const).map((cat) => {
+                const count = conditionRiskItems.filter((i) => i.category === cat).length;
+                return count > 0 ? (
+                  <span key={cat} className={`rounded-full px-3 py-1 font-bold ${
+                    cat === 3 ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                    cat === 2 ? 'bg-[#FFB020]/20 text-[#FFB020]' :
+                    'bg-[#00DC82]/20 text-[#00DC82]'
+                  }`}>
+                    {getCategoryLabel(cat, language)}: {count}
+                  </span>
+                ) : null;
+              })}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {conditionRiskItems.map((item) => (
+                <div key={item.element} className={`rounded-2xl border p-4 ${
+                  item.category === 3 ? 'border-[#EF4444]/30 bg-[#EF4444]/5' :
+                  item.category === 2 ? 'border-[#FFB020]/30 bg-[#FFB020]/5' :
+                  'border-white/10 bg-white/5'
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-heading font-bold text-sm text-premium">{getElementLabel(item.element, language)}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      item.category === 3 ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                      item.category === 2 ? 'bg-[#FFB020]/20 text-[#FFB020]' :
+                      'bg-[#00DC82]/20 text-[#00DC82]'
+                    }`}>
+                      {item.category}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{getCategoryLabel(item.category, language)}</p>
+                  {item.requiresProfessionalReview && (
+                    <p className="mt-2 text-[10px] font-semibold text-[#FFB020]">
+                      {language === 'en' ? 'Professional review recommended' : language === 'de' ? 'Fachliche Prüfung empfohlen' : 'Se recomienda revisión profesional'}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
 
           <section className="surface border rounded-3xl p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

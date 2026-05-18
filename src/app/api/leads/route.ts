@@ -4,7 +4,7 @@ import { calculateAttributionExpiry, parseJsonArray, scoreProviderMatch } from '
 import { leadRequestSchema } from '@/lib/lead-validation';
 import { isStatelessAssessmentId } from '@/lib/stateless-assessment';
 import { auth } from '@/auth';
-import { sendTransactionalEmail } from '@/lib/email';
+import { sendProviderLeadNotificationEmail } from '@/lib/email';
 import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
@@ -184,12 +184,10 @@ export async function POST(req: Request) {
     });
 
     if (assignedProviderEmail) {
-      await sendTransactionalEmail({
-        type: 'provider_lead_notification',
+      await sendProviderLeadNotificationEmail({
         to: assignedProviderEmail,
-        subject: 'Nuevo lead EnergyScan asignado',
-        html: '<p>Hay una nueva solicitud de contacto en tu panel de proveedor EnergyScan.</p><p>EnergyScan es un prediagnostico orientativo y no sustituye el CEE oficial.</p>',
-        metadata: { leadId: lead.id, providerId },
+        providerId,
+        leadId: lead.id,
       });
       trackEvent('provider_lead_notified', { leadId: lead.id, providerId });
     }

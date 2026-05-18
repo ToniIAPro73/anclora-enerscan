@@ -10,6 +10,7 @@ import { getMonetizationCopy } from '@/lib/monetization/i18n';
 import { normalizeLanguage, PREFERENCE_COOKIE_NAMES } from '@/lib/preferences';
 import { signOut } from '@/app/auth/actions';
 import { canAccessPremiumContent } from '@/lib/premium-access';
+import { getPropertyTypeLabel, getBudgetReviewStatusLabel } from '@/lib/enum-labels';
 
 function formatMoney(cents: number | null, currency: string | null, locale: string) {
   if (!cents) return null;
@@ -127,7 +128,7 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <h3 className="mt-4 font-heading text-xl font-bold text-premium">
-                      {assessment.propertyType || copy.propertyFallback} · {assessment.zipcode}
+                      {getPropertyTypeLabel(assessment.propertyType, language) || copy.propertyFallback} · {assessment.zipcode}
                     </h3>
                     <p className="mt-1 text-sm text-muted">
                       {assessment.createdAt.toLocaleDateString(locale)} · {assessment.area} m2 · {assessment.year} · {copy.confidence}: {localizeConfidence(assessment.confidence, language)}
@@ -165,7 +166,7 @@ export default async function DashboardPage() {
                   <div>
                     <p className="font-heading text-lg font-bold text-premium">{review.fileName || copy.budgetReviewFallback}</p>
                     <p className="mt-1 text-sm text-muted">
-                      {review.createdAt.toLocaleDateString(locale)} · {review.paidAt ? copy.paid : review.status} · {formatMoney(review.totalAmountCents, review.currency, locale) || copy.noAmount}
+                      {review.createdAt.toLocaleDateString(locale)} · {review.paidAt ? copy.paid : getBudgetReviewStatusLabel(review.status, language)} · {formatMoney(review.totalAmountCents, review.currency, locale) || copy.noAmount}
                     </p>
                     <p className="mt-2 text-xs text-muted">{copy.confidence}: {review.extractionConfidence ? `${Math.round(review.extractionConfidence * 100)}%` : copy.confidenceUnknown}</p>
                   </div>

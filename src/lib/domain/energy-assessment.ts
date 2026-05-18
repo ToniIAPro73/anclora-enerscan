@@ -225,6 +225,10 @@ export interface PremiumReportData {
   energyCertificates?: EnergyCertificateCEE[];
   rehabBudgets?: RehabBudgetAnalysis[];
   dataFieldSources?: ExtractedField[];
+  // Evidence Matrix (derived at PDF generation time)
+  evidenceItems?: import('@/lib/evidence/evidence-matrix').EvidenceItem[];
+  // Condition & Risk Light (derived at PDF generation time)
+  conditionRiskItems?: import('@/lib/condition-risk/types').ConditionRiskItem[];
   logoDataUri?: string;
   language?: AppLanguage;
   currency?: AppCurrency;

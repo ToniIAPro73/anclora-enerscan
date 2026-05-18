@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getMonetizationCopy } from '@/lib/monetization/i18n';
 import { normalizeLanguage, PREFERENCE_COOKIE_NAMES } from '@/lib/preferences';
+import { getPropertyTypeLabel } from '@/lib/enum-labels';
 
 export default async function ProviderLeadsPage() {
   const language = normalizeLanguage(cookies().get(PREFERENCE_COOKIE_NAMES.language)?.value);
@@ -47,7 +48,7 @@ export default async function ProviderLeadsPage() {
               <div className="mt-5 grid gap-3 md:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
                   <p className="text-xs font-bold uppercase text-muted">{copy.propertyType}</p>
-                  <p className="mt-1 font-bold text-premium">{lead.assessment?.propertyType || copy.propertyFallback}</p>
+                  <p className="mt-1 font-bold text-premium">{getPropertyTypeLabel(lead.assessment?.propertyType, language) || copy.propertyFallback}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
                   <p className="text-xs font-bold uppercase text-muted">{copy.zone}</p>

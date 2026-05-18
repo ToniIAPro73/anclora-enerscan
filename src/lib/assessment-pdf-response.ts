@@ -18,6 +18,8 @@ import { prismaCertificateToDto } from '@/lib/ingestion/persistence';
 import type { RehabBudgetAnalysis } from '@/lib/ingestion/types';
 import { assertCanDownloadPremiumPdf, canAccessPremiumContent } from '@/lib/premium-access';
 import { trackEvent } from '@/lib/analytics';
+import { buildEvidenceMatrix } from '@/lib/evidence/evidence-matrix';
+import { buildConditionRiskItems } from '@/lib/condition-risk/rules';
 
 let cachedLogoDataUri: string | undefined;
 
@@ -347,6 +349,60 @@ export async function buildAssessmentPdfResponse(
 
     reportData.attachments = await enrichAttachmentsForPdf(reportData.attachments || []);
     reportData.logoDataUri = await getReportLogoDataUri();
+
+    // Derive Evidence Matrix and Condition & Risk items for PDF Premium
+    const attachmentList = reportData.attachments || [];
+    const photoCount = attachmentList.filter(a => a.category === 'EXTERIOR' || a.category === 'INTERIOR').length;
+    const hasCeeDocument = attachmentList.some(a => a.category === 'CEE') || (reportData.energyCertificates?.length ?? 0) > 0;
+    const hasBudgetDocument = (reportData.rehabBudgets?.length ?? 0) > 0;
+    const pd = reportData.propertyData;
+    const cr = reportData.cadastralRecord;
+
+    reportData.evidenceItems = buildEvidenceMatrix({
+      assessment: {
+        year: pd.year,
+        area: pd.area,
+        zipcode: pd.zipcode,
+        propertyType: pd.propertyType,
+        windows: pd.windows,
+        facadeInsulation: pd.facadeInsulation,
+        roofInsulation: pd.roofInsulation,
+        heating: pd.heating,
+        waterHeating: pd.waterHeating,
+        cooling: pd.cooling,
+        renewables: pd.renewables,
+      },
+      cadastralRecord: cr ? {
+        cadastralReference: cr.cadastralReference,
+        address: cr.address,
+        postalCode: cr.postalCode,
+        yearBuilt: cr.yearBuilt,
+        surfaceBuiltM2: cr.surfaceBuiltM2,
+      } : null,
+      hasCeeDocument,
+      hasBudgetDocument,
+      photoCount,
+    });
+
+    const isMultiFamily = ['flat', 'penthouse', 'ground_floor'].includes(pd.propertyType);
+    reportData.conditionRiskItems = buildConditionRiskItems({
+      year: pd.year,
+      propertyType: pd.propertyType,
+      roofType: pd.roofType,
+      windows: pd.windows,
+      facadeInsulation: pd.facadeInsulation,
+      roofInsulation: pd.roofInsulation,
+      ventilation: pd.ventilation,
+      heating: pd.heating,
+      waterHeating: pd.waterHeating,
+      cooling: pd.cooling,
+      renewables: pd.renewables,
+      hasCeeDocument,
+      hasBudgetDocument,
+      hasCatastro: Boolean(cr),
+      isMultiFamily,
+      photoCount,
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stream = await renderToStream(React.createElement(EnerScanReport, { data: reportData }) as any);

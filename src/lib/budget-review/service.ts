@@ -2,6 +2,8 @@ import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { parseBudgetAnalysisText } from '@/lib/ocr/budget-parser';
 import type { BudgetLineItem } from '@/lib/ingestion/types';
+import { buildBudgetAdvancedAnalysis, type BudgetAdvancedAnalysis } from './advanced-analysis';
+import type { AppLanguage } from '@/lib/preferences';
 
 export function hashBudgetText(text: string) {
   return createHash('sha256').update(text).digest('hex');
@@ -34,17 +36,24 @@ export function buildBudgetReviewFindings(lineItems: BudgetLineItem[], totalAmou
   };
 }
 
+export type CreateBudgetReviewResult = {
+  review: Awaited<ReturnType<typeof prisma.budgetReview.create>>;
+  advancedAnalysis: BudgetAdvancedAnalysis;
+};
+
 export async function createBudgetReviewFromText(input: {
   text: string;
   source?: string;
   fileName?: string;
   userId?: string;
-}) {
+  lang?: AppLanguage;
+}): Promise<CreateBudgetReviewResult> {
   const analysis = parseBudgetAnalysisText(input.text);
   const reviewFindings = buildBudgetReviewFindings(analysis.lineItems, analysis.totalAmount);
   const totalAmountCents = analysis.totalAmount ? Math.round(analysis.totalAmount * 100) : undefined;
+  const advancedAnalysis = buildBudgetAdvancedAnalysis(analysis.lineItems, analysis.totalAmount, input.lang ?? 'es');
 
-  return prisma.budgetReview.create({
+  const review = await prisma.budgetReview.create({
     data: {
       userId: input.userId,
       source: input.source || 'text',
@@ -65,4 +74,6 @@ export async function createBudgetReviewFromText(input: {
       findingsJson: reviewFindings,
     },
   });
+
+  return { review, advancedAnalysis };
 }

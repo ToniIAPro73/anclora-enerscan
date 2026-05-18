@@ -120,7 +120,35 @@ export default async function ProfessionalDashboardPage() {
         )}
 
         <section className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-6">
-          <h2 className="font-heading text-2xl font-bold text-premium">{copy.betaNextTitle}</h2>
+          <h2 className="font-heading text-2xl font-bold text-premium">{copy.plansTitle}</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {copy.plans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-5 ${plan.highlight ? 'border-2 border-[#00DC82]/60 bg-[#00DC82]/5' : 'border border-white/10 bg-black/10'}`}
+              >
+                {plan.highlight && (
+                  <span className="mb-3 inline-block rounded-full bg-[#00DC82]/20 px-2 py-0.5 text-[10px] font-bold uppercase text-[#00DC82]">Pro</span>
+                )}
+                <p className="font-heading text-lg font-bold text-premium">{plan.name}</p>
+                <p className="mt-1 font-heading text-xl font-bold text-[#00DC82]">{plan.price}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-xs text-muted">
+                      <span className="mt-0.5 text-[#00DC82]">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted">{copy.plansSoon} · <a href="/profesional/solicitar" className="text-[#00DC82] underline">{copy.planRequestLabel}</a></p>
+          <p className="mt-2 text-xs text-muted">{copy.planLegal}</p>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6">
+          <h2 className="font-heading text-xl font-bold text-premium">{copy.betaNextTitle}</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             {copy.betaNext.map((item) => (
               <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-muted">
