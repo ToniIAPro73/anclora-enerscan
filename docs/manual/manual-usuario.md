@@ -6,14 +6,14 @@
 
 <div class="cover-title">Manual de Usuario</div>
 
-<div class="cover-subtitle">Guía completa para usuarios residenciales,<br>profesionales y proveedores</div>
+<div class="cover-subtitle">Guía práctica para usuarios residenciales,<br>profesionales beta y proveedores</div>
 
 <div class="cover-meta">
-  <div class="cover-version">Versión 1.0</div>
+  <div class="cover-version">Versión 1.1</div>
   <div class="cover-date">Mayo 2026</div>
 </div>
 
-<div class="cover-disclaimer">Este documento no sustituye al Certificado de Eficiencia Energética oficial ni a la revisión de un técnico cualificado.</div>
+<div class="cover-disclaimer">EnergyScan ofrece un prediagnóstico energético orientativo. No emite Certificados de Eficiencia Energética oficiales ni sustituye la revisión de un técnico cualificado.</div>
 
 </div>
 
@@ -21,389 +21,634 @@
 
 ## Índice
 
-1. [¿Qué es Anclora EnergyScan?](#1-qué-es-anclora-energyscan)
-2. [Acceso y registro](#2-acceso-y-registro)
-3. [Para usuarios residenciales](#3-para-usuarios-residenciales)
-   - 3.1 [Página de inicio](#31-página-de-inicio)
-   - 3.2 [Calculadora de ahorro energético](#32-calculadora-de-ahorro-energético)
-   - 3.3 [Wizard de prediagnóstico paso a paso](#33-wizard-de-prediagnóstico-paso-a-paso)
-   - 3.4 [Resultado gratuito](#34-resultado-gratuito)
-   - 3.5 [Informe Premium PDF — 9,90 €](#35-informe-premium-pdf--990-)
-   - 3.6 [Segunda opinión de presupuesto — 19,90 €](#36-segunda-opinión-de-presupuesto--1990-)
-   - 3.7 [Mi panel (dashboard)](#37-mi-panel-dashboard)
-4. [Para profesionales](#4-para-profesionales)
-   - 4.1 [Acceso profesional beta](#41-acceso-profesional-beta)
-   - 4.2 [Solicitar acceso](#42-solicitar-acceso)
-5. [Para proveedores](#5-para-proveedores)
-   - 5.1 [Marketplace de proveedores](#51-marketplace-de-proveedores)
-   - 5.2 [Registro de proveedor](#52-registro-de-proveedor)
-   - 5.3 [Panel de proveedor](#53-panel-de-proveedor)
-   - 5.4 [Leads y créditos](#54-leads-y-créditos)
-6. [Preguntas frecuentes](#6-preguntas-frecuentes)
-7. [Cookies y privacidad](#7-cookies-y-privacidad)
-8. [Aviso legal y documentación legal](#8-aviso-legal-y-documentación-legal)
+1. [Qué es Anclora EnergyScan](#1-qué-es-anclora-energyscan)
+2. [Antes de empezar](#2-antes-de-empezar)
+3. [Acceso, cuenta y preferencias](#3-acceso-cuenta-y-preferencias)
+4. [Uso residencial paso a paso](#4-uso-residencial-paso-a-paso)
+5. [Mi panel EnergyScan](#5-mi-panel-energyscan)
+6. [Informe Premium y pagos](#6-informe-premium-y-pagos)
+7. [Segunda opinión de presupuesto](#7-segunda-opinión-de-presupuesto)
+8. [Área profesional beta](#8-área-profesional-beta)
+9. [Área de proveedores](#9-área-de-proveedores)
+10. [Cookies, privacidad y datos personales](#10-cookies-privacidad-y-datos-personales)
+11. [Preguntas frecuentes](#11-preguntas-frecuentes)
+12. [Glosario rápido](#12-glosario-rápido)
+13. [Aviso legal](#13-aviso-legal)
 
 <div class="page-break"></div>
 
-## 1. ¿Qué es Anclora EnergyScan?
+## 1. Qué es Anclora EnergyScan
 
-![Página de inicio — modo oscuro](screenshots/hero-dark.png)
+![Página de inicio en modo oscuro](screenshots/hero-dark.png)
 
-**Anclora EnergyScan** es una herramienta de prediagnóstico energético orientativo para viviendas. Te ayuda a conocer la situación energética de tu inmueble, entender el contexto normativo (Directiva EPBD 2024/1275), explorar mejoras posibles y obtener un informe detallado, todo antes de contratar un Certificado de Eficiencia Energética oficial.
+**Anclora EnergyScan** es una plataforma para ordenar la información energética de una vivienda antes de tomar decisiones: reformar, comparar presupuestos, pedir contacto con proveedores o preparar una visita técnica.
 
-### ¿Para quién es?
+La herramienta genera una **estimación orientativa** basada en los datos declarados por el usuario y, cuando se aportan, en documentos como fotos, referencias catastrales, certificados o presupuestos.
 
-| Perfil | Qué obtiene |
-|---|---|
-| **Propietario / inquilino** | Prediagnóstico gratuito, informe PDF Premium, análisis de presupuestos de reforma |
-| **Profesional** (certificador, arquitecto, asesor) | Herramienta beta para preevaluar expedientes de clientes |
-| **Proveedor** (instalador, constructora, empresa CEE) | Acceso a leads cualificados de usuarios con diagnóstico completado |
+### Qué puedes hacer
 
-La aplicación está disponible en **modo oscuro** y **modo claro**, en **español**, **inglés** y **alemán**, y es completamente **responsive** para móvil y escritorio.
+| Perfil | Qué permite hacer |
+| --- | --- |
+| Usuario residencial | Crear un prediagnóstico, consultar el historial, desbloquear PDF Premium y analizar presupuestos |
+| Profesional | Solicitar acceso beta y gestionar expedientes propios desde un panel profesional |
+| Proveedor | Registrar empresa, ver leads asignados, comprar créditos y desbloquear contactos con trazabilidad |
+
+### Qué no hace EnergyScan
+
+- No emite Certificados de Eficiencia Energética oficiales.
+- No sustituye software reconocido ni la visita de un técnico habilitado.
+- No garantiza ahorros, costes, subvenciones, obras ni resultados comerciales.
+- No debe usarse como documento administrativo.
 
 ---
 
-## 2. Acceso y registro
+## 2. Antes de empezar
+
+### Requisitos recomendados
+
+Para obtener una estimación más útil, ten a mano:
+
+- Tipo de vivienda: piso, unifamiliar, adosado u otro.
+- Año aproximado de construcción.
+- Superficie aproximada.
+- Código postal o dirección.
+- Sistemas de calefacción, refrigeración y agua caliente.
+- Estado de ventanas, fachada y cubierta.
+- Si los tienes: fotos, referencia catastral, CEE anterior o presupuesto de reforma.
+
+### Cómo interpretar los resultados
+
+| Elemento | Significado |
+| --- | --- |
+| Letra estimada | Aproximación A-G de la situación energética |
+| Confianza | Nivel de fiabilidad según calidad y cantidad de datos |
+| Penalizaciones | Factores que pueden empeorar el resultado |
+| Fortalezas | Datos favorables detectados |
+| Escenarios | Posibles líneas de mejora, siempre orientativas |
+
+> Si vas a vender, alquilar, solicitar ayudas o registrar una calificación oficial, necesitarás un CEE emitido por un técnico competente.
+
+---
+
+## 3. Acceso, cuenta y preferencias
+
+### 3.1 Crear cuenta o iniciar sesión
 
 ![Pantalla de acceso](screenshots/auth-dark.png)
 
-Para guardar tu historial de análisis y acceder a tus informes desde cualquier dispositivo puedes crear una cuenta. El registro es opcional para iniciar un prediagnóstico, pero necesario para recuperar análisis anteriores.
+Desde **Entrar** puedes acceder con:
 
-| Método | Descripción |
-|---|---|
-| **Magic link por email** | Recibes un enlace en tu correo, sin contraseña |
-| **Google** | Acceso con tu cuenta de Google |
-| **GitHub** | Acceso con tu cuenta de GitHub |
+| Opción | Uso |
+| --- | --- |
+| Email y contraseña | Acceso directo con una cuenta creada en EnergyScan |
+| Crear cuenta | Alta de usuario nuevo con nombre, email y contraseña |
+| Google/Gmail | Acceso social si está configurado |
+| GitHub | Acceso social si está configurado |
+| Recuperar contraseña | Solicitud de enlace de restablecimiento |
 
-> Las cuentas de proveedor y las cuentas de usuario residencial son independientes.
+La cuenta permite guardar el historial, recuperar análisis anteriores y acceder a productos pagados desde el dashboard.
+
+### 3.2 Preferencias de idioma, tema, moneda y unidades
+
+En la barra superior encontrarás el botón de preferencias, por ejemplo **ES · EUR · m²**.
+
+| Preferencia | Opciones |
+| --- | --- |
+| Idioma | Español, inglés, alemán |
+| Tema | Oscuro o claro |
+| Moneda | EUR, GBP u otras configuradas |
+| Unidades | Métrico o imperial |
+
+![Página de inicio en modo claro](screenshots/hero-light.png)
+
+> El contenido nuevo del producto conectado está disponible en ES/EN/DE. Algunos datos guardados por el usuario, como nombres de archivo o valores técnicos originales, se muestran tal como fueron introducidos.
 
 ---
 
-## 3. Para usuarios residenciales
+## 4. Uso residencial paso a paso
 
-### 3.1 Página de inicio
+### 4.1 Página de inicio
 
-![Página de inicio — modo claro](screenshots/hero-light.png)
+![Página de inicio completa](screenshots/home-dark.png)
 
-La página principal resume la propuesta de valor en cuatro secciones clave:
+La página de inicio resume las acciones principales:
 
-1. **Hero** — Escala energética interactiva A–G con acceso al wizard y al informe Premium
-2. **Cómo funciona** — Cuatro pasos: describe tu vivienda → calificación → escenarios de mejora → PDF
-3. **Contexto normativo** — Timeline EPBD 2024: obligaciones para 2030 y 2033
-4. **Precios** — Comparativa gratuito vs Premium
+1. **Iniciar análisis**: abre el wizard de prediagnóstico.
+2. **Ver precios**: muestra el plan gratuito, Premium y profesional.
+3. **Producto**: despliega accesos a calculadora, presupuestos, proveedores y profesional.
+4. **Preferencias**: cambia idioma, tema, moneda y unidades.
 
-Desde la barra de navegación, el menú **Producto** da acceso directo a todas las funciones. En móvil la aplicación es completamente funcional sin overflow horizontal.
-
----
-
-### 3.2 Calculadora de ahorro energético
+### 4.2 Calculadora de ahorro energético
 
 ![Calculadora de ahorro energético](screenshots/calculadora-dark.png)
 
-Herramienta **gratuita y pública** para estimar rangos de ahorro antes de iniciar el prediagnóstico completo. Accede desde **Producto → Calculadora**.
+La calculadora es pública y rápida. Sirve para estimar rangos generales antes de hacer el diagnóstico completo.
 
-**Cómo usarla:**
+**Pasos:**
 
-1. Selecciona el **tipo de propiedad**: piso / apartamento, casa unifamiliar o adosado
-2. Introduce la **superficie** en m²
-3. Indica tu **gasto energético mensual aproximado** en euros
-4. Marca las **medidas** que te interesan: ventanas, aislamiento, aerotermia, fotovoltaica o reforma integral
-5. Pulsa **"Calcular rango orientativo"**
+1. Selecciona el tipo de vivienda.
+2. Introduce superficie.
+3. Indica gasto energético mensual aproximado.
+4. Marca las medidas que te interesan.
+5. Pulsa **Calcular rango orientativo**.
 
-| Resultado | Descripción |
-|---|---|
-| Ahorro anual | Rango orientativo de euros ahorrados por año |
-| Coste orientativo | Inversión estimada para las medidas seleccionadas |
-| Payback | Años aproximados para recuperar la inversión |
+| Resultado | Cómo leerlo |
+| --- | --- |
+| Ahorro anual | Rango de ahorro posible, no garantizado |
+| Coste orientativo | Inversión aproximada por las medidas elegidas |
+| Payback | Años aproximados de retorno |
 
-> Los resultados son orientativos. Varían según superficie real, estado inicial, calidades y zona climática.
-
----
-
-### 3.3 Wizard de prediagnóstico paso a paso
+### 4.3 Wizard de prediagnóstico
 
 ![Wizard de prediagnóstico](screenshots/wizard-dark.png)
 
-El wizard es el **núcleo de EnergyScan**. Te guía en 7 pasos para recopilar los datos de tu vivienda y generar un prediagnóstico orientativo. Accede desde **Producto → Iniciar análisis** o el botón **"Iniciar análisis gratis"** del hero.
+El wizard es el flujo principal para crear un análisis.
 
-| Paso | Qué se recoge |
-|---|---|
-| 1. Tipo de vivienda | Piso, unifamiliar, adosado, bloque… |
-| 2. Año de construcción | Determina la normativa de construcción aplicable |
-| 3. Superficie útil | Metros cuadrados habitables |
-| 4. Sistemas de climatización | Caldera, aerotermia, splits, suelo radiante… |
-| 5. Envolvente térmica | Estado de ventanas, aislamiento de fachada y cubierta |
-| 6. Datos de consumo | Facturas de luz y gas (opcional, mejora la precisión) |
-| 7. Documentación | Fotos o documentos adicionales (opcional) |
+| Paso | Qué debes indicar |
+| --- | --- |
+| Objetivo | Conocer estado, reformar, vender/alquilar u otro objetivo |
+| Datos de la vivienda | Tipo, año, superficie y código postal |
+| Orientación y cubierta | Datos que influyen en demanda térmica |
+| Sistemas | Calefacción, refrigeración, ACS, ventilación y renovables |
+| Envolvente | Ventanas, aislamiento de fachada y cubierta |
+| Horizonte y presupuesto | Plazo de actuación y rango económico |
+| Documentación | Fotos, CEE o presupuesto si quieres enriquecer el análisis |
 
-> **Consejo:** puedes buscar tu vivienda por referencia catastral o dirección para que algunos datos se rellenen automáticamente.
+### 4.4 Búsqueda catastral y documentación
+
+Cuando esté disponible, puedes buscar por dirección o referencia catastral para completar datos de ubicación y superficie. También puedes aportar documentos o imágenes.
+
+**Buenas prácticas:**
+
+- Revisa los datos importados antes de continuar.
+- No subas documentos que no tengan relación con la vivienda.
+- Evita incluir datos personales innecesarios en fotos o presupuestos.
+
+### 4.5 Resultado gratuito
+
+Al terminar el wizard verás el resultado preliminar:
+
+- Letra energética estimada.
+- Nivel de confianza.
+- Zona climática.
+- Datos capturados.
+- Penalizaciones, fortalezas y datos faltantes.
+- Vista previa de contenido Premium.
+
+Desde el resultado puedes:
+
+| Acción | Cuándo usarla |
+| --- | --- |
+| Ver resultado | Revisar el análisis básico |
+| Desbloquear Premium | Obtener escenarios completos y PDF |
+| Analizar presupuesto | Pasar a la segunda opinión de presupuesto |
+| Solicitar proveedor | Compartir datos con proveedores seleccionados cuando exista consentimiento |
+| Volver al dashboard | Recuperar historial y acciones |
 
 ---
 
-### 3.4 Resultado gratuito
+## 5. Mi panel EnergyScan
 
-Al completar el wizard se genera el resultado gratuito de forma inmediata, que incluye:
+![Dashboard conectado en escritorio](screenshots/dashboard-connected-dark.png)
 
-- **Letra de eficiencia energética estimada** (A–G) con indicador de confianza
-- **Penalizaciones detectadas** — puntos débiles del inmueble
-- **Fortalezas** del inmueble
-- **Contexto normativo** aplicable a tu vivienda
-- **Resumen de mejoras** posibles
+El dashboard es el centro de trabajo para usuarios con sesión iniciada. Accede desde `/dashboard` o desde los enlaces de la aplicación.
 
-Para obtener el análisis completo con escenarios de mejora y el PDF descargable, pasa al **informe Premium**.
+### 5.1 KPIs superiores
+
+| KPI | Qué indica |
+| --- | --- |
+| Análisis totales | Número de prediagnósticos guardados |
+| Premium desbloqueados | Análisis con PDF Premium disponible |
+| Presupuestos analizados | Budget Reviews asociados a tu cuenta |
+| Solicitudes generadas | Leads o solicitudes vinculadas a tus análisis |
+
+### 5.2 Acciones rápidas
+
+| Botón | Acción |
+| --- | --- |
+| Nuevo análisis | Abre el wizard |
+| Analizar presupuesto | Abre la segunda opinión de presupuesto |
+| Ver pricing | Muestra productos y precios |
+| Panel proveedor / Registrar proveedor | Entra o crea una cuenta de proveedor |
+
+### 5.3 Tarjetas de análisis
+
+Cada tarjeta muestra:
+
+- Letra estimada.
+- Estado: **Gratis**, **Premium**, **Demo** o **Pago pendiente**.
+- Tipo de inmueble, código postal, superficie y año.
+- Confianza del análisis.
+- Botón **Ver resultado**.
+- Botón **Descargar PDF** si está pagado.
+- Botón **Desbloquear Premium** si todavía no está pagado.
+- Acceso rápido a **Analizar presupuesto**.
+
+### 5.4 Tarjetas de presupuestos
+
+Cada presupuesto muestra:
+
+- Nombre del archivo.
+- Fecha.
+- Estado: borrador, pagado o pendiente.
+- Total detectado.
+- Confianza de extracción.
+- Acción para ver análisis o desbloquear el informe completo.
+
+### 5.5 Áreas conectadas
+
+El dashboard también muestra accesos a:
+
+| Área | Qué verás |
+| --- | --- |
+| Proveedor | Estado de proveedor, créditos, leads y billing |
+| Profesional | Estado de solicitud beta y panel de expedientes si está aprobado |
+
+### 5.6 Vista móvil
+
+![Dashboard conectado en móvil](screenshots/dashboard-connected-mobile.png)
+
+En móvil, las tablas se convierten en tarjetas. Los CTAs principales permanecen visibles y no es necesario hacer scroll horizontal.
 
 ---
 
-### 3.5 Informe Premium PDF — 9,90 €
+## 6. Informe Premium y pagos
 
 ![Página de precios](screenshots/pricing-dark.png)
 
-Pago único de **9,90 €** (precio de lanzamiento; precio estándar 14,90 €). Sin suscripción.
+El **Informe Premium PDF** es un producto de pago único para un análisis concreto.
 
-| Sección del PDF | Contenido |
-|---|---|
-| Diagnóstico completo | Letra estimada, consumo no renovable, emisiones, nivel de confianza |
-| Escenarios de mejora | 2–3 escenarios con coste orientativo, ahorro y retorno |
-| Costes por partida | Desglose de instalaciones con rangos de mercado |
-| Guía normativa | Directiva EPBD aplicable, plazos y obligaciones |
-| Subsidios | Ayudas disponibles (PREE, fondos europeos) para tu perfil |
-| Anexo documental | Datos catastrales, metodología y supuestos |
+### 6.1 Qué incluye
 
-**Cómo obtenerlo:**
+| Sección | Contenido |
+| --- | --- |
+| Diagnóstico completo | Letra, confianza, contexto y factores principales |
+| Escenarios de mejora | Recomendaciones agrupadas por prioridad |
+| Costes orientativos | Rangos por partidas o medidas |
+| Normativa | Contexto EPBD y riesgos orientativos |
+| Ayudas/subsidios | Referencias informativas, no garantía de concesión |
+| Anexo documental | Datos aportados y trazabilidad disponible |
 
-1. Completa el wizard (gratuito)
-2. En el resultado, pulsa **"Empezar Premium · 9,90 €"**
-3. Paga con tarjeta en la pasarela segura de Stripe
-4. El PDF se desbloquea de forma inmediata y queda disponible en **Mi panel**
+### 6.2 Cómo desbloquearlo
 
-> El PDF es orientativo y no tiene validez administrativa. No sustituye al CEE oficial emitido por un técnico habilitado.
+1. Completa un análisis.
+2. En el resultado o en el dashboard, pulsa **Desbloquear Premium**.
+3. Revisa el checkout de Stripe.
+4. Completa el pago con tarjeta en modo seguro.
+5. Vuelve al resultado o al dashboard.
+6. Pulsa **Descargar PDF**.
+
+### 6.3 Estados de pago
+
+| Estado | Significado |
+| --- | --- |
+| Gratis | El análisis existe, pero Premium no está desbloqueado |
+| Pago pendiente | Se inició checkout, pero falta confirmación |
+| Premium | El pago está confirmado y el PDF está disponible |
+| Demo | Modo de ejemplo autorizado |
+
+> Si acabas de pagar y todavía aparece pendiente, espera unos segundos y recarga la página. La confirmación depende del webhook de Stripe.
 
 ---
 
-### 3.6 Segunda opinión de presupuesto — 19,90 €
+## 7. Segunda opinión de presupuesto
 
 ![Segunda opinión de presupuesto](screenshots/budget-review-dark.png)
 
-¿Tienes un presupuesto de reforma y quieres saber si los precios son razonables antes de firmarlo? Accede desde **Producto → Presupuestos**.
+La segunda opinión analiza un presupuesto de reforma para detectar partidas, importes y posibles alertas.
 
-**Formatos compatibles:**
+### 7.1 Cuándo usarla
 
-| Tipo | Ejemplos |
-|---|---|
-| Texto plano | Presupuestos en Word/email copiados |
-| Tabla exportada | Excel, Calc, LibreOffice → PDF |
-| Líder punteado | Word/Writer con capítulos y puntos |
-| Códigos Presto/Arquimedes | Software de mediciones |
-| Listas con viñetas | Presupuestos tipo lista numerada |
+Úsala antes de aceptar un presupuesto de:
 
-**Resultado gratuito:** número de partidas detectadas, importe total extraído y nivel de confianza del análisis.
+- Ventanas.
+- Aislamiento.
+- Aerotermia o climatización.
+- Fotovoltaica.
+- Reforma energética integral.
 
-**Informe completo (19,90 €):** análisis detallado de cada partida — precios elevados, bajos o dentro del rango orientativo — y alerta si el presupuesto supera los 30.000 €.
+### 7.2 Formatos admitidos
 
-**Cómo usarlo:**
+| Formato | Ejemplo |
+| --- | --- |
+| Texto pegado | Copia desde email, Word o PDF |
+| PDF con texto | Presupuesto exportado desde un editor |
+| Tablas | Excel/LibreOffice exportado a PDF |
+| Listas | Presupuestos con viñetas o capítulos |
+| Códigos de obra | Formatos tipo Presto/Arquimedes si el texto es legible |
 
-1. Pega el texto o sube el PDF del presupuesto
-2. Pulsa **"Analizar presupuesto"** y revisa el resultado gratuito
-3. Para el análisis completo, pulsa **"Desbloquear informe completo 19,90 EUR"**
+### 7.3 Resultado gratuito
 
-> Este análisis es automático y orientativo. No sustituye la revisión de un técnico, arquitecto o aparejador.
+El resultado gratuito muestra:
+
+- Número de partidas detectadas.
+- Total detectado.
+- Confianza del análisis.
+- Alertas generales.
+
+### 7.4 Informe completo
+
+El informe completo es independiente del Premium residencial y tiene su propio pago.
+
+Incluye:
+
+- Revisión de partidas.
+- Posibles precios fuera de rango.
+- Alertas de presupuesto elevado.
+- Observaciones orientativas.
+
+> No sustituye la revisión de un técnico, arquitecto, aparejador, asesor legal o contratista tras medición real.
 
 ---
 
-### 3.7 Mi panel (dashboard)
+## 8. Área profesional beta
 
-![Panel de usuario](screenshots/dashboard-dark.png)
-
-El panel personal centraliza tu historial. Accede desde el menú superior o en `/dashboard`.
-
-| Sección | Contenido |
-|---|---|
-| Mis análisis | Historial de prediagnósticos realizados, con fecha y tipo (Gratis / Premium) |
-| Mis presupuestos | Presupuestos analizados, total detectado y estado de pago |
-| Accesos rápidos | "Nuevo análisis" → wizard · "Analizar presupuesto" → budget review |
-| Área proveedor | Si tienes cuenta de proveedor, acceso directo al panel |
-
-> Para ver tu historial necesitas iniciar sesión. Los análisis realizados sin cuenta no se guardan automáticamente.
-
----
-
-## 4. Para profesionales
-
-### 4.1 Acceso profesional beta
+### 8.1 Página profesional
 
 ![Página profesional](screenshots/profesional-dark.png)
 
-EnergyScan ofrece un **plan profesional en fase beta** para técnicos y empresas del sector inmobiliario y energético: certificadores, arquitectos técnicos, asesores energéticos, agencias inmobiliarias y gestores de patrimonio.
+El área profesional está pensada para certificadores, arquitectos técnicos, asesores energéticos e inmobiliarias que quieren preevaluar viviendas antes de una revisión oficial.
 
-| Función | Descripción |
-|---|---|
-| Multi-expediente | Gestión de múltiples viviendas en un solo panel |
-| Informes con marca | PDF con logo e identidad de tu empresa |
-| Preevaluación de clientes | Informes orientativos para clientes antes del CEE oficial |
-| Acceso beta prioritario | Funciones nuevas antes que otros usuarios |
+Funciones previstas:
 
-**Precio:** desde 49 EUR/mes · acceso beta limitado
+| Función | Estado |
+| --- | --- |
+| Multi-expediente | Disponible en MVP con análisis asociados al usuario |
+| Historial | Disponible desde el panel |
+| PDF con marca | Próximamente |
+| Gestión avanzada de clientes | Próximamente |
+| Cuotas mensuales | Próximamente |
 
-> El plan profesional no es una plataforma de emisión de CEE oficial. Los informes requieren validación profesional cuando proceda.
-
----
-
-### 4.2 Solicitar acceso
+### 8.2 Solicitar acceso beta
 
 ![Formulario de solicitud profesional](screenshots/profesional-solicitar-dark.png)
 
-1. Accede a **Producto → Profesional** y pulsa **"Solicitar acceso profesional beta"**
-2. Rellena el formulario: nombre, email, empresa, perfil profesional y descripción de tu caso
-3. Pulsa **"Enviar solicitud"**
+Pasos:
 
-Recibirás respuesta por email. Los cupos beta son limitados.
+1. Entra en **Profesional**.
+2. Pulsa **Solicitar acceso profesional beta**.
+3. Indica nombre, email, empresa, perfil y caso de uso.
+4. Envía la solicitud.
+
+Si ya existe una solicitud para el mismo email, EnergyScan no crea duplicados y mostrará el estado existente.
+
+### 8.3 Estados de acceso
+
+| Estado | Qué significa |
+| --- | --- |
+| Sin solicitud | Todavía no has pedido acceso beta |
+| Pendiente | La solicitud está en revisión |
+| Aprobado | Puedes entrar al panel profesional |
+| Rechazado | No se ha aprobado por ahora |
+
+### 8.4 Panel profesional
+
+![Panel profesional beta](screenshots/profesional-dashboard-dark.png)
+
+Cuando el acceso está aprobado, el panel muestra:
+
+- Estado de acceso.
+- Acciones rápidas: nuevo análisis de cliente, panel residencial, solicitar plan Pro.
+- Expedientes asociados al usuario.
+- Estado Premium de cada expediente.
+- Acceso al resultado o PDF si está disponible.
+- Bloque de funciones beta próximas.
+
+> En el MVP, los expedientes se corresponden con análisis guardados por el usuario profesional. La gestión avanzada de cliente/alias y branding queda preparada para fases posteriores.
 
 ---
 
-## 5. Para proveedores
+## 9. Área de proveedores
 
-### 5.1 Marketplace de proveedores
+### 9.1 Marketplace de proveedores
 
 ![Marketplace de proveedores](screenshots/proveedores-dark.png)
 
-El marketplace conecta **empresas del sector** (instaladores, certificadores, constructoras de rehabilitación) con **usuarios que han completado un prediagnóstico** y tienen intención de actuar.
+El marketplace conecta proveedores con usuarios que han completado un prediagnóstico y han solicitado contacto.
 
-| Beneficio | Detalle |
-|---|---|
-| Leads cualificados | Usuarios con diagnóstico completado que buscan soluciones |
-| Panel de gestión | Visualiza y gestiona tus leads asignados |
-| Créditos trazables | Modelo prepago: compras créditos y los consumes al desbloquear contactos |
-| Sin cuota mensual | Pagas solo por los leads que recibes |
+Perfiles típicos:
 
----
+- Instaladores de climatización.
+- Empresas de ventanas.
+- Empresas de aislamiento.
+- Fotovoltaica.
+- Certificadores y técnicos.
+- Constructoras de rehabilitación.
 
-### 5.2 Registro de proveedor
+### 9.2 Registro de proveedor
 
 ![Registro de proveedor](screenshots/provider-register-dark.png)
 
-Ve a **Proveedores** en el menú y pulsa **"Registrar proveedor"**. Rellena el formulario:
+Para registrarte:
 
-| Campo | Descripción |
-|---|---|
-| Empresa | Nombre comercial o razón social |
-| Email | Email de contacto principal |
-| Teléfono | Número de contacto |
-| Categorías | Servicios: HVAC, SOLAR, WINDOWS, CEE… (separadas por coma) |
-| Zonas | Áreas donde operas: Mallorca, Palma… (separadas por coma) |
+1. Entra en **Proveedores**.
+2. Pulsa **Registrar proveedor**.
+3. Completa empresa, email, teléfono, web, categorías y zonas.
+4. Envía el formulario.
 
-Tu solicitud será revisada antes de activar la cuenta. Recibirás confirmación por email.
+| Campo | Consejo |
+| --- | --- |
+| Categorías | Usa códigos claros: HVAC, SOLAR, WINDOWS, INSULATION, CEE |
+| Zonas | Indica zonas comerciales reales: Palma, Mallorca, Baleares |
+| Email | Usa un correo operativo para notificaciones |
 
----
+El proveedor puede estar en estados como **PENDING**, **VERIFIED**, **PREFERRED**, **SUSPENDED** o similares según revisión interna.
 
-### 5.3 Panel de proveedor
+### 9.3 Panel de proveedor
 
 ![Panel de proveedor](screenshots/provider-dashboard-dark.png)
 
-Accede en **Mi panel → Área proveedor** o en `/provider/dashboard`.
+El panel de proveedor muestra:
 
-| Dato | Qué indica |
-|---|---|
-| Créditos disponibles | Saldo para desbloquear leads |
-| Estado | ACTIVE / PENDING / INACTIVE |
+| Elemento | Qué indica |
+| --- | --- |
+| Nombre del proveedor | Empresa asociada a la cuenta |
+| Estado | Revisión o nivel comercial |
+| Créditos | Saldo para desbloquear contactos |
+| Leads totales | Solicitudes asignadas |
+| Desbloqueados | Contactos ya accesibles |
+| Pendientes | Leads sin gestionar |
+| Ganados/perdidos | Seguimiento comercial |
 
-Desde el panel puedes ver los leads asignados y comprar packs de créditos adicionales.
+Si el proveedor está pendiente, puede preparar el panel, pero la asignación comercial puede estar limitada.
+
+### 9.4 Leads asignados
+
+![Leads de proveedor](screenshots/provider-leads-dark.png)
+
+Cada lead muestra información no personal:
+
+- Servicio solicitado.
+- Zona.
+- Urgencia.
+- Fecha.
+- Estado comercial.
+- Tipo de inmueble si hay análisis asociado.
+- Código postal o zona.
+- Letra estimada.
+- Presupuesto orientativo si existe.
+
+### 9.5 Contacto bloqueado y desbloqueo
+
+Por privacidad, los datos personales están bloqueados al principio:
+
+| Antes de desbloquear | Después de desbloquear |
+| --- | --- |
+| No se muestra nombre | Se muestra nombre si existe |
+| No se muestra email | Se muestra email |
+| No se muestra teléfono | Se muestra teléfono |
+| No consume crédito | Ya se ha registrado consumo |
+
+Para desbloquear:
+
+1. Revisa el contexto técnico del lead.
+2. Comprueba que tienes créditos.
+3. Pulsa **Desbloquear contacto**.
+4. Se consume 1 crédito.
+5. El contacto queda visible.
+6. El consumo queda registrado en el ledger.
+
+Si ya habías desbloqueado ese lead, volver a abrirlo no consume otro crédito.
+
+### 9.6 Cambiar estado comercial
+
+En cada lead puedes actualizar el estado:
+
+| Estado | Uso recomendado |
+| --- | --- |
+| Pendiente | Lead nuevo o sin revisar |
+| Contactado | Ya has contactado al usuario |
+| Presupuestado | Has enviado presupuesto |
+| Ganado | Trabajo cerrado |
+| Perdido | No se cerró |
+| Cancelado | Solicitud descartada |
+
+### 9.7 Créditos y billing
+
+![Créditos de proveedor](screenshots/provider-billing-dark.png)
+
+Los créditos se compran en packs mediante Stripe.
+
+| Elemento | Descripción |
+| --- | --- |
+| Saldo actual | Créditos disponibles |
+| Pack de leads | Compra prepago para desbloquear contactos |
+| Verificando pago | Estado temporal hasta que Stripe confirma |
+| Ledger | Registro interno de compras y consumos |
+
+> Los datos personales de leads solo pueden usarse para la solicitud consentida. EnergyScan no garantiza cierres comerciales ni resultados de obra.
 
 ---
 
-### 5.4 Leads y créditos
+## 10. Cookies, privacidad y datos personales
 
-**Cómo funcionan:**
+### 10.1 Banner de cookies
 
-1. Un usuario completa el wizard y solicita contacto con proveedores de tu categoría y zona
-2. El lead aparece en tu panel con información básica (tipo de servicio, zona, urgencia)
-3. El **nombre y datos de contacto están bloqueados** hasta que consumas un crédito
-4. Una vez desbloqueado, contactas al usuario directamente
+![Panel de cookies](screenshots/cookies-banner-dark.png)
 
-Los créditos se venden en **packs prepago** de 300 EUR a través de Stripe. Desde **Mi panel → Leads** puedes gestionar todos tus leads asignados.
-
-> Los datos personales de los leads solo deben usarse cuando exista consentimiento conforme a la normativa de protección de datos.
-
----
-
-## 6. Preguntas frecuentes
-
-**¿EnergyScan emite certificados de eficiencia energética oficiales?**  
-No. EnergyScan genera prediagnósticos orientativos. El CEE oficial debe emitirlo un técnico habilitado registrado en el organismo competente de tu comunidad autónoma.
-
-**¿Los resultados son vinculantes?**  
-No. Son estimaciones basadas en los datos que introduces y en bases de datos de referencia. Los costes, ahorros y la calificación pueden variar según las condiciones reales del inmueble.
-
-**¿Puedo pedir un reembolso del informe Premium?**  
-Consulta nuestra política de reembolso en los términos y condiciones. Al tratarse de contenido digital descargable, el reembolso está sujeto a condiciones específicas.
-
-**¿Mis datos están seguros?**  
-Sí. Los datos se almacenan de forma segura y no se comparten con terceros sin consentimiento explícito. Consulta la política de privacidad para más detalles.
-
-**¿El análisis de presupuesto funciona con cualquier PDF?**  
-Es compatible con los formatos más habituales: texto plano, tablas exportadas desde Excel/LibreOffice, listas con viñetas, formatos Presto o Arquimedes, y PDF con texto legible. La calidad del análisis depende de la legibilidad del documento.
-
-**¿Puedo cambiar el idioma?**  
-Sí. Desde el menú de preferencias puedes cambiar entre español, inglés y alemán.
-
-**¿Qué pasa si no tengo cuenta y completo el wizard?**  
-Tu análisis se genera correctamente, pero no se guarda en el historial. Para recuperarlo, crea una cuenta antes de iniciar el análisis o justo al finalizar.
-
----
-
-## 7. Cookies y privacidad
-
-### Panel de cookies
-
-La primera vez que visitas EnergyScan aparece el **panel de preferencias de cookies**. Puedes elegir qué tipos de cookies aceptas.
-
-![Panel de cookies — modo oscuro](screenshots/cookies-banner-dark.png)
+La primera visita muestra un panel con tres opciones:
 
 | Opción | Qué hace |
 | --- | --- |
-| **Aceptar todas** | Activa cookies necesarias, analíticas y de marketing |
-| **Configuración** | Abre el panel de gestión detallado |
-| **Rechazar opcionales** | Solo se usan las cookies estrictamente necesarias |
+| Aceptar todas | Activa cookies necesarias, analíticas y marketing |
+| Configuración | Permite elegir por categoría |
+| Rechazar opcionales | Mantiene solo las necesarias |
 
-### Gestionar preferencias
+### 10.2 Configuración detallada
 
-Al pulsar **"Configuración"** se abre el panel detallado donde puedes activar o desactivar cada categoría de forma independiente.
+![Configuración de cookies](screenshots/cookies-settings-dark.png)
 
-![Gestionar cookies — modo oscuro](screenshots/cookies-settings-dark.png)
-
-| Categoría | Descripción | Obligatoria |
+| Categoría | Finalidad | Obligatoria |
 | --- | --- | --- |
-| **Necesarias** | Sesión, autenticación y funcionamiento básico | Sí |
-| **Analíticas** | Medición de uso para mejorar la experiencia | No |
-| **Marketing** | Personalización y publicidad relevante | No |
+| Necesarias | Sesión, login y funcionamiento básico | Sí |
+| Analíticas | Medición agregada para mejorar producto | No |
+| Marketing | Personalización o campañas | No |
 
-Una vez guardadas las preferencias, puedes **cambiarlas en cualquier momento** pulsando el icono de cookie 🍪 en la esquina inferior derecha de cualquier página.
+Puedes cambiar preferencias desde el icono de cookie situado en la esquina inferior derecha.
+
+### 10.3 Privacidad de leads
+
+EnergyScan aplica una regla simple:
+
+**ningún proveedor debe ver nombre, email o teléfono de un lead hasta que el contacto esté desbloqueado y exista consentimiento.**
+
+Los proveedores solo deben usar esos datos para la finalidad solicitada por el usuario.
 
 ---
 
-## 8. Aviso legal y documentación legal
+## 11. Preguntas frecuentes
+
+**¿EnergyScan emite certificados oficiales?**  
+No. EnergyScan solo genera prediagnósticos orientativos. El CEE oficial debe emitirlo un técnico habilitado.
+
+**¿El resultado gratuito es suficiente para vender o alquilar?**  
+No. Para vender o alquilar necesitas un CEE oficial cuando la normativa aplicable lo exija.
+
+**¿Qué diferencia hay entre resultado gratuito y Premium?**  
+El gratuito muestra una estimación básica. Premium añade escenarios, costes, contexto ampliado y PDF descargable.
+
+**¿El Budget Review está incluido en Premium?**  
+No. Es un producto independiente para analizar presupuestos de reforma.
+
+**¿Puedo recuperar mis análisis?**  
+Sí, si los hiciste con sesión iniciada. Están en el dashboard.
+
+**¿Puedo cambiar idioma o tema?**  
+Sí. Usa el selector de preferencias de la barra superior.
+
+**¿Qué pasa si un pago aparece pendiente?**  
+Espera unos segundos y recarga. Stripe confirma el pago mediante webhook.
+
+**¿Un proveedor puede ver mi teléfono automáticamente?**  
+No. Solo cuando exista una solicitud consentida y el proveedor desbloquee el contacto.
+
+**¿Los proveedores están garantizados por EnergyScan?**  
+No. Un estado verificado o preferente puede indicar revisión interna, pero no garantiza obra, precio, ahorro ni resultado.
+
+---
+
+## 12. Glosario rápido
+
+| Término | Significado |
+| --- | --- |
+| Assessment | Análisis o prediagnóstico de una vivienda |
+| Budget Review | Segunda opinión de presupuesto |
+| Premium | Informe pagado con PDF y contenido ampliado |
+| Lead | Solicitud de contacto asignada a proveedor |
+| Crédito | Unidad que permite desbloquear un contacto |
+| Ledger | Registro trazable de compra o consumo de créditos |
+| Profesional beta | Acceso anticipado para técnicos y empresas |
+| CEE | Certificado de Eficiencia Energética oficial |
+
+---
+
+## 13. Aviso legal
 
 ![Aviso legal](screenshots/legal-dark.png)
 
-**Anclora EnergyScan** proporciona estimaciones orientativas basadas en datos declarados o documentos aportados. Los documentos legales están accesibles desde el **footer** de cualquier página.
+Anclora EnergyScan proporciona estimaciones orientativas basadas en datos declarados, documentos aportados y modelos internos.
 
-| Documento | Contenido resumido |
+### Documentos legales
+
+| Documento | Dónde verlo |
 | --- | --- |
-| **Aviso legal** | Titularidad, condiciones de uso y limitación de responsabilidad |
-| **Términos y condiciones** | Condiciones de contratación de servicios y productos de pago |
-| **Política de privacidad** | Tratamiento de datos personales, derechos RGPD y cookies |
+| Aviso legal | Footer de la web |
+| Términos y condiciones | Footer de la web |
+| Política de privacidad | Footer de la web |
+| Preferencias de cookies | Icono de cookie |
 
-**Limitaciones importantes:**
+### Limitaciones importantes
 
-- No sustituye al **Certificado de Eficiencia Energética oficial** ni tiene validez administrativa
-- No garantiza ahorros, costes ni resultados concretos
-- Los rangos de coste deben validarse con mediciones y fuentes oficiales
-- Para ayudas activas (PREE, fondos europeos) consulta siempre las fuentes oficiales vigentes
-
----
+- No sustituye el Certificado de Eficiencia Energética oficial.
+- No tiene validez administrativa.
+- No garantiza ahorros, costes, subvenciones ni mejoras de letra.
+- Los presupuestos deben revisarse con técnicos o contratistas cualificados.
+- Las ayudas públicas deben comprobarse siempre en fuentes oficiales vigentes.
+- Los datos personales de leads deben tratarse conforme a RGPD y consentimiento.
 
 <div class="footer-brand">
 
 *Anclora EnergyScan · Anclora Group*  
-*Manual de usuario v1.0 — mayo 2026*
+*Manual de usuario v1.1 — mayo 2026*
 
 </div>
