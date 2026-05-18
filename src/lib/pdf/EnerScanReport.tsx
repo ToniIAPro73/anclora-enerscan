@@ -2,6 +2,8 @@ import React from 'react';
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 import { styles } from './styles';
 import { AssessmentAttachment, PremiumReportData } from '../domain/energy-assessment';
+import { getEvidenceFieldLabel, getEvidenceSourceLabel, getEvidenceConfidenceLabel } from '../evidence/evidence-matrix';
+import { getElementLabel, getCategoryLabel } from '../condition-risk/types';
 import { getLegalDisclaimer, translateConfidence } from '../i18n';
 import { formatFileSize } from '../attachments';
 import { getPublicAssessmentRef } from '../stateless-assessment';
@@ -89,6 +91,36 @@ const labels = {
     value: 'Valor',
     review: 'Revisión',
     budgetImpactDisclaimer: 'El impacto energético estimado de las reformas presupuestadas es orientativo. La mejora real dependerá de proyecto, ejecución, materiales, sistemas existentes y cálculo técnico oficial.',
+    evidenceMatrixTitle: 'Matriz de evidencias y confianza',
+    evidenceMatrixSubtitle: 'Origen y fiabilidad de los datos clave utilizados en el prediagnóstico',
+    evidenceColField: 'Campo',
+    evidenceColValue: 'Valor',
+    evidenceColSource: 'Fuente',
+    evidenceColConfidence: 'Confianza',
+    evidenceReview: 'Revisar',
+    evidenceNA: 'No disponible',
+    checklistTitle: 'Checklist para técnico y proveedor',
+    checklistSubtitle: 'Preguntas clave a validar antes de presupuestar o ejecutar',
+    checklistItems: [
+      '¿La superficie usada corresponde a útil, construida o catastral?',
+      '¿El presupuesto desglosa mediciones por partida?',
+      '¿La mejora propuesta requiere licencia o autorización comunitaria?',
+      '¿La solución afecta a fachada, cubierta o elementos comunes?',
+      '¿Se han considerado puentes térmicos y ventilación?',
+      '¿Las ayudas/subvenciones están activas y son compatibles con el caso?',
+      '¿La instalación requiere legalización o inspección técnica?',
+      '¿El CEE aportado está vigente y corresponde al estado actual?',
+    ],
+    unknownWithoutVisitTitle: 'Qué no sabemos sin visita técnica presencial',
+    unknownWithoutVisitItems: [
+      'Estado real de la envolvente (fachada, cubierta, puentes térmicos)',
+      'Patologías ocultas: humedades, condensación, grietas estructurales',
+      'Estado de las instalaciones (calefacción, fontanería, electricidad)',
+      'Ventilación real y renovación de aire',
+      'Mediciones exactas de superficie y alturas',
+      'Cumplimiento técnico definitivo de soluciones propuestas',
+    ],
+    unknownWithoutVisitDisclaimer: 'Este informe es un prediagnóstico orientativo. No sustituye la inspección de un técnico competente ni el Certificado de Eficiencia Energética oficial.',
   },
   en: {
     title: 'Anclora EnergyScan Premium Report',
@@ -167,6 +199,36 @@ const labels = {
     value: 'Value',
     review: 'Review',
     budgetImpactDisclaimer: 'The estimated energy impact of quoted works is indicative. Real improvement depends on design, execution, materials, existing systems and official technical calculation.',
+    evidenceMatrixTitle: 'Evidence & confidence matrix',
+    evidenceMatrixSubtitle: 'Origin and reliability of the key data used in the pre-assessment',
+    evidenceColField: 'Field',
+    evidenceColValue: 'Value',
+    evidenceColSource: 'Source',
+    evidenceColConfidence: 'Confidence',
+    evidenceReview: 'Review',
+    evidenceNA: 'N/A',
+    checklistTitle: 'Checklist for technician and contractor',
+    checklistSubtitle: 'Key questions to validate before quoting or executing works',
+    checklistItems: [
+      'Does the applied area correspond to useful, built or cadastral surface?',
+      'Does the quote break down measurements by line item?',
+      'Does the proposed improvement require a licence or community approval?',
+      'Does the solution affect facade, roof or common elements?',
+      'Have thermal bridges and ventilation been considered?',
+      'Are grants/subsidies active and compatible with this case?',
+      'Does the installation require regulatory approval or technical inspection?',
+      'Is the submitted EPC current and does it reflect the actual state?',
+    ],
+    unknownWithoutVisitTitle: 'What we cannot know without an on-site visit',
+    unknownWithoutVisitItems: [
+      'Actual condition of the building envelope (facade, roof, thermal bridges)',
+      'Hidden pathologies: dampness, condensation, structural cracks',
+      'Condition of installations (heating, plumbing, electrical)',
+      'Actual ventilation and air renewal rate',
+      'Exact measurements of area and heights',
+      'Definitive technical compliance of proposed solutions',
+    ],
+    unknownWithoutVisitDisclaimer: 'This report is an indicative pre-assessment. It does not replace an inspection by a qualified technician or the official Energy Performance Certificate.',
   },
   de: {
     title: 'Anclora EnergyScan Premium-Bericht',
@@ -245,6 +307,36 @@ const labels = {
     value: 'Wert',
     review: 'Prüfung',
     budgetImpactDisclaimer: 'Die geschätzte energetische Wirkung angebotener Arbeiten ist orientierend. Die tatsächliche Verbesserung hängt von Planung, Ausführung, Materialien, bestehenden Systemen und offizieller technischer Berechnung ab.',
+    evidenceMatrixTitle: 'Belege- und Zuverlässigkeitsmatrix',
+    evidenceMatrixSubtitle: 'Herkunft und Zuverlässigkeit der Schlüsseldaten der Voreinschätzung',
+    evidenceColField: 'Feld',
+    evidenceColValue: 'Wert',
+    evidenceColSource: 'Quelle',
+    evidenceColConfidence: 'Zuverlässigkeit',
+    evidenceReview: 'Prüfen',
+    evidenceNA: 'N/V',
+    checklistTitle: 'Checkliste für Fachleute und Anbieter',
+    checklistSubtitle: 'Wesentliche Fragen vor der Angebotserstellung oder Ausführung',
+    checklistItems: [
+      'Entspricht die verwendete Fläche dem Nutz-, Bau- oder Katastermaß?',
+      'Schlüsselt das Angebot Mengen je Position auf?',
+      'Erfordert die vorgeschlagene Maßnahme eine Genehmigung oder Gemeinschaftsbeschluss?',
+      'Betrifft die Lösung Fassade, Dach oder Gemeinschaftselemente?',
+      'Wurden Wärmebrücken und Lüftung berücksichtigt?',
+      'Sind Förderungen aktiv und für diesen Fall kompatibel?',
+      'Ist für die Installation eine behördliche Zulassung erforderlich?',
+      'Ist der eingereichte Energieausweis aktuell und entspricht dem Istzustand?',
+    ],
+    unknownWithoutVisitTitle: 'Was ohne Vor-Ort-Besuch unbekannt bleibt',
+    unknownWithoutVisitItems: [
+      'Tatsächlicher Zustand der Gebäudehülle (Fassade, Dach, Wärmebrücken)',
+      'Verdeckte Schäden: Feuchtigkeit, Kondensation, Risse',
+      'Zustand der Installationen (Heizung, Sanitär, Elektro)',
+      'Tatsächliche Lüftung und Luftwechselrate',
+      'Genaue Maße der Flächen und Raumhöhen',
+      'Endgültige technische Konformität der vorgeschlagenen Lösungen',
+    ],
+    unknownWithoutVisitDisclaimer: 'Dieser Bericht ist eine orientierende Voreinschätzung. Er ersetzt weder die Prüfung durch qualifizierte Fachleute noch den offiziellen Energieausweis.',
   },
 } as const;
 
@@ -693,6 +785,98 @@ export const EnerScanReport = ({ data }: { data: PremiumReportData }) => {
             ))}
           </View>
         )}
+      </View>
+
+      <View style={styles.disclaimer}>
+        <Text>{getLegalDisclaimer(language)}</Text>
+      </View>
+    </Page>
+
+    {/* Evidence Matrix + Checklist + Unknown without visit */}
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header} fixed>
+        <View style={styles.brandHeader}>
+          {data.logoDataUri && (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={data.logoDataUri} style={styles.logo} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t.title}</Text>
+            <Text style={{ ...styles.text }}>{t.id}: {reportRef} | {t.date}: {data.date}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Evidence Matrix */}
+      {data.evidenceItems && data.evidenceItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.evidenceMatrixTitle}</Text>
+          <Text style={{ ...styles.text, marginBottom: 6 }}>{t.evidenceMatrixSubtitle}</Text>
+          {/* Header row */}
+          <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#00DC82', paddingBottom: 3, marginBottom: 4 }}>
+            <Text style={{ ...styles.text, flex: 2, fontWeight: 'bold', fontSize: 8 }}>{t.evidenceColField}</Text>
+            <Text style={{ ...styles.text, flex: 2, fontWeight: 'bold', fontSize: 8 }}>{t.evidenceColValue}</Text>
+            <Text style={{ ...styles.text, flex: 2, fontWeight: 'bold', fontSize: 8 }}>{t.evidenceColSource}</Text>
+            <Text style={{ ...styles.text, flex: 1, fontWeight: 'bold', fontSize: 8 }}>{t.evidenceColConfidence}</Text>
+          </View>
+          {data.evidenceItems.slice(0, 12).map((item) => (
+            <View key={item.key} style={{ flexDirection: 'row', paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#262626' }}>
+              <Text style={{ ...styles.text, flex: 2, fontSize: 8 }}>{getEvidenceFieldLabel(item.key, language)}</Text>
+              <Text style={{ ...styles.text, flex: 2, fontSize: 8 }}>
+                {item.value != null && item.value !== '' ? String(item.value) : t.evidenceNA}
+                {item.requiresReview ? ` [${t.evidenceReview}]` : ''}
+              </Text>
+              <Text style={{ ...styles.text, flex: 2, fontSize: 8 }}>{getEvidenceSourceLabel(item.source, language)}</Text>
+              <Text style={{ ...styles.text, flex: 1, fontSize: 8, color: item.confidence === 'high' ? '#00DC82' : item.confidence === 'medium' ? '#FFB020' : item.confidence === 'low' ? '#EF4444' : '#7A7A7A' }}>
+                {getEvidenceConfidenceLabel(item.confidence, language)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Condition & Risk summary in PDF */}
+      {data.conditionRiskItems && data.conditionRiskItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {language === 'en' ? 'Condition & Risk (Indicative)' : language === 'de' ? 'Zustand & Risiko (Orientierend)' : 'Estado & Riesgo (Orientativo)'}
+          </Text>
+          {data.conditionRiskItems
+            .filter((i) => i.category >= 2)
+            .slice(0, 6)
+            .map((item) => (
+            <View key={item.element} style={{ flexDirection: 'row', paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#262626' }}>
+              <Text style={{ ...styles.text, flex: 3, fontSize: 8 }}>{getElementLabel(item.element, language)}</Text>
+              <Text style={{ ...styles.text, flex: 2, fontSize: 8, color: item.category === 3 ? '#EF4444' : '#FFB020' }}>
+                {getCategoryLabel(item.category, language)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Checklist for technician */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.checklistTitle}</Text>
+        <Text style={{ ...styles.text, marginBottom: 6 }}>{t.checklistSubtitle}</Text>
+        {t.checklistItems.map((item: string, i: number) => (
+          <View key={i} style={styles.bullet}>
+            <Text style={styles.bulletPoint}>□</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* What we don't know without visit */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.unknownWithoutVisitTitle}</Text>
+        {t.unknownWithoutVisitItems.map((item: string, i: number) => (
+          <View key={i} style={styles.bullet}>
+            <Text style={styles.bulletPoint}>•</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+        <Text style={{ ...styles.text, color: '#856404', fontSize: 8, marginTop: 8 }}>{t.unknownWithoutVisitDisclaimer}</Text>
       </View>
 
       <View style={styles.disclaimer}>
